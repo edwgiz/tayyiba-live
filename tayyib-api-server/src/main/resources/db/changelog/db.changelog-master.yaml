@@ -1,0 +1,51 @@
+databaseChangeLog:
+  - changeSet:
+      id: 00001
+      author: edwgiz@gmail.com
+      changes:
+        - createTable:
+            tableName: nutrition_class
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: parent_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_nutrition_class__nutrition_class
+                    references: nutrition_class(id)
+              - column:
+                  name: name
+                  type: varchar(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: description
+                  type: text
+        - createTable:
+            tableName: nutrition_class_link
+            columns:
+              - column:
+                  name: id
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: nutrition
+                  type: uuid
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_nutrition_class_link__nutrition_class
+                    references: nutrition_class(id)
+              - column:
+                  name: url
+                  type: text
+
+
+

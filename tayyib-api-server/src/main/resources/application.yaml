@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: Tayyib Backend
+
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/tayyib
+    username: tayyib
+    password: tayyib_local

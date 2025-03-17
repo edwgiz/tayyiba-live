@@ -3,7 +3,7 @@ package com.github.edwgiz.tayyib.adapter.in.dgs.fetcher;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.github.edwgiz.tayyib.adapter.in.dgs.dto.Show;
+import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.Show;
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsQuery;
 import com.netflix.graphql.dgs.InputArgument;
@@ -25,7 +25,7 @@ public class ShowsDataFetcher {
             return shows;
         }
 
-        return shows.stream().filter(s -> s.title().contains(titleFilter)).collect(Collectors.toList());
+        return shows.stream().filter(s -> s.getTitle().contains(titleFilter)).collect(Collectors.toList());
     }
 }
 

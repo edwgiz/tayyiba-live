@@ -1,0 +1,1 @@
+package com.github.edwgiz.tayyib.adapter.common.dgs.dto;
