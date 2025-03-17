@@ -47,11 +47,16 @@
                     <generateInterfaces>false</generateInterfaces>
                     <packageName>com.github.edwgiz.tayyib.adapter.commons.dgs</packageName>
                     <subPackageNameTypes>dto</subPackageNameTypes>
+                    <typeMapping>
+                        <ID>java.util.UUID</ID>
+                        <Upload>org.springframework.web.multipart.MultipartFile</Upload>
+                    </typeMapping>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <phase>generate-sources</phase>

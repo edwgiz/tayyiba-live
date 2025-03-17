@@ -1,8 +1,20 @@
 spring:
   application:
     name: Tayyib Backend
+  threads:
+    virtual:
+      enabled: true
 
   datasource:
     url: jdbc:postgresql://127.0.0.1:5432/tayyib
     username: tayyib
     password: tayyib_local
+
+dgs:
+  graphql:
+    virtualthreads:
+      enabled: true
+
+logging:
+  level:
+    root: info

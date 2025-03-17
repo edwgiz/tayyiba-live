@@ -19,19 +19,25 @@
 
     <dependencies>
         <dependency>
-            <groupId>${parent.groupId}</groupId>
+            <groupId>com.github.edwgiz.tayyib</groupId>
             <artifactId>adapter-commons-dgs</artifactId>
-            <version>${parent.version}</version>
-        </dependency>
-        <!--suppress VulnerableLibrariesLocal -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <!--suppress VulnerableLibrariesLocal -->
         <dependency>
             <groupId>com.netflix.graphql.dgs</groupId>
             <artifactId>graphql-dgs-spring-graphql-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>name.nkonev.multipart-spring-graphql</groupId>
+            <artifactId>multipart-spring-graphql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.netflix.graphql.dgs</groupId>
+            <artifactId>graphql-dgs-extended-scalars</artifactId>
         </dependency>
         <!--suppress VulnerableLibrariesLocal -->
         <dependency>

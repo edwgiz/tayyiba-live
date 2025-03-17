@@ -4,7 +4,7 @@ databaseChangeLog:
       author: edwgiz@gmail.com
       changes:
         - createTable:
-            tableName: nutrition_class
+            tableName: nutrient
             columns:
               - column:
                   name: id
@@ -17,8 +17,20 @@ databaseChangeLog:
                   type: uuid
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_nutrition_class__nutrition_class
-                    references: nutrition_class(id)
+                    foreignKeyName: fk_nutrient__nutrient
+                    references: nutrient(id)
+              - column:
+                  name: fdc_nutrient_id
+                  type: integer
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: nutrient_nbr
+                  type: numeric(6, 2)
+                  remarks: "A unique code identifying a nutrient or food constituent"
+                  constraints:
+                    unique: true
               - column:
                   name: name
                   type: varchar(255)
@@ -27,8 +39,10 @@ databaseChangeLog:
               - column:
                   name: description
                   type: text
+                  constraints:
+                    nullable: false
         - createTable:
-            tableName: nutrition_class_link
+            tableName: nutrient_link
             columns:
               - column:
                   name: id
@@ -37,15 +51,19 @@ databaseChangeLog:
                     nullable: false
                     primaryKey: true
               - column:
-                  name: nutrition
+                  name: nutrition_id
                   type: uuid
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_nutrition_class_link__nutrition_class
-                    references: nutrition_class(id)
+                    foreignKeyName: fk_nutrient_link__nutrient
+                    references: nutrient(id)
               - column:
                   name: url
                   type: text
-
-
-
+              - column:
+                  name: title
+                  type: varchar(255)
+        - sql:
+            sql: |
+              INSERT INTO nutrient (id,parent_id,fdc_nutrient_id,nutrient_nbr,name,description) VALUES ('ffffffff-ffff-ffff-ffff-ffffffffffff', 'ffffffff-ffff-ffff-ffff-ffffffffffff', -1, null, 'Void', 'The parent for unused nutrients');
+              INSERT INTO nutrient (id,parent_id,fdc_nutrient_id,nutrient_nbr,name,description) VALUES ('00000000-0000-0000-0000-000000000000', 'ffffffff-ffff-ffff-ffff-ffffffffffff', 0, null, 'Root', 'Root nutrition class including the all others');

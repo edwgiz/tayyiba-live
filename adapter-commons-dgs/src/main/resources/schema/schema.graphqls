@@ -1,8 +1,29 @@
+scalar ID @specifiedBy(url: "https://tools.ietf.org/html/rfc4122")
+scalar Upload
+
 type Query {
-    shows(titleFilter: String): [Show]
+    shows(titleFilter: String): [Nutrient!]
 }
 
-type Show {
-    title: String
-    releaseYear: Int
+type Mutation {
+    uploadFdcNutrients(file: Upload!): UploadNutrientResult!
+}
+
+type UploadNutrientResult {
+    created: Int!,
+    skipped: Int!
+}
+
+type Nutrient {
+    id: ID!
+    parent_id: ID!
+    name: String!
+    description: String!
+    links: [NutrientLink!]!
+}
+
+type NutrientLink {
+    id: ID!
+    url: String!
+    title: String!
 }

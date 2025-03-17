@@ -8,7 +8,6 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
-    <name>Tayyib Backend</name>
     <url>https://tayyib.live</url>
     <modules>
         <module>adapter-commons-dgs</module>
@@ -24,6 +23,11 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>com.github.edwgiz.tayyib</groupId>
+                <artifactId>adapter-commons-dgs</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>com.netflix.graphql.dgs</groupId>
                 <artifactId>graphql-dgs-platform-dependencies</artifactId>
                 <version>10.0.4</version>
@@ -31,11 +35,21 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>name.nkonev.multipart-spring-graphql</groupId>
+                <artifactId>multipart-spring-graphql</artifactId>
+                <version>1.5.3</version>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>3.4.3</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>1.13.0</version>
             </dependency>
             <dependency>
                 <groupId>org.junit</groupId>
@@ -54,6 +68,11 @@
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>
                     <version>3.4.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.7.1</version>
                 </plugin>
                 <!-- default lifecycle, jar packaging: see https://maven.apache.org/ref/current/maven-core/default-bindings.html#Plugin_bindings_for_jar_packaging -->
                 <plugin>
