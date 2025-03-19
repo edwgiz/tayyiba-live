@@ -78,6 +78,34 @@
                 <artifactId>maven-compiler-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>io.github.edwgiz.maven</groupId>
+                <artifactId>webapp-static-resource-compressor-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>add-compressed-resources</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <!-- default
+                    <skip>false</skip>
+                    <outputDirectory>${project.build.outputDirectory}</outputDirectory>
+                    -->
+                    <resources>
+                        <resource>
+                            <subDirectory>webapp/static</subDirectory>
+                            <includes>
+                                <include>**/*.html</include>
+                                <include>**/*.css</include>
+                                <include>**/*.js</include>
+                            </includes>
+                        </resource>
+                    </resources>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <executions>
@@ -87,6 +115,11 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <optimizedLaunch>true</optimizedLaunch>
+                    <mainClass>com.github.edwgiz.tayyib.App</mainClass>
+                    <layout>ZIP</layout>
+                </configuration>
             </plugin>
         </plugins>
     </build>

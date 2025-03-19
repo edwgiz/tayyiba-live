@@ -113,6 +113,11 @@
                     <version>3.6.1</version>
                 </plugin>
                 <plugin>
+                    <groupId>io.github.edwgiz.maven</groupId>
+                    <artifactId>webapp-static-resource-compressor-maven-plugin</artifactId>
+                    <version>1.0.0</version>
+                </plugin>
+                <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>3.4.3</version>

@@ -1,0 +1,67 @@
+body {
+    background-color: black;
+    background-image: url("background.jpg");
+    background-repeat: repeat-y;
+    background-position-x: calc(100vw - 116px - min(300px, 20vw));
+
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: left;
+    padding-left: 2vw;
+    padding-right: calc(min(300px, 18vw));
+    padding-bottom: 1vw;
+    line-height: 1.6;
+}
+
+h1 {
+    margin-bottom: 2vw;
+}
+
+h1:after {
+
+}
+
+h2 {
+    margin-bottom: 2vw;
+}
+
+h3 {
+    margin-bottom: 2vw;
+}
+
+a {
+    color: #1E90FF;
+}
+
+a:hover {
+    color: #00BFFF;
+}
+
+a:visited {
+    color: #9370DB;
+}
+
+a:visited:hover {
+    color: #BA55D3;
+}
+
+div.refs {
+    color: gray;
+}
+
+div.licensing {
+    color: gray;
+}
+
+table {
+    border: none;
+}
+
+td {
+    vertical-align: top;
+}
+
+hr {
+    margin-top: 3vw;
+}
+

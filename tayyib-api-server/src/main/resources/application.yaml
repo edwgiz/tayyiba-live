@@ -1,9 +1,26 @@
 spring:
   application:
     name: Tayyib Backend
+
   threads:
     virtual:
       enabled: true
+
+  web:
+    resources:
+      static-locations:
+        classpath:/webapp/static
+      cache:
+        use-last-modified: true
+        cachecontrol:
+          max-age: 86400
+          s-max-age: 86400
+          cache-public: true
+          cache-private: false
+          no-transform: true
+      chain:
+        enabled: true
+        compressed: true
 
   datasource:
     url: jdbc:postgresql://127.0.0.1:5432/tayyib
