@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+    <title>Overview · Tayyib Food</title>
+
+    <title>Nutrients · Tayyib Food</title>
+
+    <!--
+        <link rel="stylesheet" type="text/css" href="../../styles/demos.css" />
+        <link rel="stylesheet" type="text/css" href="../../styles/common.css" />
+        <script type="text/javascript" src="smart-webcomponents-community/ ../../scripts/common.js"></script>
+    -->
+    <link rel="stylesheet" type="text/css"
+          href="smart-webcomponents-community/source/styles/smart.default.css"/>
+    <link rel="stylesheet" type="text/css"
+          href="smart-webcomponents-community/source/styles/bootstrap/dark/smart.bootstrap.css"/>
+
+    <link rel="stylesheet" type="text/css" href="default.css"/>
+
+    <style>
+        smart-grid {
+            height: auto;
+            width: 100%;
+        }
+
+        button[toggle-button] {
+            --smart-icon-arrow-down: var(--smart-icon-arrow-right) /*
+            color: #1E90FF;
+            */
+        }
+
+        button[toggled]:after {
+            transform: rotate(90deg) !important;
+        }
+    </style>
+<body>
+<h1>Nutrients</h1>
+
+<smart-grid id="grid"></smart-grid>
+
+
+<!--
+<script type="text/javascript" src="nutrient-data.js"></script>
+-->
+<script type="text/javascript" src="smart-webcomponents-community/source/modules/smart.grid.js"></script>
+
+<script>
+    Smart('#grid', class {
+        get properties() {
+            return {
+                behavior: {columnResizeMode: 'growAndShrink'},
+                appearance: {
+                    showColumnHeaderLines: false,
+                    showColumnLines: false,
+                    showRowLines: false
+                },
+                selection: {
+                    enabled: true,
+                    mode: 'extended',
+                    allowCellSelection: true
+                },
+                sorting: {
+                    enabled: false
+                },
+                filtering: {
+                    enabled: false
+                },
+                onRowInit: function (index, row) {
+                    row.expanded = true;
+                },
+                columns: [
+                    {label: 'Name', dataField: 'name'},
+                    {label: 'Description', dataField: 'description'},
+                ],
+
+                dataSource: new Smart.DataAdapter(
+                    {
+                        virtualDataSource: function (resultCallbackFunction, details) {
+                            if (details.action === 'dataBind') {
+                                // inits the demo server.
+                                fetch("graphql", {
+                                    method: "POST",
+                                    headers: {'content-type': 'application/json'},
+                                    body: '{"query":"{shows (titleFilter: \\"\\") {id parent_id name description links{id url title}}}"}'
+                                })
+                                    .then((httpResp) => httpResp.json())
+                                    .then((jsonResp) => {
+                                        const shows = jsonResp.data.shows;
+                                        resultCallbackFunction({
+                                            dataSource: shows,
+                                            lastId: shows.length,
+                                            virtualDataSourceLength: shows.length
+                                        });
+                                    });
+                            } else {
+                                const result = {data: [], lastId: null, virtualDataSourceLength: 0};
+                                resultCallbackFunction({
+                                    dataSource: result.data,
+                                    lastId: 0,
+                                    virtualDataSourceLength: result.length
+                                });
+                            }
+                        },
+                        keyDataField: 'id',
+                        parentDataField: 'parent_id',
+                        id: 'id',
+                        dataFields: [
+                            'name: string',
+                            'description: string'
+                        ]
+                    }),
+            }
+        }
+    });
+</script>
+
+<footer>
+    <section class="licensing">
+        <a property="dct:title" rel="cc:attributionURL" href="https://github.com/edwgiz/tayyib-backend">Tayyib Live</a>
+        is licensed under
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1"
+           target="_blank" rel="license noopener noreferrer" style="display:inline-block;">
+            Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+                 src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""/>
+            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+                 src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""/>
+            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+                 src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""/>
+            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+                 src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""/>
+        </a>
+    </section>
+</footer>
+</body>
+</html>
