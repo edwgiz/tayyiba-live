@@ -6,6 +6,11 @@ spring:
     virtual:
       enabled: true
 
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/tayyib
+    username: tayyib
+    password: tayyib_local
+
   web:
     resources:
       static-locations:
@@ -22,10 +27,8 @@ spring:
         enabled: true
         compressed: true
 
-  datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/tayyib
-    username: tayyib
-    password: tayyib_local
+server:
+  port: 9443
 
 dgs:
   graphql:
