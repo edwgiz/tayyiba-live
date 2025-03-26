@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About · Tayyib Food</title>
+    <link rel="stylesheet" type="text/css" href="default.css"/>
+</head>
+<body>
+<!-- google translate start -->
+<div style="float: right" id="google_translate_element"></div>
+<script>
+    // noinspection JSUnusedGlobalSymbols
+    function googleTranslateElementInit() {
+        // noinspection JSUnresolvedReference
+        new google.translate.TranslateElement(
+            {pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE},
+            'google_translate_element'
+        );
+    }
+</script>
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+<!-- google translate end -->
+
+<section>
+    <h1>Contacts</h1>
+    <span id="email">support@tayyib.live</span>
+    <button id="copyEmailToClipboardButton"
+            style="background: none; cursor:pointer; vertical-align:top; display: none"
+            onclick="copyEmailToClipboard()">
+        <img style="filter: invert()" src="img/copy.png" alt="Copy">
+    </button>
+    <script>
+        if(navigator.clipboard) {
+            const copyEmailToClipboardButton = document.getElementById('copyEmailToClipboardButton');
+            function copyEmailToClipboard() {
+                const emailElement = document.getElementById('email');
+                navigator.clipboard.writeText(emailElement.textContent);
+            }
+            copyEmailToClipboardButton.style.removeProperty('display');
+        }
+    </script>
+</section>
+<section>
+    <h1>Licensing</h1>
+    <a property="dct:title" rel="cc:attributionURL" href="https://tayyib.live">Tayyib Live</a>
+    is licensed under
+    <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1"
+       target="_blank" rel="license noopener noreferrer" style="display:inline-block;">
+        Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+        <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+             src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""/>
+        <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+             src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""/>
+        <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+             src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""/>
+        <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
+             src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""/>
+    </a>
+</section>
+
+</body>
+</html>

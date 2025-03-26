@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-    <title>Overview · Tayyib Food</title>
-
     <title>Nutrients · Tayyib Food</title>
 
     <!--
@@ -47,6 +45,14 @@
 <script type="text/javascript" src="smart-webcomponents-community/source/modules/smart.grid.js"></script>
 
 <script>
+    function graphql(body) {
+        return fetch("graphql", {
+            method: "POST",
+            headers: {'content-type': 'application/json'},
+            body: body
+        });
+    }
+
     Smart('#grid', class {
         get properties() {
             return {
@@ -80,11 +86,7 @@
                         virtualDataSource: function (resultCallbackFunction, details) {
                             if (details.action === 'dataBind') {
                                 // inits the demo server.
-                                fetch("graphql", {
-                                    method: "POST",
-                                    headers: {'content-type': 'application/json'},
-                                    body: '{"query":"{shows (titleFilter: \\"\\") {id parent_id name description links{id url title}}}"}'
-                                })
+                                graphql('{"query":"{shows (titleFilter: \\"\\") {id parent_id name description links{id url title}}}"}')
                                     .then((httpResp) => httpResp.json())
                                     .then((jsonResp) => {
                                         const shows = jsonResp.data.shows;
@@ -117,21 +119,23 @@
 </script>
 
 <footer>
-    <section class="licensing">
-        <a property="dct:title" rel="cc:attributionURL" href="https://github.com/edwgiz/tayyib-backend">Tayyib Live</a>
-        is licensed under
-        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1"
-           target="_blank" rel="license noopener noreferrer" style="display:inline-block;">
-            Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
-            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
-                 src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1" alt=""/>
-            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
-                 src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1" alt=""/>
-            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
-                 src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1" alt=""/>
-            <img style="height:2vw!important;margin-left:3px;vertical-align:text-bottom;"
-                 src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1" alt=""/>
-        </a>
+    <section class="refs">
+        <h1>References</h1>
+        Provided nutrients are collected among public datasets
+        <table>
+            <tr>
+                <td id="ref_1">1.</td>
+                <td colspan="3">USDA FoodData Central</td>
+            </tr>
+            <tr>
+                <td></td>
+                <td style="vertical-align: middle"><a href="https://fdc.nal.usda.gov/download-datasets">Dataset source page</a>: &nbsp</td>
+                <td style="vertical-align: middle">
+                    <a href="https://fdc.nal.usda.gov/fdc-datasets/FoodData_Central_csv_2024-10-31.zip">Full Download 10/2024 <img style="filter: invert(); vertical-align:middle" src="img/csv.png" alt="scv file"></a>,
+                    <a href="https://fdc.nal.usda.gov/portal-data/external/dataDictionary">Field Descriptions <img style="filter: invert(); vertical-align:middle" src="img/pdf.png" alt="pdf file"></a>
+                </td>
+            </tr>
+        </table>
     </section>
 </footer>
 </body>
