@@ -2,7 +2,7 @@ scalar ID @specifiedBy(url: "https://tools.ietf.org/html/rfc4122")
 scalar Upload
 
 type Query {
-    shows(titleFilter: String): [Nutrient!]
+    findNutrientsByParentId(parentId: ID): [Nutrient!]
 }
 
 type Mutation {

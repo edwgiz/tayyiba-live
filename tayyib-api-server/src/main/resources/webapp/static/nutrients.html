@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Halal complained diet to enhance well-being, longevity, and overall health.">
+    <meta name="description" content="Halal complained diet to enhance well-being, longevity, and overall health.
+The important nutrients, the richest its sources and superfoods, the balanced meals.">
     <meta property="og:url" content="https://tayyib.live">
     <meta property="og:type" content="website">
     <meta property="og:title" content="Tayyib Food">
@@ -67,7 +68,7 @@
 
 <script>
     function graphql(body) {
-        return fetch("graphql", {
+        return fetch("http://127.0.0.1:9443/graphql", {
             method: "POST",
             headers: {'content-type': 'application/json'},
             body: body
@@ -106,15 +107,15 @@
                     {
                         virtualDataSource: function (resultCallbackFunction, details) {
                             if (details.action === 'dataBind') {
-                                // inits the demo server.
-                                graphql('{"query":"{shows (titleFilter: \\"\\") {id parent_id name description links{id url title}}}"}')
+                                graphql('{"query":"{findNutrientsByParentId (parentId: \\"00000000-0000-0000-0000-000000000000\\") {id parent_id name description links{id url title}}}"}')
                                     .then((httpResp) => httpResp.json())
                                     .then((jsonResp) => {
-                                        const shows = jsonResp.data.shows;
+                                        // noinspection JSUnresolvedReference
+                                        const nutrients = jsonResp.data.findNutrientsByParentId;
                                         resultCallbackFunction({
-                                            dataSource: shows,
-                                            lastId: shows.length,
-                                            virtualDataSourceLength: shows.length
+                                            dataSource: nutrients,
+                                            lastId: nutrients.length,
+                                            virtualDataSourceLength: nutrients.length
                                         });
                                     });
                             } else {

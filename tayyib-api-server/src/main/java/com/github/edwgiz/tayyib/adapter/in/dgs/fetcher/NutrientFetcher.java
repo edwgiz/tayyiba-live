@@ -1,6 +1,7 @@
 package com.github.edwgiz.tayyib.adapter.in.dgs.fetcher;
 
 import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.Nutrient;
+import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.NutrientLink;
 import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.UploadNutrientResult;
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsMutation;
@@ -17,6 +18,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,7 +39,7 @@ public class NutrientFetcher {
     }
 
     @DgsQuery
-    public List<Nutrient> shows(@InputArgument String titleFilter) {
+    public List<Nutrient> findNutrientsByParentId(@InputArgument UUID parentId) {
         // language=PostgreSQL
         return jdbcClient.sql("""
                         SELECT
