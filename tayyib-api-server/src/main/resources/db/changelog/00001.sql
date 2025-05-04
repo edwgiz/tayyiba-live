@@ -29,7 +29,7 @@ insert into nutrient (id,parent_id,fdc_nutrient_id,nutrient_nbr, status, sort_or
 
 insert into nutrient (id, parent_id, fdc_nutrient_id, nutrient_nbr, name, description) values
 ('c7c298b6-2930-4790-8d75-826338aa9da2', '00000000-0000-0000-0000-000000000000', 2039, 956.00, 'Carbohydrates', ''),
-('62a0d3e1-98c5-4d3a-b6f6-0dcef0ca1524', '00000000-0000-0000-0000-000000000000', 1003, 203.00, 'Protein', ''),
+('62a0d3e1-98c5-4d3a-b6f6-0dcef0ca1524', '00000000-0000-0000-0000-000000000000', 1003, 203.00, 'Proteins', ''),
 ('0c002ace-8da3-414d-9339-5d190bd59ae1', '00000000-0000-0000-0000-000000000000', 2044, 950.00, 'Lipids', ''),
 ('cc1860af-c569-481d-b997-66db9118b5aa', '00000000-0000-0000-0000-000000000000', 2043, 300.00, 'Minerals', ''),
 ('8c6992f0-7ce7-4aef-b343-e20a93e67398', '00000000-0000-0000-0000-000000000000', 2046, 952.00, 'Vitamins and Other Components', ''),
