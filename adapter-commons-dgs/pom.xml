@@ -28,7 +28,7 @@
             <plugin>
                 <groupId>io.github.deweyjose</groupId>
                 <artifactId>graphqlcodegen-maven-plugin</artifactId>
-                <version>1.61.6</version>
+                <version>3.7.1</version>
                 <executions>
                     <execution>
                         <goals>
@@ -49,7 +49,6 @@
                     <subPackageNameTypes>dto</subPackageNameTypes>
                     <typeMapping>
                         <ID>java.util.UUID</ID>
-                        <Upload>org.springframework.web.multipart.MultipartFile</Upload>
                     </typeMapping>
                 </configuration>
             </plugin>

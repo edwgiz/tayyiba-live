@@ -1,7 +1,8 @@
 spring:
   application:
     name: Tayyib Backend
-
+  main:
+    banner-mode: off
   threads:
     virtual:
       enabled: true
@@ -29,6 +30,7 @@ spring:
 
 server:
   port: 9443
+  shutdown: graceful
 
 dgs:
   graphql:
