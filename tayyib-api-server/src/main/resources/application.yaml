@@ -1,4 +1,8 @@
 spring:
+  devtools:
+    restart:
+      additional-paths: '/src/main/jte'
+
   application:
     name: Tayyib Backend
   main:
@@ -12,22 +16,6 @@ spring:
     username: tayyib
     password: tayyib_local
 
-  web:
-    resources:
-      static-locations:
-        classpath:/webapp/static
-      cache:
-        use-last-modified: true
-        cachecontrol:
-          max-age: 86400
-          s-max-age: 86400
-          cache-public: true
-          cache-private: false
-          no-transform: true
-      chain:
-        enabled: true
-        compressed: true
-
 server:
   port: 9443
   shutdown: graceful
@@ -36,6 +24,10 @@ dgs:
   graphql:
     virtualthreads:
       enabled: true
+
+gg:
+  jte:
+    development-mode: true
 
 logging:
   level:

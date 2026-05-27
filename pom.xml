@@ -35,6 +35,11 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
+                <groupId>gg.jte</groupId>
+                <artifactId>jte-spring-boot-starter-4</artifactId>
+                <version>3.2.4</version>
+            </dependency>
+            <dependency>
                 <groupId>name.nkonev.multipart-spring-graphql</groupId>
                 <artifactId>multipart-spring-graphql</artifactId>
                 <version>2.0.0</version>
