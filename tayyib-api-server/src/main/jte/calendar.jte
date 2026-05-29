@@ -396,18 +396,16 @@
 <footer>
     <ul>
         <li>
-            <i18n-text key="lastLine.contacts.label"></i18n-text>
+            ${i18n.footer().contacts().label()}
             :
             <a
                     href="https://github.com/edwgiz/tayyib-fasting-calendar"
                     target="_blank"
                     rel="noopener noreferrer"
-            >
-                <i18n-text key="lastLine.contacts.githubRefDescription"></i18n-text>
-            </a>
+            >${i18n.footer().contacts().githubRefDescription()}</a>
         </li>
         <li>
-            <i18n-text key="lastLine.attributions.label"></i18n-text>
+            ${i18n.footer().attributions().label()}
             :
             <a href="https://iconscout.com/contributors/rizsign-icon" target="_blank">Rizsign icon</a>
         </li>
