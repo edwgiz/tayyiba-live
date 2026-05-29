@@ -1,8 +1,7 @@
 databaseChangeLog:
-  - changeSet:
-      id: 00001
-      author: edwgiz@gmail.com
-      changes:
-        - sqlFile:
-            relativeToChangelogFile: true
-            path: 00001.sql
+  - include:
+      relativeToChangelogFile: true
+      file: 00001.sql
+  - include:
+      relativeToChangelogFile: true
+      file: 00002.sql

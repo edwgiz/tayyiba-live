@@ -1,0 +1,115 @@
+--liquibase formatted sql
+--changeset id:00001 author:edwgiz@gnail.com
+
+create table i18n_bundles
+(
+    locale varchar(10)  not null,
+    code   varchar(255) not null,
+    value  text         not null,
+    constraint i18n_messages_pk primary key (locale, code)
+);
+
+insert into i18n_bundles (locale, code, value)
+values ('en', 'hadith-referencing.collections.bukhari', 'Sahih al-Bukhari'),
+       ('en', 'hadith-referencing.collections.muslim', 'Sahih Muslim'),
+       ('en', 'hadith-referencing.collections.ibnmajah', 'Sunan Ibn Majah'),
+       ('en', 'hadith-referencing.collections.tirmidhi', 'Jami'' at-Tirmidhi'),
+       ('en', 'hadith-referencing.collections.nasai', 'Sunan an-Nasa''i'),
+       ('en', 'hadith-referencing.collections.abudawud', 'Sunan Abi Dawud'),
+       ('en', 'hadith-referencing.collections.riyadussalihin', 'Riyad as-Salihin'),
+
+       ('en', 'fasting.head.title', 'Islamic Fasting Calendar'),
+       ('en', 'fasting.head.description',
+        'Islamic fasting dates and times for Ramadan, White Days, Mondays & Thursdays, Ashura, and Arafah based on your location.'),
+       ('en', 'fasting.meta.keywords',
+        'Hijri calendar, Islamic calendar, Ramadan fasting times, Ramadan calendar, Suhoor time, Iftar time, White Days fasting, Monday Thursday fasting, Sunnah fasting, Ashura fasting, Arafah fasting, Ramadan timings, lunar calendar, Muslim fasting'),
+       ('en', 'fasting.reasons.generic[0].cites[0].id', 'fasting-reason-generic-0'),
+       ('en', 'fasting.reasons.generic[0].cites[0].quote',
+        'Every deed of the son of Adam is for him except fasting; it is for Me, and I shall reward for it.'),
+       ('en', 'fasting.reasons.generic[0].cites[0].references[0].collection', 'bukhari'),
+       ('en', 'fasting.reasons.generic[0].cites[0].references[0].hadith', '1904'),
+
+       ('en', 'settings.location', 'Location'),
+       ('en', 'settings.change', 'Change'),
+       ('en', 'settings.time-zone', 'Time zone'),
+       ('en', 'settings.change-location-window-title', 'Change Location'),
+       ('en', 'settings.ok', 'Ok'),
+       ('en', 'settings.default', 'Default'),
+
+       ('en', 'calendar.current-month', 'Current Month'),
+       ('en', 'calendar.sunrise', 'Sunrise'),
+       ('en', 'calendar.sunset', 'Sunset'),
+
+       ('en', 'calendar.months.01', 'Muharram'),
+       ('en', 'calendar.months.02', 'Safar'),
+       ('en', 'calendar.months.03', 'Rabiʻ I'),
+       ('en', 'calendar.months.04', 'Rabiʻ II'),
+       ('en', 'calendar.months.05', 'Jumada I'),
+       ('en', 'calendar.months.06', 'Jumada II'),
+       ('en', 'calendar.months.07', 'Rajab'),
+       ('en', 'calendar.months.08', 'Shaʻban'),
+       ('en', 'calendar.months.09', 'Ramadan'),
+       ('en', 'calendar.months.10', 'Shawwal'),
+       ('en', 'calendar.months.11', 'Dhuʻl-Qiʻdah'),
+       ('en', 'calendar.months.12', 'Dhuʻl-Hijjah'),
+
+       ('en', 'fasting.reasons.obligatory[0].id', 'fasting-reason-ramadan'),
+       ('en', 'fasting.reasons.obligatory[0].title', 'Ramadan'),
+       ('en', 'fasting.reasons.obligatory[0].cites[0].quote',
+        'Islam is built upon five: the testimony that none has the right to be worshipped but Allah and that Muhammad is the Messenger of Allah, establishing prayer, giving zakat, performing Hajj, and fasting Ramadan.'),
+       ('en', 'fasting.reasons.obligatory[0].cites[0].references[0].collection', 'bukhari'),
+       ('en', 'fasting.reasons.obligatory[0].cites[0].references[0].hadith', '8'),
+       ('en', 'fasting.reasons.obligatory[0].cites[0].references[1].collection', 'muslim'),
+       ('en', 'fasting.reasons.obligatory[0].cites[0].references[1].hadith', '16'),
+
+       ('en', 'fasting.reasons.obligatory[0].cites[1].quote',
+        'Whoever fasts Ramadan out of faith and in the hope of reward, his previous sins will be forgiven.'),
+       ('en', 'fasting.reasons.obligatory[0].cites[1].references[0].collection', 'bukhari'),
+       ('en', 'fasting.reasons.obligatory[0].cites[1].references[0].hadith', '38'),
+       ('en', 'fasting.reasons.obligatory[0].cites[1].references[1].collection', 'muslim'),
+       ('en', 'fasting.reasons.obligatory[0].cites[1].references[1].hadith', '760'),
+
+       ('en', 'fasting.reasons.voluntary[0].id', 'fasting-reason-shawwal'),
+       ('en', 'fasting.reasons.voluntary[0].title', 'Six Days of Shawwal'),
+       ('en', 'fasting.reasons.voluntary[0].cites[0].quote',
+        'Whoever fasts six days after the Fitr will have completed the year, for whoever does a good deed will have the reward of ten like it.'),
+       ('en', 'fasting.reasons.voluntary[0].cites[0].references[0].collection', 'ibnmajah'),
+       ('en', 'fasting.reasons.voluntary[0].cites[0].references[0].hadith', '1715'),
+
+       ('en', 'fasting.reasons.voluntary[0].cites[1].quote',
+        'Whoever fasts Ramadan then follows it with six days of Shawwal, it is as if he fasted for a lifetime.'),
+       ('en', 'fasting.reasons.voluntary[0].cites[1].references[0].collection', 'ibnmajah'),
+       ('en', 'fasting.reasons.voluntary[0].cites[1].references[0].hadith', '1716'),
+
+       ('en', 'fasting.reasons.voluntary[0].cites[2].quote',
+        'Whoever fasts the month of Ramadan and then follows it with six days of fasting in the month of Shawwal, it will be as if he has fasted for the entire year.'),
+       ('en', 'fasting.reasons.voluntary[0].cites[2].references[0].collection', 'muslim'),
+       ('en', 'fasting.reasons.voluntary[0].cites[2].references[0].hadith', '1164'),
+
+       ('en', 'fasting.reasons.voluntary[1].id', 'fasting-reason-arafah-or-ashura'),
+       ('en', 'fasting.reasons.voluntary[1].title', 'Days of Arafah and Ashura'),
+       ('en', 'fasting.reasons.voluntary[1].cites[0].intro',
+        'Abu Qatada (ra) reported the Messenger Muhammad (pbuh) said:'),
+       ('en', 'fasting.reasons.voluntary[1].cites[0].quote',
+        'I seek from Allah that fasting on the day of Arafah may atone for the sins of the preceding and the coming years, and I seek from Allah that fasting on the day of Ashura may atone for the sins of the preceding year.'),
+       ('en', 'fasting.reasons.voluntary[1].cites[0].references[0].collection', 'muslim'),
+       ('en', 'fasting.reasons.voluntary[1].cites[0].references[0].hadith', '1162'),
+       ('en', 'fasting.reasons.voluntary[1].refs.arafah.tooltip', 'Day of Arafah'),
+       ('en', 'fasting.reasons.voluntary[1].refs.ashura.tooltip', 'Day of Ashura'),
+       ('en', 'fasting.reasons.voluntary[2].id', 'fasting-reason-first-9-dhu-al-hijjah'),
+       ('en', 'fasting.reasons.voluntary[2].title', 'First nine days of Dhu al-Hijjah'),
+       ('en', 'fasting.reasons.voluntary[2].cites[0].intro',
+        'One of the wives (ra) of the Prophet Muhammad (pbuh) said:'),
+       ('en', 'fasting.reasons.voluntary[2].cites[0].quote',
+        'The Messenger of Allah Muhammad used to fast the first nine days of Dhu al-Hijjah, the day of Ashura, and three days of every month…'),
+       ('en', 'fasting.reasons.voluntary[2].cites[0].references[0].collection', 'abudawud'),
+       ('en', 'fasting.reasons.voluntary[2].cites[0].references[0].hadith', '2437'),
+       ('en', 'fasting.reasons.voluntary[2].cites[0].references[1].collection', 'nasai'),
+       ('en', 'fasting.reasons.voluntary[2].cites[0].references[1].hadith', '2417'),
+
+       ('en', 'footer.contacts.label', 'Contacts'),
+       ('en', 'footer.contacts.github-ref-description',
+        'Please visit GitHub for issues, feature requests, or contributions'),
+       ('en', 'footer.attributions.label', 'Attributions'),
+
+       ('en', 'errors.location-access', 'Error getting location:');

@@ -16,6 +16,9 @@ spring:
     username: tayyib
     password: tayyib_local
 
+  liquibase:
+    enabled: true
+
 server:
   port: 9443
   shutdown: graceful

@@ -1,3 +1,6 @@
+--liquibase formatted sql
+--changeset id:00001 author:edwgiz@gnail.com
+
 create type nutrient_status_enum as enum ('active', 'disabled', 'archived');
 
 create table nutrient
