@@ -8,11 +8,11 @@ import java.util.Locale;
 
 @Controller
 
-public class IndexController {
+public class CalendarController {
 
-    @GetMapping("/")
+    @GetMapping("/calendar")
     public String get(Model model, Locale locale) {
         model.addAttribute("$", new Object());
-        return "index";
+        return "calendar";
     }
 }

@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00001 author:edwgiz@gnail.com
+--changeset id:00001 author:edwgiz@gmail.com
 
 create type nutrient_status_enum as enum ('active', 'disabled', 'archived');
 

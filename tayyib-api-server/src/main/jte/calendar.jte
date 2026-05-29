@@ -90,6 +90,11 @@
             }
         }
 
+        h3.fasting-reason-group {
+            margin-block-start: 2em;
+            color: var(--smart-base-100);
+        }
+
         section.fasting-reason > h4 {
             margin: 0;
         }
@@ -337,6 +342,9 @@
         <img alt="Khatim icon" style="height: 2ch; vertical-align: center" src="logo.svg">
         <span>${i18n.fasting().head().title()}</span>
     </h1>
+    @template.calendar.fastingReasons(
+    reasonGroup = i18n.fasting().reasonGroups().generic(),
+    hadithCollectionReferencing = i18n.hadithReferencing().collections())
 </header>
 <main>
     <section id="months">
@@ -369,8 +377,20 @@
             ></smart-drop-down-list>
         </div>
     </section>
-    <section id="generic-fasting-reasons"></section>
-    <section id="fasting-reasons"></section>
+    <section id="fasting-reasons">
+        @template.calendar.fastingReasons(
+        reasonGroup = i18n.fasting().reasonGroups().obligatory(),
+        hadithCollectionReferencing = i18n.hadithReferencing().collections())
+        @template.calendar.fastingReasons(
+        reasonGroup = i18n.fasting().reasonGroups().voluntary(),
+        hadithCollectionReferencing = i18n.hadithReferencing().collections())
+        @template.calendar.fastingReasons(
+        reasonGroup = i18n.fasting().reasonGroups().forbidding(),
+        hadithCollectionReferencing = i18n.hadithReferencing().collections())
+    </section>
+    <section id="forbidden-fasting-reasons">
+
+    </section>
 </main>
 <hr/>
 <footer>

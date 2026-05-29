@@ -19,7 +19,7 @@ public record I18n(
 
     public record Fasting(
             Head head,
-            FastingReasons reasons
+            FastingReasonGroups reasonGroups
     ) {
 
         public record Head(
@@ -34,25 +34,26 @@ public record I18n(
             }
         }
 
-        public record FastingReasons(
-                Reason[] generic,
-                Reason[] obligatory,
-                Reason[] voluntary,
-                Reason[] forbidding
-        ){
+        public record FastingReasonGroups(
+                FastingReasonGroup generic,
+                FastingReasonGroup obligatory,
+                FastingReasonGroup voluntary,
+                FastingReasonGroup forbidding
+        ) {
+        }
 
+        public record FastingReasonGroup(
+                @Nullable String title,
+                Reason[] reasons
+        ) {
         }
 
         public record Reason(
-                String id,
-                String title,
+                @Nullable String id,
+                @Nullable String title,
                 Citation[] cites,
-                Map<String, ReasonRef> refs
+                Map<String, String> tooltips
         ) {
-            public record ReasonRef(
-                    String tooltip
-            ) {
-            }
         }
 
         public record Citation(
