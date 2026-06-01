@@ -1,8 +1,10 @@
+scalar Long
 scalar ID @specifiedBy(url: "https://tools.ietf.org/html/rfc4122")
 scalar Upload
 
 type Query {
     findNutrientsByParentId(parentId: ID): [Nutrient!]
+    getCalendarCells(millis: Long!, timezone: String!): GetCalendarCellsResult
 }
 
 type Mutation {
@@ -26,4 +28,8 @@ type NutrientLink {
     id: ID!
     url: String!
     title: String!
+}
+
+type GetCalendarCellsResult {
+    dayOfWeekNames: [String!]!
 }

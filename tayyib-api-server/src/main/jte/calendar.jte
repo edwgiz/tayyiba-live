@@ -354,6 +354,16 @@
     </section>
     <section id="calendar-grid-cells">
     </section>
+    <script>
+        function graphql(body) {
+            return fetch("/graphql", {
+                method: "POST",
+                headers: {'content-type': 'application/json'},
+                body: body
+            });
+        }
+
+    </script>
     <section id="settings">
         <div class="settings-label">
             <i18n-text key="settings.location"></i18n-text>
@@ -419,16 +429,10 @@
 ></smart-window>
 
 <script type="module">
-    import {i18n} from './i18n.js'
-
     const defaultDatetimeOptions = Intl.DateTimeFormat().resolvedOptions();
     let locale = defaultDatetimeOptions.locale;
 
-    import {renderFastingReasonSections} from './fasting-reason-section.js';
-
     const d = document;
-    renderFastingReasonSections(d.getElementById('generic-fasting-reasons'), 'head.fastingReasons');
-    await renderFastingReasonSections(d.getElementById('fasting-reasons'), 'fastingReasons');
 
     const geoPositionRepository = {
         getAsString() {
@@ -520,6 +524,27 @@
 
     updateDatetimeFormats();
 
+    const gridEl = d.getElementById('calendar-grid-cells');
+
+    function updateCalendarHeader(dayOfWeekNames) {
+        gridEl.innerHTML = '';
+        for (const dayOfWeekName of dayOfWeekNames) {
+            const cellEl = d.createElement('div');
+            cellEl.classList.add("calendar-grid-header");
+            cellEl.textContent = dayOfWeekName;
+            gridEl.appendChild(cellEl);
+        }
+    }
+
+
+    graphql('{"query":"{getCalendarCells(millis: ' + Date.now() + ', timezone: \\"' + timezoneRepository.getOrDefault(defaultDatetimeOptions.timeZone) + '\\") {dayOfWeekNames}}"}')
+        .then((httpResp) => httpResp.json())
+        .then((jsonResp) => {
+            const respResult = jsonResp.data.getCalendarCells;
+            console.debug(jsonResp);
+            updateCalendarHeader(respResult.dayOfWeekNames);
+        });
+
     const prevMonthEl = d.getElementById('prev-month-button');
     const currentMonthEl = d.getElementById('current-month-label');
     const nextMonthEl = d.getElementById('next-month-button');
@@ -542,37 +567,6 @@
         month.setUTCMonth(month.getUTCMonth() + 1);
         update();
     });
-
-
-    function getFirstDayOfWeek() {
-        const region = locale.split('-')[1];
-        const sundayFirst = ['US', 'CA', 'AU', 'NZ', 'PH', 'JP', 'KR', 'TW', 'HK', 'SA', 'EG', 'IL'];
-        if (region && sundayFirst.includes(region.toUpperCase())) {
-            return 0; // Sunday
-        }
-        return 1;// Default: Monday
-    }
-
-    let firstDayOfWeek = getFirstDayOfWeek();
-
-    const gridEl = d.getElementById('calendar-grid-cells');
-
-    const weekdayIndexes = {};
-
-    function updateCalendarHeader() {
-        gridEl.innerHTML = '';
-
-        const date = new Date(Date.UTC(2024, 0, 6 + firstDayOfWeek % 7));
-        for (let i = 0; i < 7; i++) {
-            date.setUTCDate(date.getUTCDate() + 1);
-            const cellEl = d.createElement('div');
-            cellEl.classList.add("calendar-grid-header")
-            const weekdayName = datetimeFormats.utcWeekday.format(date);
-            weekdayIndexes[weekdayName] = i;
-            cellEl.textContent = weekdayName;
-            gridEl.appendChild(cellEl);
-        }
-    }
 
 
     function getFastingReasonTitle(elId) {
@@ -676,7 +670,7 @@
                     {
                         const hijriMonthEl = d.createElement('div');
                         hijriMonthEl.classList.add('calendar-grid-cell-hijri-month');
-                        let hijriMonthName = await i18n('calendar.months.' + hijriMonthNumber);
+                        let hijriMonthName = '';// await i18n('calendar.months.' + hijriMonthNumber);
                         if (hijriMonthName.startsWith('calendar.months.')) {
                             hijriMonthName = datetimeFormats.hijriMonth.format(hijriDate);
                         }
@@ -747,7 +741,6 @@
         updateCalendarDates();
     }
 
-    updateCalendarHeader();
     updateMonthLabels();
 
     function updateLocationDescription() {
@@ -824,7 +817,7 @@
         }
         if (changeLocationWindowEl == null) {
             changeLocationWindowEl = d.getElementById('change-location-window');
-            changeLocationWindowEl.label = await i18n('settings.changeLocationWindowTitle');
+            changeLocationWindowEl.label = '';//await i18n('settings.changeLocationWindowTitle');
             await import('https://unpkg.com/leaflet/dist/leaflet.js');
             changeLocationMapView = L.map('change-location-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -838,7 +831,7 @@
             {
                 const saveButtonEl = document.createElement('smart-button');
                 saveButtonEl.id = 'change-location-save-button';
-                saveButtonEl.textContent = await i18n('settings.save');
+                saveButtonEl.textContent = '';//await i18n('settings.save');
                 saveButtonEl.addEventListener('click', _ => {
                     const markerPosition = changeLocationMarker.getLatLng();
                     setLocation(markerPosition.lat, markerPosition.lng);
@@ -849,7 +842,7 @@
             {
                 const defaultButtonEl = document.createElement('smart-button');
                 defaultButtonEl.id = 'change-location-default-button';
-                defaultButtonEl.textContent = await i18n('settings.default');
+                defaultButtonEl.textContent = '';//await i18n('settings.default');
                 defaultButtonEl.addEventListener('click', _ => {
                     updateLocationByDevice();
                     changeLocationWindowEl.close();
