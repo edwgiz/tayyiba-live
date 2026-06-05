@@ -3,12 +3,10 @@ package com.github.edwgiz.tayyib.adapter.in.dgs.configuration;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
-import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.graphql.server.WebGraphQlHandler;
 import tools.jackson.databind.json.JsonMapper;
 
 
-@AutoConfiguration
 public class DgsAutoConfiguration implements BeanDefinitionRegistryPostProcessor {
 
     /**

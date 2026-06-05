@@ -1,10 +1,10 @@
-scalar Long
 scalar ID @specifiedBy(url: "https://tools.ietf.org/html/rfc4122")
+scalar Long
 scalar Upload
 
 type Query {
     findNutrientsByParentId(parentId: ID): [Nutrient!]
-    getCalendarCells(millis: Long!, timezone: String!): GetCalendarCellsResult
+    getCalendarCells(millis: Long!, timezoneOffset: Int!, method: HijriMethod!): GetCalendarCellsResult!
 }
 
 type Mutation {
@@ -30,6 +30,50 @@ type NutrientLink {
     title: String!
 }
 
+enum HijriMethod {
+    HJCoSA,
+    UAQ,
+    Diyanet
+}
+
 type GetCalendarCellsResult {
+    hijriMonthNames: [StringToStringEntry!]!
+    tooltips: [StringToStringEntry!]!
+    currentMonthLabel: String!
     dayOfWeekNames: [String!]!
+    days: [CalendarDay!]!
+    todayIndex: Int
+}
+
+type StringToStringEntry {
+    key: String!
+    value: String!
+}
+
+type CalendarDay {
+    gregorian: GregorianCalendarDay!
+    hijri: HijriCalendarDay!
+    events: [CalendarEvent!]
+}
+
+type GregorianCalendarDay {
+    isAdjacentMonth: Boolean!,
+    dayOfMonth: Int!
+}
+
+type HijriCalendarDay {
+    dayOfMonth: Int!
+    month: Int!
+}
+
+type CalendarEvent {
+    reasonId: String!
+    reasonType: CalendarEventType!
+    tooltip: String
+}
+
+enum CalendarEventType {
+    OBLIGATORY_FASTING,
+    VOLUNTARY_FASTING,
+    PROHIBITING_FASTING,
 }

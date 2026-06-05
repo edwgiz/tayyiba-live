@@ -1,6 +1,10 @@
 package com.github.edwgiz.tayyib.adapter.in.dgs.fetcher;
 
-import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.GetCalendarCellsResult;
+import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.*;
+import com.github.edwgiz.tayyib.domain.model.HijriMethod;
+import com.github.edwgiz.tayyib.domain.model.I18n;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
+import com.github.edwgiz.tayyib.domain.usecase.i18n.GetBundleUsecase;
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;
 import com.netflix.graphql.dgs.DgsQuery;
@@ -8,51 +12,153 @@ import com.netflix.graphql.dgs.InputArgument;
 import com.netflix.graphql.dgs.internal.DgsWebMvcRequestData;
 import jakarta.servlet.http.HttpServletRequest;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.servlet.LocaleResolver;
 
 import java.time.DayOfWeek;
+import java.time.OffsetDateTime;
 import java.time.format.TextStyle;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
+import static java.time.Instant.ofEpochMilli;
+import static java.time.ZoneOffset.ofTotalSeconds;
+import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Locale.ROOT;
+import static java.util.Map.entry;
+import static org.apache.commons.collections4.MapUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+
 
 @DgsComponent
 public class CalendarFetcher {
+
+    private static final Logger log = LoggerFactory.getLogger(CalendarFetcher.class);
 
     private final static Set<String> SUNDAY_FIRST_COUNTRIES = Set.of(
             "US", "CA", "AU", "NZ", "PH", "JP", "KR", "TW", "HK", "SA", "EG", "IL");
 
     private final LocaleResolver localeResolver;
+    private final GetCalendarDaysUsecase getCalendarDaysUsecase;
+    private final GetBundleUsecase getBundleUsecase;
 
 
-    CalendarFetcher(final LocaleResolver localeResolver) {
+    CalendarFetcher(
+            final LocaleResolver localeResolver,
+            final GetCalendarDaysUsecase getCalendarDaysUsecase,
+            final GetBundleUsecase getBundleUsecase) {
         this.localeResolver = localeResolver;
+        this.getCalendarDaysUsecase = getCalendarDaysUsecase;
+        this.getBundleUsecase = getBundleUsecase;
     }
-
 
     @DgsQuery
     GetCalendarCellsResult getCalendarCells(
-            final @InputArgument Long millis,
-            final @InputArgument String timezone,
+            final @InputArgument long millis,
+            final @InputArgument int timezoneOffset,
+            final @InputArgument("method") com.github.edwgiz.tayyib.adapter.commons.dgs.dto.HijriMethod methodDto,
             final DgsDataFetchingEnvironment dfe) {
 
         final var requestData = getRequestData(dfe);
+        final var method = switch (methodDto) {
+            case HJCoSA -> HijriMethod.HJCoSA;
+            case UAQ -> HijriMethod.UAQ;
+            case Diyanet -> HijriMethod.Diyanet;
+        };
 
 
         final var dayOfWeeks = DayOfWeek.values();
         final var dayOfWeekNames = new String[7];
-        int dayOfWeekOffset = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_2) ? 6 : 0;
+        final var isSundayFirst = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_2);
+        int dayOfWeekOffset = isSundayFirst ? 6 : 0;
         for (int i = 0; i < dayOfWeekNames.length; i++) {
             dayOfWeekNames[i] = dayOfWeeks[(i + dayOfWeekOffset) % 7].getDisplayName(TextStyle.SHORT, requestData.locale);
         }
+        final var i18n = getBundleUsecase.apply(requestData.locale());
+        final var today = createOffsetDateTime(millis, timezoneOffset).toLocalDate();
+        final var calendarResult = getCalendarDaysUsecase.apply(millis, today, isSundayFirst, method, null);
+        final var hijriMonthNames = new HashMap<Integer, String>();
+        final var tooltips = new HashMap<String, String>();
+        var todayIndex = (Integer) null;
+
+        final var calendarDays = switch (calendarResult) {
+            case GetCalendarDaysUsecase.Result.Ok ok -> {
+                final var result = new ArrayList<CalendarDay>();
+                final var firstDayOfMonth = ok.firstDayOfMonth();
+                final var days = ok.calendarDays();
+                for (int j = 0; j < days.size(); j++) {
+                    var calendarDay = days.get(j);
+                    final var day = calendarDay.gregorian();
+                    if (day.equals(today)) {
+                        todayIndex = j;
+                    }
+                    final var hijriDay = calendarDay.hijri();
+                    final var lastDayOfMonth = ok.lastDayOfMonth();
+                    hijriMonthNames.computeIfAbsent(hijriDay.getMonthValue(), i -> i18n.calendar().monthNames()[i]);
+                    final var events = new ArrayList<CalendarEvent>();
+                    for (final var event : calendarDay.events()) {
+                        events.add(toDto(event, i18n, tooltips));
+                    }
+                    result.add(new CalendarDay(
+                            new GregorianCalendarDay(
+                                    day.isBefore(firstDayOfMonth) || day.isAfter(lastDayOfMonth),
+                                    day.getDayOfMonth()),
+                            new HijriCalendarDay(hijriDay.getDayOfMonth(), hijriDay.getMonthValue()),
+                            events));
+                }
+
+                yield result;
+            }
+            case GetCalendarDaysUsecase.Result.ServiceUnavailable _ -> List.<CalendarDay>of();
+        };
+
+        final var monthLabel = ofPattern("yyyy MMM", requestData.locale()).format(today);
 
         return new GetCalendarCellsResult(
-                Arrays.asList(dayOfWeekNames)
+                hijriMonthNames.entrySet().stream().map(e -> new StringToStringEntry(Integer.toString(e.getKey()), e.getValue())).toList(),
+                tooltips.entrySet().stream().map(e -> new StringToStringEntry(e.getKey(), e.getValue())).toList(),
+                monthLabel,
+                Arrays.asList(dayOfWeekNames),
+                calendarDays,
+                todayIndex
         );
+    }
+
+    private static CalendarEvent toDto(
+            final com.github.edwgiz.tayyib.domain.model.CalendarDay.CalendarEvent event,
+            final I18n i18n,
+            final HashMap<String, String> tooltips
+    ) {
+        final var reasonEntry = switch (event.reasonType()) {
+            case OBLIGATORY_FASTING ->
+                    entry(CalendarEventType.OBLIGATORY_FASTING, i18n.fasting().reasonGroups().obligatory());
+            case VOLUNTARY_FASTING ->
+                    entry(CalendarEventType.VOLUNTARY_FASTING, i18n.fasting().reasonGroups().voluntary());
+            case PROHIBITING_FASTING ->
+                    entry(CalendarEventType.PROHIBITING_FASTING, i18n.fasting().reasonGroups().prohibiting());
+        };
+        final var reasonId = event.reasonId();
+        final var tooltipId = event.tooltipId();
+        if (tooltipId != null) {
+            for (final var reason : reasonEntry.getValue().reasons()) {
+                if (reasonId.equals(reason.id())) {
+                    if (isNotEmpty(reason.tooltips())) {
+                        tooltips.putIfAbsent(tooltipId, reason.tooltips().get(tooltipId));
+                    } else {
+                        log.error("Can't find tooltip by reasonId: {}, tooltipId: {}", reasonId, tooltipId);
+                    }
+                }
+            }
+        }
+        return new CalendarEvent(
+                reasonId,
+                reasonEntry.getKey(),
+                tooltipId);
+    }
+
+    private static OffsetDateTime createOffsetDateTime(long millis, int timezoneOffset) {
+        return ofEpochMilli(millis).atOffset(ofTotalSeconds(timezoneOffset * 60));
     }
 
 

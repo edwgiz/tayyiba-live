@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.Locale;
 
-@Controller
 
+@Controller
 public class CalendarController {
 
     @GetMapping("/calendar")

@@ -4,6 +4,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.Map;
 
+
 public record I18n(
         HadithReferencing hadithReferencing,
         Fasting fasting,
@@ -38,7 +39,7 @@ public record I18n(
                 FastingReasonGroup generic,
                 FastingReasonGroup obligatory,
                 FastingReasonGroup voluntary,
-                FastingReasonGroup forbidding
+                FastingReasonGroup prohibiting
         ) {
         }
 
@@ -52,7 +53,7 @@ public record I18n(
                 @Nullable String id,
                 @Nullable String title,
                 Citation[] cites,
-                Map<String, String> tooltips
+                @Nullable Map<String, String> tooltips
         ) {
         }
 

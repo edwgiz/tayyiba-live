@@ -269,18 +269,30 @@
         smart-tooltip div.smart-tooltip-content {
             background-color: var(--smart-secondary-lighter) !important;
             border-color: var(--smart-secondary-lighter) !important;
-            padding: 0.5ch !important;
-        }
-
-        smart-tooltip div.smart-tooltip-content::after {
-            --smart-tooltip-arrow-color: var(--smart-secondary-lighter);
-        }
-
-        smart-tooltip div.smart-tooltip-content > ul {
-            margin: 0;
-            padding-left: 0;
-            list-style-type: none;
-            list-style-position: inside;
+            &::after {
+                --smart-tooltip-arrow-color: var(--smart-secondary-lighter);
+            }
+            >ul {
+                margin: 0;
+                padding-left: 0;
+                list-style-type: none;
+                list-style-position: inside;
+                >li {
+                    margin: 0.4em;
+                    >a {
+                        color: var(--smart-base-50);
+                        text-decoration: none;
+                        &:hover {
+                            border-bottom-color: var(--smart-base-50);
+                            border-bottom-width: 1px;
+                            border-bottom-style: dashed;
+                        }
+                        &:visited {
+                            color: var(--smart-base-50);
+                        }
+                    }
+                }
+            }
         }
 
         smart-window#change-location-window {
@@ -355,11 +367,16 @@
     <section id="calendar-grid-cells">
     </section>
     <script>
-        function graphql(body) {
+        function graphql(query, variables = {}) {
             return fetch("/graphql", {
                 method: "POST",
-                headers: {'content-type': 'application/json'},
-                body: body
+                headers: {
+                    "content-type": "application/json"
+                },
+                body: JSON.stringify({
+                    query,
+                    variables
+                })
             });
         }
 
@@ -395,7 +412,7 @@
         reasonGroup = i18n.fasting().reasonGroups().voluntary(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
         @template.calendar.fastingReasons(
-        reasonGroup = i18n.fasting().reasonGroups().forbidding(),
+        reasonGroup = i18n.fasting().reasonGroups().prohibiting(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
     </section>
     <section id="forbidden-fasting-reasons">
@@ -537,12 +554,55 @@
     }
 
 
-    graphql('{"query":"{getCalendarCells(millis: ' + Date.now() + ', timezone: \\"' + timezoneRepository.getOrDefault(defaultDatetimeOptions.timeZone) + '\\") {dayOfWeekNames}}"}')
-        .then((httpResp) => httpResp.json())
-        .then((jsonResp) => {
-            const respResult = jsonResp.data.getCalendarCells;
-            console.debug(jsonResp);
-            updateCalendarHeader(respResult.dayOfWeekNames);
+    graphql(`query
+            GetCalendarCells(
+                $millis: Long!,
+                $timezoneOffset: Int!,
+                $method: HijriMethod!
+            ) {
+                getCalendarCells(
+                    millis: $millis,
+                    timezoneOffset: $timezoneOffset,
+                    method: $method
+                ) {
+                    hijriMonthNames {
+                        key
+                        value
+                    }
+                    tooltips {
+                        key
+                        value
+                    }
+                    currentMonthLabel
+                    dayOfWeekNames
+                    days {
+                        gregorian {
+                            isAdjacentMonth
+                            dayOfMonth
+                        }
+                        hijri {
+                            dayOfMonth
+                            month
+                        }
+                        events {
+                            reasonId
+                            reasonType
+                            tooltip
+                        }
+                    }
+                    todayIndex
+                }
+            }`,
+        {
+            millis: Date.now(),
+            timezoneOffset: -today.getTimezoneOffset(),
+            method: "UAQ"
+        })
+        .then(httpResp => httpResp.json())
+        .then(jsonResp => {
+            const dto = jsonResp.data.getCalendarCells;
+            updateCalendarHeader(dto.dayOfWeekNames);
+            updateCalendarDates(dto);
         });
 
     const prevMonthEl = d.getElementById('prev-month-button');
@@ -569,169 +629,87 @@
     });
 
 
-    function getFastingReasonTitle(elId) {
+    function getCalendarEventReasonTitle(elId) {
         const fastingReasonEl = d.getElementById(elId);
         return fastingReasonEl.firstElementChild.textContent;
     }
 
-    function isAllowedFastingDate(hijriMonthNumber, hijriDate) {
-        if (hijriMonthNumber === '10' && hijriDate === '01') {
-            /**
-             * Abu Sa‘id al-Khudri (RA) reported:
-             * “The Messenger of Allah ﷺ forbade fasting on two days: the Day of Fitr and the Day of Sacrifice.”
-             * — Sahih al-Bukhari, Hadith 1992
-             * — Sahih Muslim, Hadith 1137
-             */
-            return false;// Eid al-Fitr
-        } else if (hijriMonthNumber === '12') {
-            if (hijriDate === '10') {
-                /**
-                 * Abu Sa‘id al-Khudri (RA) reported:
-                 * “The Messenger of Allah ﷺ forbade fasting on two days: the Day of Fitr and the Day of Sacrifice.”
-                 * — Sahih al-Bukhari, Hadith 1992
-                 * — Sahih Muslim, Hadith 1137
-                 */
-                return false;// Eid al-Ada
-            } else if (hijriDate === '11') {
-                /**
-                 * The Prophet ﷺ said:
-                 * “The days of Tashreeq are days of eating, drinking and remembrance of Allah.”
-                 * — Sahih Muslim, Hadith 1141
-                 */
-                return false;// Day of Tashreeq
-            } else if (hijriDate === '12') {
-                return false;// Day of Tashreeq
-            } else if (hijriDate === '13') {
-                return false;// Day of Tashreeq
-            }
-        }
-        return true;
-    }
 
-    function getWeekdayIndex(date) {
-        let weekdayName = datetimeFormats.weekday.format(date);
-        return weekdayIndexes[weekdayName];
-    }
-
-    function getDateId(date) {
-        return datetimeFormats.yearNumber.format(date) + '-'
-            + datetimeFormats.monthNumber.format(date) + '-'
-            + datetimeFormats.date.format(date);
-    }
-
-    async function updateCalendarDates() {
-        const todayDateId = getDateId(today);
-        const activeMonthNumber = datetimeFormats.monthNumber.format(month);
-
-        const weekdayIndex = getWeekdayIndex(month);
-        let date = new Date(month);
-        date.setDate(month.getDate() - weekdayIndex + firstDayOfWeek);
-
+    function updateCalendarDates(dto) {
         for (let i = gridEl.children.length - 1; i >= 7; i--) {
             gridEl.children.item(i).remove();
         }
 
         const geoPosition = geoPositionRepository.get();
-        for (let w = 0; w < 6; w++) {
-            for (let i = 0; i < 7; i++) {
-                const isAdjacentMonth = activeMonthNumber !== datetimeFormats.monthNumber.format(date);
-                if (w > 0 && i === 0 && isAdjacentMonth) {
-                    break;
-                }
-                const dateId = getDateId(date);
-                const cellElId = 'calendar-grid-cell-' + dateId;
-                const cellEl = d.createElement('div');
-                cellEl.id = cellElId;
-                cellEl.classList.add('calendar-grid-cell');
-                if (dateId === todayDateId) {
-                    cellEl.classList.add('calendar-grid-cell-today')
-                }
-                if (isAdjacentMonth) {
-                    cellEl.classList.add('calendar-grid-cell-adjacent-month');
-                }
-                cellEl.appendChild(d.createTextNode(datetimeFormats.date.format(date)));
-                const fastingReasons = [];
-                const hijriDate = new Date(date);
-                hijriDate.setUTCHours(-4);
-                const hijriMonthNumber = datetimeFormats.hijriMonthNumber.format(hijriDate);
-                {
-                    const hijriDayNumber = datetimeFormats.hijriDate.format(hijriDate);
-                    if (hijriMonthNumber === '09') {
-                        fastingReasons.push('fasting-reason-ramadan');
-                    }
-                    if ((hijriMonthNumber === '12' && hijriDayNumber === '09')// Day of Arafah
-                        || (hijriMonthNumber === '01' && hijriDayNumber === '10')// Day of Ashura
-                    ) {
-                        fastingReasons.push('fasting-reason-arafah-or-ashura');
-                    }
-                    if (hijriMonthNumber === '12' && hijriDayNumber < '10') {// First nine days of Dhu al-Hijjah
-                        fastingReasons.push('fasting-reason-first-9-dhu-al-hijjah');
-                    }
-                    {
-                        const hijriMonthEl = d.createElement('div');
-                        hijriMonthEl.classList.add('calendar-grid-cell-hijri-month');
-                        let hijriMonthName = '';// await i18n('calendar.months.' + hijriMonthNumber);
-                        if (hijriMonthName.startsWith('calendar.months.')) {
-                            hijriMonthName = datetimeFormats.hijriMonth.format(hijriDate);
-                        }
-                        hijriMonthEl.textContent = hijriMonthName;
-                        cellEl.appendChild(hijriMonthEl);
-                    }
-                    {
-                        const hijriDateEl = d.createElement('div');
-                        hijriDateEl.classList.add('calendar-grid-cell-hijri-date')
-                        if (hijriDayNumber === '13' || hijriDayNumber === '14' || hijriDayNumber === '15') {
-                            if (isAllowedFastingDate(hijriMonthNumber, hijriDayNumber)) {
-                                fastingReasons.push('fasting-reason-white-days')
-                            }
-                        }
-                        hijriDateEl.textContent = hijriDayNumber;
-                        cellEl.appendChild(hijriDateEl);
-                    }
-                    if (date.getDay() === 1 || date.getDay() === 4) {
-                        if (isAllowedFastingDate(hijriMonthNumber, hijriDayNumber)) {
-                            fastingReasons.push('fasting-reason-monday-thursday');
-                        }
-                    }
-                }
-                if (fastingReasons.length > 0) {
-                    if (hijriMonthNumber === '10') {
-                        fastingReasons.push('fasting-reason-shawwal');
-                    }
+//        const todayDateId = getDateId(today);
+//        const activeMonthNumber = datetimeFormats.monthNumber.format(month);
 
-                    const fastingEl = d.createElement('div');
-                    if (geoPosition) {
-                        fastingEl.classList.add('calendar-grid-cell-fasting')
-                        const times = SunCalc.getTimes(date, geoPosition.latitude, geoPosition.longitude);
-                        const timeFormat = datetimeFormats.time;
-                        fastingEl.textContent = timeFormat.format(times.sunrise) + ' - ' + timeFormat.format(times.sunset);
-                    } else {
-                        fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                        fastingEl.appendChild(d.createTextNode('Sunrise '));
-                        const spinnerEl = d.createElement("img");
-                        spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                        spinnerEl.src = 'spinner.svg';
-                        fastingEl.appendChild(spinnerEl);
-                        fastingEl.appendChild(d.createTextNode(' Sunset'));
-                    }
-                    cellEl.appendChild(fastingEl);
+//        const weekdayIndex = 0;//getWeekdayIndex(month);
+//        let date = new Date(month);
+//        date.setDate(month.getDate() - weekdayIndex + firstDayOfWeek);
 
-                    const tooltip = d.createElement('smart-tooltip');
-                    tooltip.selector = cellElId;
-                    tooltip.position = 'bottom';
-                    tooltip.arrow = true;
-                    const tooltipContent = d.createElement('ul');
-                    for (const fastingReason of fastingReasons) {
-                        const fastingReasonEl = d.createElement('li')
-                        fastingReasonEl.textContent = getFastingReasonTitle(fastingReason);
-                        tooltipContent.appendChild(fastingReasonEl);
-                    }
-                    tooltip.appendChild(tooltipContent);
-                    cellEl.appendChild(tooltip);
-                }
-                gridEl.appendChild(cellEl);
-                date.setDate(date.getDate() + 1);
+        for (let i = 0; i < dto.days.length; i++) {
+            const day = dto.days[i];
+            const cellElId = 'calendar-grid-cell-' + i;
+            const cellEl = d.createElement('div');
+            cellEl.id = cellElId;
+            cellEl.classList.add('calendar-grid-cell');
+            if (i === dto.todayIndex) {
+                cellEl.classList.add('calendar-grid-cell-today')
             }
+            if (day.gregorian.isAdjacentMonth) {
+                cellEl.classList.add('calendar-grid-cell-adjacent-month');
+            }
+            cellEl.appendChild(d.createTextNode(day.gregorian.dayOfMonth));
+
+            {
+                const hijriMonthEl = d.createElement('div');
+                hijriMonthEl.classList.add('calendar-grid-cell-hijri-month');
+                const hijriMonthKey = day.hijri.month.toString();
+                hijriMonthEl.textContent = dto.hijriMonthNames.find(e => e.key === hijriMonthKey).value;
+                cellEl.appendChild(hijriMonthEl);
+            }
+            {
+                const hijriDateEl = d.createElement('div');
+                hijriDateEl.classList.add('calendar-grid-cell-hijri-date')
+                hijriDateEl.textContent = day.hijri.dayOfMonth;
+                cellEl.appendChild(hijriDateEl);
+            }
+            if (day.events && day.events.length > 0) {
+                const fastingEl = d.createElement('div');
+                if (false) { // geoPosition
+  ///                  fastingEl.classList.add('calendar-grid-cell-fasting')
+//                    fastingEl.textContent = timeFormat.format(times.sunrise) + ' - ' + timeFormat.format(times.sunset);
+                } else {
+                    fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
+                    fastingEl.appendChild(d.createTextNode('Fajr '));
+                    const spinnerEl = d.createElement("img");
+                    spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
+                    spinnerEl.src = 'spinner.svg';
+                    fastingEl.appendChild(spinnerEl);
+                    fastingEl.appendChild(d.createTextNode(' Sunset'));
+                }
+                cellEl.appendChild(fastingEl);
+
+                const tooltip = d.createElement('smart-tooltip');
+                tooltip.selector = cellElId;
+                tooltip.position = 'bottom';
+                tooltip.arrow = true;
+                const tooltipContent = d.createElement('ul');
+                for (const calendarEvent of day.events) {
+                    const calendarEventReasonEl = d.createElement('li');
+                    const anchorEl = d.createElement('a');
+                    anchorEl.href = '#' + calendarEvent.reasonId;
+                    anchorEl.textContent = calendarEvent.tooltip
+                        ? dto.tooltips.find(e => e.key === calendarEvent.tooltip).value
+                        : getCalendarEventReasonTitle(calendarEvent.reasonId);
+                    calendarEventReasonEl.appendChild(anchorEl);
+                    tooltipContent.appendChild(calendarEventReasonEl);
+                }
+                tooltip.appendChild(tooltipContent);
+                cellEl.appendChild(tooltip);
+            }
+            gridEl.appendChild(cellEl);
         }
     }
 
@@ -779,8 +757,6 @@
             updateLocationDescription();
         }
     }
-
-    requestAnimationFrame(updateCalendarDates);
 
     function updateLocationByDevice() {
         navigator.geolocation.getCurrentPosition(
