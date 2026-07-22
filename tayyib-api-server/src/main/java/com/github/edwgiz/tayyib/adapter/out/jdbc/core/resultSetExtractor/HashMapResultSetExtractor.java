@@ -16,10 +16,9 @@ public interface HashMapResultSetExtractor<K, V> extends AbstractMapResultSetExt
     }
 
     static <K, V> HashMap<K, V> query(
-            @Language("PostgreSQL") final String sql,
+            final Connection tx, @Language("PostgreSQL") final String sql,
             final PreparedStatementSetter preparedStatementSetter,
-            final HashMapResultSetExtractor<K, V> resultSetExtractor,
-            final Connection tx) {
+            final HashMapResultSetExtractor<K, V> resultSetExtractor) {
         return QueryJdbcUtils.query(sql, preparedStatementSetter, resultSetExtractor, tx);
     }
 

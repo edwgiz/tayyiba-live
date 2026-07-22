@@ -16,9 +16,8 @@ import java.util.HashSet;
 public interface HashSetResultSetExtractor<T> extends ResultSetExtractor<HashSet<T>>, RowMapper<T> {
 
     static <T> HashSet<T> query(
-            @Language("PostgreSQL") final String sql,
-            final HashSetResultSetExtractor<T> resultSetExtractor,
-            final Connection tx) {
+            final Connection tx, @Language("PostgreSQL") final String sql,
+            final HashSetResultSetExtractor<T> resultSetExtractor) {
         return QueryJdbcUtils.query(sql, _ -> {
         }, resultSetExtractor, tx);
     }

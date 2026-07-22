@@ -3,7 +3,8 @@ package com.github.edwgiz.tayyib.domain.usecase.calendar;
 import com.github.edwgiz.tayyib.adapter.out.httpClient.AladhanIslamicCalendarClient;
 import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository;
 import com.github.edwgiz.tayyib.domain.model.CalendarDay;
-import com.github.edwgiz.tayyib.domain.model.CalendarDay.CalendarEvent;
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
 import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
 import net.time4j.Moment;
@@ -21,9 +22,9 @@ import java.util.List;
 
 import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.tx;
 import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.txWithoutResult;
-import static com.github.edwgiz.tayyib.domain.model.CalendarDay.CalendarEventType.OBLIGATORY_FASTING;
-import static com.github.edwgiz.tayyib.domain.model.CalendarDay.CalendarEventType.PROHIBITING_FASTING;
-import static com.github.edwgiz.tayyib.domain.model.CalendarDay.CalendarEventType.VOLUNTARY_FASTING;
+import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventType.OBLIGATORY_FASTING;
+import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventType.PROHIBITING_FASTING;
+import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventType.VOLUNTARY_FASTING;
 import static java.time.DayOfWeek.MONDAY;
 import static java.time.DayOfWeek.SATURDAY;
 import static java.time.DayOfWeek.SUNDAY;
@@ -74,7 +75,7 @@ public class GetCalendarDaysUsecase {
 
         final var length = (int) DAYS.between(firstDay, lastDay);
 
-        final var calendarDays = new ArrayList<CalendarDay>(length);
+        final var calendarDays = new ArrayList<CalendarDayPair>(length);
         for (var day = firstDay; !day.isAfter(lastDay); day = day.plusDays(1)) {
             if (!gregorianHijriMapping.containsKey(day)) {
                 // download mapping by aladhan api
@@ -94,7 +95,7 @@ public class GetCalendarDaysUsecase {
                 }
             }
             final var hijriDay = gregorianHijriMapping.get(day);
-            calendarDays.add(new CalendarDay(
+            calendarDays.add(new CalendarDayPair(
                     day,
                     hijriDay,
                     createFastingReasons(hijriDay, day.getDayOfWeek())));
@@ -115,10 +116,10 @@ public class GetCalendarDaysUsecase {
     }
 
 
-    private List<CalendarEvent> createFastingReasons(final LocalDate hijri, final DayOfWeek dayOfWeek) {
+    private List<CalendarEvent> createFastingReasons(final CalendarDay hijri, final DayOfWeek dayOfWeek) {
         final var result = new ArrayList<CalendarEvent>();
-        final int month = hijri.getMonthValue();
-        final int day = hijri.getDayOfMonth();
+        final int month = hijri.month();
+        final int day = hijri.day();
         if (month == 10 && day == 1) {
             result.add(new CalendarEvent("fasting-reason-eid-days", "eid-al-fitr", PROHIBITING_FASTING));
         }
@@ -165,7 +166,7 @@ public class GetCalendarDaysUsecase {
         record Ok(
                 LocalDate firstDayOfMonth,
                 LocalDate lastDayOfMonth,
-                ArrayList<CalendarDay> calendarDays
+                ArrayList<CalendarDayPair> calendarDayPairs
         ) implements Result {
 
         }

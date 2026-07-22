@@ -236,7 +236,8 @@
                 }
             }
 
-            section#fasting-reasons {
+            section#fasting-reasons,
+            section#prohibiting-fasting-reasons {
                 font-size: small;
                 width: 100%;
 
@@ -411,12 +412,11 @@
         @template.calendar.fastingReasons(
         reasonGroup = i18n.fasting().reasonGroups().voluntary(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
+    </section>
+    <section id="prohibiting-fasting-reasons">
         @template.calendar.fastingReasons(
         reasonGroup = i18n.fasting().reasonGroups().prohibiting(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
-    </section>
-    <section id="forbidden-fasting-reasons">
-
     </section>
 </main>
 <hr/>

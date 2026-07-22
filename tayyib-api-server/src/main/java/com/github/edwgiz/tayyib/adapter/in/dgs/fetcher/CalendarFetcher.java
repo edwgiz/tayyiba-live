@@ -1,6 +1,7 @@
 package com.github.edwgiz.tayyib.adapter.in.dgs.fetcher;
 
 import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.*;
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
 import com.github.edwgiz.tayyib.domain.model.I18n;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
@@ -86,7 +87,7 @@ public class CalendarFetcher {
             case GetCalendarDaysUsecase.Result.Ok ok -> {
                 final var result = new ArrayList<CalendarDay>();
                 final var firstDayOfMonth = ok.firstDayOfMonth();
-                final var days = ok.calendarDays();
+                final var days = ok.calendarDayPairs();
                 for (int j = 0; j < days.size(); j++) {
                     var calendarDay = days.get(j);
                     final var day = calendarDay.gregorian();
@@ -95,7 +96,7 @@ public class CalendarFetcher {
                     }
                     final var hijriDay = calendarDay.hijri();
                     final var lastDayOfMonth = ok.lastDayOfMonth();
-                    hijriMonthNames.computeIfAbsent(hijriDay.getMonthValue(), i -> i18n.calendar().monthNames()[i]);
+                    hijriMonthNames.computeIfAbsent(hijriDay.month(), i -> i18n.calendar().monthNames()[i]);
                     final var events = new ArrayList<CalendarEvent>();
                     for (final var event : calendarDay.events()) {
                         events.add(toDto(event, i18n, tooltips));
@@ -104,7 +105,7 @@ public class CalendarFetcher {
                             new GregorianCalendarDay(
                                     day.isBefore(firstDayOfMonth) || day.isAfter(lastDayOfMonth),
                                     day.getDayOfMonth()),
-                            new HijriCalendarDay(hijriDay.getDayOfMonth(), hijriDay.getMonthValue()),
+                            new HijriCalendarDay(hijriDay.day(), hijriDay.month()),
                             events));
                 }
 
@@ -126,7 +127,7 @@ public class CalendarFetcher {
     }
 
     private static CalendarEvent toDto(
-            final com.github.edwgiz.tayyib.domain.model.CalendarDay.CalendarEvent event,
+            final CalendarDayPair.CalendarEvent event,
             final I18n i18n,
             final HashMap<String, String> tooltips
     ) {

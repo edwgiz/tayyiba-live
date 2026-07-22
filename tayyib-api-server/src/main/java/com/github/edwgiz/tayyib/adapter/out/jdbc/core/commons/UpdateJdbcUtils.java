@@ -13,14 +13,13 @@ import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.commons.AbstractJdb
 public class UpdateJdbcUtils {
 
     public static int update(
-            @Language("PostgreSQL") final String sql,
-            final PreparedStatementSetter preparedStatementSetter,
-            final Connection tx) {
+            final Connection tx, @Language("PostgreSQL") final String sql,
+            final PreparedStatementSetter preparedStatementSetter) {
 
         try (final var ps = prepareAndSet(sql, preparedStatementSetter, tx)) {
             return ps.executeUpdate();
         } catch (final SQLException ex) {
-            throw new UncategorizedSQLException(null, sql, ex);
+            throw new UncategorizedSQLException("", sql, ex);
         }
     }
 }
