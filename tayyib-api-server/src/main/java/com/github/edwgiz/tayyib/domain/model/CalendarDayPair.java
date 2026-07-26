@@ -10,10 +10,17 @@ public record CalendarDayPair(
         CalendarDay hijri,
         List<CalendarEvent> events) {
 
-    public record CalendarEvent(String reasonId, @Nullable String tooltipId, CalendarEventType reasonType) {
+    public record CalendarEvent(
+            List<CalendarEventReason> reasons,
+            @Nullable Integer startMinute,
+            @Nullable Integer endMinute
+    ) {
     }
 
-    public enum CalendarEventType {
+    public record CalendarEventReason(String id, @Nullable String headlineId, CalendarEventReasonGroup group) {
+    }
+
+    public enum CalendarEventReasonGroup {
         OBLIGATORY_FASTING,
         VOLUNTARY_FASTING,
         PROHIBITING_FASTING

@@ -4,7 +4,7 @@ scalar Upload
 
 type Query {
     findNutrientsByParentId(parentId: ID): [Nutrient!]
-    getCalendarCells(millis: Long!, timezoneOffset: Int!, method: HijriMethod!): GetCalendarCellsResult!
+    getCalendarCells(millis: Long!, timezoneOffset: Int!, method: HijriMethod!, location: GeoPointInput): GetCalendarCellsResult!
 }
 
 type Mutation {
@@ -30,6 +30,11 @@ type NutrientLink {
     title: String!
 }
 
+input GeoPointInput {
+    latitude: Float!
+    longitude: Float!
+}
+
 enum HijriMethod {
     HJCoSA,
     UAQ,
@@ -38,7 +43,7 @@ enum HijriMethod {
 
 type GetCalendarCellsResult {
     hijriMonthNames: [StringToStringEntry!]!
-    tooltips: [StringToStringEntry!]!
+    calendarEventReasons: [CalendarEventReason!]!
     currentMonthLabel: String!
     dayOfWeekNames: [String!]!
     days: [CalendarDay!]!
@@ -67,12 +72,23 @@ type HijriCalendarDay {
 }
 
 type CalendarEvent {
-    reasonId: String!
-    reasonType: CalendarEventType!
-    tooltip: String
+    "The reason title by reason identifier"
+    reasonViews: [CalendarEventReasonView!]!
+    startMinute: Int
+    endMinute: Int
 }
 
-enum CalendarEventType {
+type CalendarEventReason {
+    id: String!
+    reasonGroup: CalendarEventReasonGroup!
+}
+
+type CalendarEventReasonView {
+    id: String!
+    headline: String
+}
+
+enum CalendarEventReasonGroup {
     OBLIGATORY_FASTING,
     VOLUNTARY_FASTING,
     PROHIBITING_FASTING,

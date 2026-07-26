@@ -54,11 +54,13 @@ public class CalendarFetcher {
         this.getBundleUsecase = getBundleUsecase;
     }
 
+
     @DgsQuery
     GetCalendarCellsResult getCalendarCells(
             final @InputArgument long millis,
             final @InputArgument int timezoneOffset,
             final @InputArgument("method") com.github.edwgiz.tayyib.adapter.commons.dgs.dto.HijriMethod methodDto,
+            final @InputArgument("location") com.github.edwgiz.tayyib.adapter.commons.dgs.dto.GeoPointInput locationDto,
             final DgsDataFetchingEnvironment dfe) {
 
         final var requestData = getRequestData(dfe);
@@ -80,7 +82,7 @@ public class CalendarFetcher {
         final var today = createOffsetDateTime(millis, timezoneOffset).toLocalDate();
         final var calendarResult = getCalendarDaysUsecase.apply(millis, today, isSundayFirst, method, null);
         final var hijriMonthNames = new HashMap<Integer, String>();
-        final var tooltips = new HashMap<String, String>();
+        final var calendarEventReasons = new HashMap<String, CalendarEventReason>();
         var todayIndex = (Integer) null;
 
         final var calendarDays = switch (calendarResult) {
@@ -99,7 +101,7 @@ public class CalendarFetcher {
                     hijriMonthNames.computeIfAbsent(hijriDay.month(), i -> i18n.calendar().monthNames()[i]);
                     final var events = new ArrayList<CalendarEvent>();
                     for (final var event : calendarDay.events()) {
-                        events.add(toDto(event, i18n, tooltips));
+                        events.add(toDto(event, i18n, calendarEventReasons));
                     }
                     result.add(new CalendarDay(
                             new GregorianCalendarDay(
@@ -118,7 +120,7 @@ public class CalendarFetcher {
 
         return new GetCalendarCellsResult(
                 hijriMonthNames.entrySet().stream().map(e -> new StringToStringEntry(Integer.toString(e.getKey()), e.getValue())).toList(),
-                tooltips.entrySet().stream().map(e -> new StringToStringEntry(e.getKey(), e.getValue())).toList(),
+                new ArrayList<>(calendarEventReasons.values()),
                 monthLabel,
                 Arrays.asList(dayOfWeekNames),
                 calendarDays,
@@ -126,37 +128,57 @@ public class CalendarFetcher {
         );
     }
 
+
     private static CalendarEvent toDto(
             final CalendarDayPair.CalendarEvent event,
             final I18n i18n,
-            final HashMap<String, String> tooltips
+            final HashMap<String, CalendarEventReason> calendarEventReasons
     ) {
-        final var reasonEntry = switch (event.reasonType()) {
-            case OBLIGATORY_FASTING ->
-                    entry(CalendarEventType.OBLIGATORY_FASTING, i18n.fasting().reasonGroups().obligatory());
-            case VOLUNTARY_FASTING ->
-                    entry(CalendarEventType.VOLUNTARY_FASTING, i18n.fasting().reasonGroups().voluntary());
-            case PROHIBITING_FASTING ->
-                    entry(CalendarEventType.PROHIBITING_FASTING, i18n.fasting().reasonGroups().prohibiting());
-        };
-        final var reasonId = event.reasonId();
-        final var tooltipId = event.tooltipId();
-        if (tooltipId != null) {
-            for (final var reason : reasonEntry.getValue().reasons()) {
-                if (reasonId.equals(reason.id())) {
-                    if (isNotEmpty(reason.tooltips())) {
-                        tooltips.putIfAbsent(tooltipId, reason.tooltips().get(tooltipId));
-                    } else {
-                        log.error("Can't find tooltip by reasonId: {}, tooltipId: {}", reasonId, tooltipId);
+        final var fastingReasonGroups = i18n.fasting().reasonGroups();
+        final var reasonViews = new ArrayList<CalendarEventReasonView>();
+        for (final var reason : event.reasons()) {
+            final var reasonEntry = switch (reason.group()) {
+                case OBLIGATORY_FASTING ->
+                        entry(CalendarEventReasonGroup.OBLIGATORY_FASTING, fastingReasonGroups.obligatory());
+                case VOLUNTARY_FASTING ->
+                        entry(CalendarEventReasonGroup.VOLUNTARY_FASTING, fastingReasonGroups.voluntary());
+                case PROHIBITING_FASTING ->
+                        entry(CalendarEventReasonGroup.PROHIBITING_FASTING, fastingReasonGroups.prohibiting());
+            };
+            reasonViews.add(new CalendarEventReasonView(reason.id(), getHeadline(reason, reasonEntry.getValue())));
+            if (!calendarEventReasons.containsKey(reason.id())) {
+                calendarEventReasons.put(reason.id(), new CalendarEventReason(
+                        reason.id(),
+                        reasonEntry.getKey()));
+            }
+        }
+
+        return new CalendarEvent(
+                reasonViews,
+                event.startMinute(),
+                event.endMinute());
+    }
+
+
+    private static @Nullable String getHeadline(
+            final CalendarDayPair.CalendarEventReason reason,
+            final I18n.Fasting.FastingReasonGroup reasonGroup) {
+        if (isNotEmpty(reason.headlineId())) {
+            for (final var reasonI18n : reasonGroup.reasons()) {
+                if (reason.id().equals(reasonI18n.id())) {
+                    final String headline = isNotEmpty(reasonI18n.headlines())
+                            ? reasonI18n.headlines().get(reason.headlineId())
+                            : null;
+                    if (headline == null) {
+                        log.error("Can't find headline by reasonId: {}, headlineId: {}", reason.id(), reason.headlineId());
                     }
+                    return headline;
                 }
             }
         }
-        return new CalendarEvent(
-                reasonId,
-                reasonEntry.getKey(),
-                tooltipId);
+        return null;
     }
+
 
     private static OffsetDateTime createOffsetDateTime(long millis, int timezoneOffset) {
         return ofEpochMilli(millis).atOffset(ofTotalSeconds(timezoneOffset * 60));

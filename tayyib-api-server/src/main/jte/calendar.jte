@@ -569,9 +569,9 @@
                         key
                         value
                     }
-                    tooltips {
-                        key
-                        value
+                    calendarEventReasons {
+                        id
+                        reasonGroup
                     }
                     currentMonthLabel
                     dayOfWeekNames
@@ -585,9 +585,12 @@
                             month
                         }
                         events {
-                            reasonId
-                            reasonType
-                            tooltip
+                            reasonViews {
+                                id,
+                                headline
+                            }
+                            startMinute
+                            endMinute
                         }
                     }
                     todayIndex
@@ -629,7 +632,7 @@
     });
 
 
-    function getCalendarEventReasonTitle(elId) {
+    function getCalendarEventReasonHeadline(elId) {
         const fastingReasonEl = d.getElementById(elId);
         return fastingReasonEl.firstElementChild.textContent;
     }
@@ -690,21 +693,22 @@
                     fastingEl.appendChild(d.createTextNode(' Sunset'));
                 }
                 cellEl.appendChild(fastingEl);
-
                 const tooltip = d.createElement('smart-tooltip');
                 tooltip.selector = cellElId;
                 tooltip.position = 'bottom';
                 tooltip.arrow = true;
                 const tooltipContent = d.createElement('ul');
                 for (const calendarEvent of day.events) {
-                    const calendarEventReasonEl = d.createElement('li');
-                    const anchorEl = d.createElement('a');
-                    anchorEl.href = '#' + calendarEvent.reasonId;
-                    anchorEl.textContent = calendarEvent.tooltip
-                        ? dto.tooltips.find(e => e.key === calendarEvent.tooltip).value
-                        : getCalendarEventReasonTitle(calendarEvent.reasonId);
-                    calendarEventReasonEl.appendChild(anchorEl);
-                    tooltipContent.appendChild(calendarEventReasonEl);
+                    for(const reasonView of calendarEvent.reasonViews) {
+                        const calendarEventReasonEl = d.createElement('li');
+                        const anchorEl = d.createElement('a');
+                        anchorEl.href = '#' + reasonView.id;
+                        anchorEl.textContent = reasonView.headline
+                            ? reasonView.headline
+                            : getCalendarEventReasonHeadline(reasonView.id);
+                        calendarEventReasonEl.appendChild(anchorEl);
+                        tooltipContent.appendChild(calendarEventReasonEl);
+                    }
                 }
                 tooltip.appendChild(tooltipContent);
                 cellEl.appendChild(tooltip);

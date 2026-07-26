@@ -53,7 +53,7 @@ public record I18n(
                 @Nullable String id,
                 @Nullable String title,
                 Citation[] cites,
-                @Nullable Map<String, String> tooltips
+                @Nullable Map<String, String> headlines
         ) {
         }
 

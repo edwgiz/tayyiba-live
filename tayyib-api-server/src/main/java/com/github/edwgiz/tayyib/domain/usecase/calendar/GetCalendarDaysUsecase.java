@@ -5,6 +5,7 @@ import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository
 import com.github.edwgiz.tayyib.domain.model.CalendarDay;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReason;
 import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
 import net.time4j.Moment;
@@ -22,9 +23,9 @@ import java.util.List;
 
 import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.tx;
 import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.txWithoutResult;
-import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventType.OBLIGATORY_FASTING;
-import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventType.PROHIBITING_FASTING;
-import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventType.VOLUNTARY_FASTING;
+import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.OBLIGATORY_FASTING;
+import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.PROHIBITING_FASTING;
+import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.VOLUNTARY_FASTING;
 import static java.time.DayOfWeek.MONDAY;
 import static java.time.DayOfWeek.SATURDAY;
 import static java.time.DayOfWeek.SUNDAY;
@@ -34,6 +35,7 @@ import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static java.time.temporal.TemporalAdjusters.previousOrSame;
 import static net.time4j.scale.TimeScale.POSIX;
+import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 
 
@@ -95,15 +97,21 @@ public class GetCalendarDaysUsecase {
                 }
             }
             final var hijriDay = gregorianHijriMapping.get(day);
+            final var fastingReasons = createFastingReasons(hijriDay, day.getDayOfWeek());
             calendarDays.add(new CalendarDayPair(
                     day,
                     hijriDay,
-                    createFastingReasons(hijriDay, day.getDayOfWeek())));
+                    isEmpty(fastingReasons)
+                            ? List.of()
+                            : List.of(new CalendarEvent(
+                            fastingReasons,
+                            null,
+                            null))));
         }
 
 
 //        HijrahDate today = HijrahChronology.INSTANCE.dateNow();
-  //      ChronoLocalDateTime<HijrahDate> hijriTimestamp = today.atTime(LocalTime.MIDNIGHT);
+        //      ChronoLocalDateTime<HijrahDate> hijriTimestamp = today.atTime(LocalTime.MIDNIGHT);
 
         final var moment = Moment.of(millis / 1000, (int) (millis % 1000) * 1_000_000, POSIX);
         final var gregorianDate = moment.toZonalTimestamp(ZonalOffset.UTC).toDate();
@@ -116,17 +124,19 @@ public class GetCalendarDaysUsecase {
     }
 
 
-    private List<CalendarEvent> createFastingReasons(final CalendarDay hijri, final DayOfWeek dayOfWeek) {
-        final var result = new ArrayList<CalendarEvent>();
+    private List<CalendarEventReason> createFastingReasons(final CalendarDay hijri, final DayOfWeek dayOfWeek) {
+        final var result = new ArrayList<CalendarEventReason>();
         final int month = hijri.month();
         final int day = hijri.day();
         if (month == 10 && day == 1) {
-            result.add(new CalendarEvent("fasting-reason-eid-days", "eid-al-fitr", PROHIBITING_FASTING));
+            result.add(new CalendarEventReason("fasting-reason-eid-days", "eid-al-fitr", PROHIBITING_FASTING));
         }
         if (month == 12) {
             switch (day) {
-                case 10 -> result.add(new CalendarEvent("fasting-reason-eid-days", "eid-al-adha", PROHIBITING_FASTING));
-                case 11, 12, 13 -> result.add(new CalendarEvent("fasting-reason-tashriq", null, PROHIBITING_FASTING));
+                case 10 ->
+                        result.add(new CalendarEventReason("fasting-reason-eid-days", "eid-al-adha", PROHIBITING_FASTING));
+                case 11, 12, 13 ->
+                        result.add(new CalendarEventReason("fasting-reason-tashriq", null, PROHIBITING_FASTING));
             }
         }
         if (!result.isEmpty()) {
@@ -134,28 +144,30 @@ public class GetCalendarDaysUsecase {
         }
 
         if (month == 9) {
-            result.add(new CalendarEvent("fasting-reason-ramadan", null, OBLIGATORY_FASTING));
+            result.add(new CalendarEventReason("fasting-reason-ramadan", null, OBLIGATORY_FASTING));
         }
         // Day of Ashura
         if (month == 12 && day == 9) {
-            result.add(new CalendarEvent("fasting-reason-arafah-or-ashura", "arafah", VOLUNTARY_FASTING));
+            result.add(new CalendarEventReason("fasting-reason-arafah-or-ashura", "arafah", VOLUNTARY_FASTING));
         } else if (month == 1 && day == 10) {
-            result.add(new CalendarEvent("fasting-reason-arafah-or-ashura", "ashura", VOLUNTARY_FASTING));
+            result.add(new CalendarEventReason("fasting-reason-arafah-or-ashura", "ashura", VOLUNTARY_FASTING));
         }
         if (month == 12 && day < 10) {// First nine days of Dhu al-Hijjah
-            result.add(new CalendarEvent("fasting-reason-first-9-dhu-al-hijjah", null, VOLUNTARY_FASTING));
+            result.add(new CalendarEventReason("fasting-reason-first-9-dhu-al-hijjah", null, VOLUNTARY_FASTING));
         }
         switch (day) {
-            case 13, 14, 15 -> result.add(new CalendarEvent("fasting-reason-white-days", null, VOLUNTARY_FASTING));
+            case 13, 14, 15 ->
+                    result.add(new CalendarEventReason("fasting-reason-white-days", null, VOLUNTARY_FASTING));
         }
         switch (dayOfWeek) {
-            case MONDAY -> result.add(new CalendarEvent("fasting-reason-monday-thursday", "monday", VOLUNTARY_FASTING));
+            case MONDAY ->
+                    result.add(new CalendarEventReason("fasting-reason-monday-thursday", "monday", VOLUNTARY_FASTING));
             case THURSDAY ->
-                    result.add(new CalendarEvent("fasting-reason-monday-thursday", "thursday", VOLUNTARY_FASTING));
+                    result.add(new CalendarEventReason("fasting-reason-monday-thursday", "thursday", VOLUNTARY_FASTING));
         }
         if (!result.isEmpty()) {
             if (month == 10) { // let's shawwal fasting to be covered by other reasons
-                result.add(new CalendarEvent("fasting-reason-shawwal", null, VOLUNTARY_FASTING));
+                result.add(new CalendarEventReason("fasting-reason-shawwal", null, VOLUNTARY_FASTING));
             }
         }
         return result;
