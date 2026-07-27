@@ -6,14 +6,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
     <link rel="canonical" href="https://calendar.tayyiba.live/"/>
     <meta charset="UTF-8"/>
     <meta property="og:title" content="Islamic Fasting Calendar"/>
     <meta property="og:description" content="Track Ramadan, White Days, Monday & Thursday fasting, Ashura and more."/>
     <meta property="og:type" content="website"/>
     <meta property="og:url" content="https://calendar.tayyiba.live/"/>
-    <meta property="og:image" content="https://calendar.tayyiba.live/logo.svg"/>
+    <meta property="og:image" content="https://calendar.tayyiba.live/img/logo.svg"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="description"
           content="Interactive Islamic fasting calendar with Ramadan, White Days, Monday & Thursday fasting, Ashura, Arafah,
@@ -42,7 +42,6 @@
         import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.window.js';
         import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.dropdownlist.js';
     </script>
-    <script src="https://unpkg.com/suncalc@1.9.0/suncalc.js"></script>
 
     <title>${i18n.fasting().head().title()}</title>
 
@@ -207,7 +206,7 @@
                 }
 
                 div.calendar-grid-cell-today {
-                    background-image: url("hand-drawn-circle.svg");
+                    background-image: url("/img/hand-drawn-circle.svg");
                     background-size: auto 100%;
                     @media (max-width: 35em) {
                         background-size: 100% 100%;
@@ -352,7 +351,7 @@
 <body theme="dark">
 <header>
     <h1>
-        <img alt="Khatim icon" style="height: 2ch; vertical-align: center" src="logo.svg">
+        <img alt="Khatim icon" style="height: 2ch; vertical-align: center" src="/img/logo.svg">
         <span>${i18n.fasting().head().title()}</span>
     </h1>
     @template.calendar.fastingReasons(
@@ -362,7 +361,7 @@
 <main>
     <section id="months">
         <smart-button id="prev-month-button"></smart-button>
-        <span id="current-month-label">Loading... <img alt="" style="height: 2ch" src="spinner.svg"/></span>
+        <span id="current-month-label">Loading... <img alt="" style="height: 2ch" src="/img/spinner.svg"/></span>
         <smart-button id="next-month-button"></smart-button>
     </section>
     <section id="calendar-grid-cells">
@@ -688,7 +687,7 @@
                     fastingEl.appendChild(d.createTextNode('Fajr '));
                     const spinnerEl = d.createElement("img");
                     spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                    spinnerEl.src = 'spinner.svg';
+                    spinnerEl.src = '/img/spinner.svg';
                     fastingEl.appendChild(spinnerEl);
                     fastingEl.appendChild(d.createTextNode(' Sunset'));
                 }
@@ -744,7 +743,7 @@
         } else {
             const spinner = d.createElement('img');
             spinner.style.height = '2em';
-            spinner.src = 'spinner.svg';
+            spinner.src = '/img/spinner.svg';
             el.append(spinner);
         }
     }
