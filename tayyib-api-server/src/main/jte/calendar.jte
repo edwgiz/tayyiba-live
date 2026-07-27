@@ -124,6 +124,15 @@
             color: var(--smart-primary-color);
         }
 
+        @keyframes shimmer {
+            from {
+                background-position: 200% 0;
+            }
+            to {
+                background-position: 0 0;
+            }
+        }
+
         main {
             display: flex;
             flex-direction: column;
@@ -184,16 +193,27 @@
                     }
 
                     div.calendar-grid-cell-fasting-undefined {
-                        color: #b3b300;
+                        color: transparent;
                         font-size: small;
                         @media (max-width: 50em) {
                             font-size: x-small;
                         }
 
-                        img.calendar-grid-cell-fasting-undefined-spinner {
-                            width: 0.5em;
-                            height: 0.5em;
-                        }
+                        background: linear-gradient(
+                                -45deg,
+                                #b3b300 0%,
+                                #b3b300 40%,
+                                #ffffb3 50%,
+                                #b3b300 60%,
+                                #b3b300 100%
+                        );
+
+                        background-size: 200% 100%;
+                        background-clip: text;
+                        -webkit-background-clip: text;
+                        -webkit-text-fill-color: transparent;
+
+                        animation: shimmer 2s linear infinite;
                     }
 
                     div.calendar-grid-cell-fasting {
@@ -269,24 +289,30 @@
         smart-tooltip div.smart-tooltip-content {
             background-color: var(--smart-secondary-lighter) !important;
             border-color: var(--smart-secondary-lighter) !important;
+
             &::after {
                 --smart-tooltip-arrow-color: var(--smart-secondary-lighter);
             }
-            >ul {
+
+            > ul {
                 margin: 0;
                 padding-left: 0;
                 list-style-type: none;
                 list-style-position: inside;
-                >li {
+
+                > li {
                     margin: 0.4em;
-                    >a {
+
+                    > a {
                         color: var(--smart-base-50);
                         text-decoration: none;
+
                         &:hover {
                             border-bottom-color: var(--smart-base-50);
                             border-bottom-width: 1px;
                             border-bottom-style: dashed;
                         }
+
                         &:visited {
                             color: var(--smart-base-50);
                         }
@@ -680,16 +706,11 @@
             if (day.events && day.events.length > 0) {
                 const fastingEl = d.createElement('div');
                 if (false) { // geoPosition
-  ///                  fastingEl.classList.add('calendar-grid-cell-fasting')
+                             ///                  fastingEl.classList.add('calendar-grid-cell-fasting')
 //                    fastingEl.textContent = timeFormat.format(times.sunrise) + ' - ' + timeFormat.format(times.sunset);
                 } else {
                     fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                    fastingEl.appendChild(d.createTextNode('Fajr '));
-                    const spinnerEl = d.createElement("img");
-                    spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                    spinnerEl.src = '/img/spinner.svg';
-                    fastingEl.appendChild(spinnerEl);
-                    fastingEl.appendChild(d.createTextNode(' Sunset'));
+                    fastingEl.appendChild(d.createTextNode('Fajr - Sunset'));
                 }
                 cellEl.appendChild(fastingEl);
                 const tooltip = d.createElement('smart-tooltip');
@@ -698,7 +719,7 @@
                 tooltip.arrow = true;
                 const tooltipContent = d.createElement('ul');
                 for (const calendarEvent of day.events) {
-                    for(const reasonView of calendarEvent.reasonViews) {
+                    for (const reasonView of calendarEvent.reasonViews) {
                         const calendarEventReasonEl = d.createElement('li');
                         const anchorEl = d.createElement('a');
                         anchorEl.href = '#' + reasonView.id;
