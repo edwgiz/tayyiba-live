@@ -124,15 +124,6 @@
             color: var(--smart-primary-color);
         }
 
-        @keyframes shimmer {
-            from {
-                background-position: 200% 0;
-            }
-            to {
-                background-position: 0 0;
-            }
-        }
-
         main {
             display: flex;
             flex-direction: column;
@@ -193,27 +184,17 @@
                     }
 
                     div.calendar-grid-cell-fasting-undefined {
-                        color: transparent;
+                        color: #b3b300;
                         font-size: small;
                         @media (max-width: 50em) {
                             font-size: x-small;
                         }
 
-                        background: linear-gradient(
-                                -45deg,
-                                #b3b300 0%,
-                                #b3b300 40%,
-                                #ffffb3 50%,
-                                #b3b300 60%,
-                                #b3b300 100%
-                        );
-
-                        background-size: 200% 100%;
-                        background-clip: text;
-                        -webkit-background-clip: text;
-                        -webkit-text-fill-color: transparent;
-
-                        animation: shimmer 2s linear infinite;
+                        img.calendar-grid-cell-fasting-undefined-spinner {
+                            width: auto;
+                            height: 1lh;
+                            vertical-align: middle;
+                        }
                     }
 
                     div.calendar-grid-cell-fasting {
@@ -626,7 +607,12 @@
 //                    fastingEl.textContent = timeFormat.format(times.sunrise) + ' - ' + timeFormat.format(times.sunset);
                 } else {
                     fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                    fastingEl.appendChild(d.createTextNode('Fajr - Sunset'));
+                    fastingEl.appendChild(d.createTextNode('Fajr '));
+                    const spinnerEl = d.createElement("img");
+                    spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
+                    spinnerEl.src = '/img/spinner.svg';
+                    fastingEl.appendChild(spinnerEl);
+                    fastingEl.appendChild(d.createTextNode(' Sunset'));
                 }
                 cellEl.appendChild(fastingEl);
                 const tooltip = d.createElement('smart-tooltip');
