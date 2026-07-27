@@ -473,8 +473,7 @@
     };
 
 
-    const today = new Date();
-    let month = new Date(today);
+    let month = new Date();
     month.setDate(2);
 
     const getTimezoneUsecase = {
@@ -641,6 +640,8 @@
 
 
     function reloadCalendarDates() {
+        const today = new Date();
+        const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
         graphql(`query
                 GetCalendarCells(
                     $millis: Long!,
@@ -684,13 +685,16 @@
                     }
                 }`,
             {
-                millis: month.getTime(),
+                millis: isTodayMonth ? today.getTime() : month.getTime(),
                 timezoneOffset: -today.getTimezoneOffset(),
                 method: "UAQ"
             })
             .then(httpResp => httpResp.json())
             .then(jsonResp => {
                 const dto = jsonResp.data.getCalendarCells;
+                if(!isTodayMonth) {
+                    dto.todayIndex = -1;
+                }
                 updateCalendarHeader(dto.dayOfWeekNames);
                 updateCalendarDates(dto);
             });
