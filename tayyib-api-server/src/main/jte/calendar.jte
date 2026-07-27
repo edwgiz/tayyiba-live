@@ -408,18 +408,12 @@
 
     </script>
     <section id="settings">
-        <div class="settings-label">
-            <i18n-text key="settings.location"></i18n-text>
-            :
-        </div>
+        <div class="settings-label">${i18n.settings().location()}:</div>
         <div><span id="location-value"></span>
-            <smart-button id="change-location-open-button">
-                <i18n-text key="settings.change"></i18n-text>
-            </smart-button>
+            <smart-button id="change-location-open-button">${i18n.settings().change()}</smart-button>
         </div>
         <div class="settings-label">
-            <i18n-text key="settings.timeZone"></i18n-text>
-            :
+            <div class="settings-label">${i18n.settings().timeZone()}:</div>
         </div>
         <div>
             <smart-drop-down-list
@@ -579,84 +573,6 @@
     }
 
 
-    graphql(`query
-            GetCalendarCells(
-                $millis: Long!,
-                $timezoneOffset: Int!,
-                $method: HijriMethod!
-            ) {
-                getCalendarCells(
-                    millis: $millis,
-                    timezoneOffset: $timezoneOffset,
-                    method: $method
-                ) {
-                    hijriMonthNames {
-                        key
-                        value
-                    }
-                    calendarEventReasons {
-                        id
-                        reasonGroup
-                    }
-                    currentMonthLabel
-                    dayOfWeekNames
-                    days {
-                        gregorian {
-                            isAdjacentMonth
-                            dayOfMonth
-                        }
-                        hijri {
-                            dayOfMonth
-                            month
-                        }
-                        events {
-                            reasonViews {
-                                id,
-                                headline
-                            }
-                            startMinute
-                            endMinute
-                        }
-                    }
-                    todayIndex
-                }
-            }`,
-        {
-            millis: Date.now(),
-            timezoneOffset: -today.getTimezoneOffset(),
-            method: "UAQ"
-        })
-        .then(httpResp => httpResp.json())
-        .then(jsonResp => {
-            const dto = jsonResp.data.getCalendarCells;
-            updateCalendarHeader(dto.dayOfWeekNames);
-            updateCalendarDates(dto);
-        });
-
-    const prevMonthEl = d.getElementById('prev-month-button');
-    const currentMonthEl = d.getElementById('current-month-label');
-    const nextMonthEl = d.getElementById('next-month-button');
-
-    function updateMonthLabels() {
-        const prevMonth = new Date(month);
-        prevMonth.setUTCMonth(month.getUTCMonth() - 1);
-        const nextMonth = new Date(month);
-        nextMonth.setUTCMonth(month.getUTCMonth() + 1);
-        prevMonthEl.innerHTML = datetimeFormats.monthLabel.format(prevMonth) + '&nbsp; ◂◂';
-        currentMonthEl.textContent = datetimeFormats.monthLabel.format(month);
-        nextMonthEl.innerHTML = '▸▸ &nbsp;' + datetimeFormats.monthLabel.format(nextMonth);
-    }
-
-    prevMonthEl.addEventListener('click', _ => {
-        month.setUTCMonth(month.getUTCMonth() - 1);
-        update();
-    });
-    nextMonthEl.addEventListener('click', _ => {
-        month.setUTCMonth(month.getUTCMonth() + 1);
-        update();
-    });
-
-
     function getCalendarEventReasonHeadline(elId) {
         const fastingReasonEl = d.getElementById(elId);
         return fastingReasonEl.firstElementChild.textContent;
@@ -738,12 +654,96 @@
     }
 
 
-    function update() {
-        updateMonthLabels();
-        updateCalendarDates();
+    function reloadCalendarDates() {
+        graphql(`query
+                GetCalendarCells(
+                    $millis: Long!,
+                    $timezoneOffset: Int!,
+                    $method: HijriMethod!
+                ) {
+                    getCalendarCells(
+                        millis: $millis,
+                        timezoneOffset: $timezoneOffset,
+                        method: $method
+                    ) {
+                        hijriMonthNames {
+                            key
+                            value
+                        }
+                        calendarEventReasons {
+                            id
+                            reasonGroup
+                        }
+                        currentMonthLabel
+                        dayOfWeekNames
+                        days {
+                            gregorian {
+                                isAdjacentMonth
+                                dayOfMonth
+                            }
+                            hijri {
+                                dayOfMonth
+                                month
+                            }
+                            events {
+                                reasonViews {
+                                    id,
+                                    headline
+                                }
+                                startMinute
+                                endMinute
+                            }
+                        }
+                        todayIndex
+                    }
+                }`,
+            {
+                millis: month.getTime(),
+                timezoneOffset: -today.getTimezoneOffset(),
+                method: "UAQ"
+            })
+            .then(httpResp => httpResp.json())
+            .then(jsonResp => {
+                const dto = jsonResp.data.getCalendarCells;
+                updateCalendarHeader(dto.dayOfWeekNames);
+                updateCalendarDates(dto);
+            });
     }
 
-    updateMonthLabels();
+
+    const prevMonthEl = d.getElementById('prev-month-button');
+    const currentMonthEl = d.getElementById('current-month-label');
+    const nextMonthEl = d.getElementById('next-month-button');
+
+
+    function updateMonthLabels() {
+        const prevMonth = new Date(month);
+        prevMonth.setUTCMonth(month.getUTCMonth() - 1);
+        const nextMonth = new Date(month);
+        nextMonth.setUTCMonth(month.getUTCMonth() + 1);
+        prevMonthEl.innerHTML = datetimeFormats.monthLabel.format(prevMonth) + '&nbsp; ◂◂';
+        currentMonthEl.textContent = datetimeFormats.monthLabel.format(month);
+        nextMonthEl.innerHTML = '▸▸ &nbsp;' + datetimeFormats.monthLabel.format(nextMonth);
+    }
+
+
+    function update() {
+        updateMonthLabels();
+        reloadCalendarDates();
+    }
+
+    update();
+
+
+    prevMonthEl.addEventListener('click', _ => {
+        month.setUTCMonth(month.getUTCMonth() - 1);
+        update();
+    });
+    nextMonthEl.addEventListener('click', _ => {
+        month.setUTCMonth(month.getUTCMonth() + 1);
+        update();
+    });
+
 
     function updateLocationDescription() {
         const el = d.getElementById('location-value');
