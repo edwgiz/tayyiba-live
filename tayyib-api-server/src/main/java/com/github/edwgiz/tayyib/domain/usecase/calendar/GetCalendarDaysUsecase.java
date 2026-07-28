@@ -8,10 +8,6 @@ import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReason;
 import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
-import net.time4j.Moment;
-import net.time4j.calendar.HijriCalendar;
-import net.time4j.engine.StartOfDay;
-import net.time4j.tz.ZonalOffset;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +30,6 @@ import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static java.time.temporal.TemporalAdjusters.previousOrSame;
-import static net.time4j.scale.TimeScale.POSIX;
 import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 
@@ -109,17 +104,6 @@ public class GetCalendarDaysUsecase {
                             null))));
         }
 
-
-//        HijrahDate today = HijrahChronology.INSTANCE.dateNow();
-        //      ChronoLocalDateTime<HijrahDate> hijriTimestamp = today.atTime(LocalTime.MIDNIGHT);
-
-        final var moment = Moment.of(millis / 1000, (int) (millis % 1000) * 1_000_000, POSIX);
-        final var gregorianDate = moment.toZonalTimestamp(ZonalOffset.UTC).toDate();
-
-
-        HijriCalendar diyanet = gregorianDate.transform(HijriCalendar.class, HijriCalendar.VARIANT_DIYANET);
-        HijriCalendar ummalqura = gregorianDate.transform(HijriCalendar.class, HijriCalendar.VARIANT_UMALQURA);
-        Moment at = diyanet.atTime(0, 0).at(ZonalOffset.UTC, StartOfDay.MIDNIGHT);
         return new Result.Ok(firstDayOfMonth, lastDayOfMonth, calendarDays);
     }
 

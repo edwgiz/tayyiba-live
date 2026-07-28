@@ -44,11 +44,6 @@
             <artifactId>multipart-spring-graphql</artifactId>
         </dependency>
         <dependency>
-            <groupId>net.time4j</groupId>
-            <artifactId>time4j-base</artifactId>
-            <version>5.9.4</version>
-        </dependency>
-        <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
         </dependency>
