@@ -128,7 +128,8 @@
             position: fixed;
             inset: 0;
             z-index: 9999;
-            background-color: rgb(0 0 0 / 0.5);
+            backdrop-filter: blur(1px);
+            -webkit-backdrop-filter: blur(1px);
             background-image: url('/img/spinner-smart-base-800.svg');
             background-size: min(25vw, 25vh);
             background-repeat: no-repeat;
@@ -601,10 +602,14 @@
                     } else {
                         fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
                         fastingEl.appendChild(d.createTextNode('Fajr '));
-                        const spinnerEl = d.createElement("img");
-                        spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                        spinnerEl.src = '/img/spinner.svg';
-                        fastingEl.appendChild(spinnerEl);
+                        if(geoPositionRepository.get()) {
+                            const spinnerEl = d.createElement("img");
+                            spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
+                            spinnerEl.src = '/img/spinner.svg';
+                            fastingEl.appendChild(spinnerEl);
+                        } else {
+                            fastingEl.appendChild(d.createTextNode('-'));
+                        }
                         fastingEl.appendChild(d.createTextNode(' Sunset'));
                     }
                     cellEl.appendChild(fastingEl);
