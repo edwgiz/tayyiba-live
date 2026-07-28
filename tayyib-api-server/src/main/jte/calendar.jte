@@ -314,11 +314,11 @@
         }
 
         smart-window#change-location-window {
-            border-color: var(--smart-base-100) !important;
-            left: 0;
-            top: 0;
+            position: fixed;
+            inset: 0;
             width: 100%;
             height: 100%;
+            border-color: var(--smart-base-100) !important;
         }
 
         div.smart-header-section {
@@ -784,7 +784,7 @@
                 } else {
                     const missingPermissionDescriptionEl = d.createElement('span');
                     missingPermissionDescriptionEl.classList.add('missed-permission');
-                    missingPermissionDescriptionEl.textContent = 'Please grant location permission to calculate relevant Fajr and Sunrise times';
+                    missingPermissionDescriptionEl.textContent = '${i18n.settings().grantLocationPermission()}';
                     el.replaceChildren(missingPermissionDescriptionEl);
                 }
             });
@@ -827,6 +827,7 @@
         permission.addEventListener('change', () => {
             if(permission.state !== 'granted') {
                 geoPositionRepository.setAsString(null);
+                updateLocationByDevice();
                 reloadCalendarDates();
             }
         });
@@ -844,15 +845,14 @@
     d.getElementById('change-location-open-button').addEventListener('click', async _ => {
         let geoPosition = geoPositionRepository.get();
         if (!geoPosition) {
-            // default Kaaba
-            geoPosition = {
+            geoPosition = { // default Kaaba
                 latitude: 21.4225,
                 longitude: 39.8262,
             };
         }
         if (changeLocationWindowEl == null) {
             changeLocationWindowEl = d.getElementById('change-location-window');
-            changeLocationWindowEl.label = '';//await i18n('settings.changeLocationWindowTitle');
+            changeLocationWindowEl.label = '${i18n.settings().changeLocationWindowTitle()}';
             await import('https://unpkg.com/leaflet/dist/leaflet.js');
             changeLocationMapView = L.map('change-location-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -864,9 +864,9 @@
             }).addTo(changeLocationMapView);
             const smartButtonsEl = changeLocationWindowEl.querySelector('.smart-buttons-container');
             {
-                const saveButtonEl = document.createElement('smart-button');
+                const saveButtonEl = d.createElement('smart-button');
                 saveButtonEl.id = 'change-location-save-button';
-                saveButtonEl.textContent = '';//await i18n('settings.save');
+                saveButtonEl.textContent = '${i18n.settings().ok()}';
                 saveButtonEl.addEventListener('click', _ => {
                     const markerPosition = changeLocationMarker.getLatLng();
                     setLocation(markerPosition.lat, markerPosition.lng);
@@ -877,7 +877,7 @@
             {
                 const defaultButtonEl = document.createElement('smart-button');
                 defaultButtonEl.id = 'change-location-default-button';
-                defaultButtonEl.textContent = '';//await i18n('settings.default');
+                defaultButtonEl.textContent = '${i18n.settings().defaultValue()}';
                 defaultButtonEl.addEventListener('click', _ => {
                     updateLocationByDevice();
                     changeLocationWindowEl.close();

@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00002 author:edwgiz@gmail.com
+--changeset id:00002 author:edwgiz@zohomail.com
 
 create table i18n_bundles
 (
@@ -27,11 +27,12 @@ values ('en', 'hadith-referencing.collections.bukhari', 'Sahih al-Bukhari'),
        ('en', 'fasting.reason-groups.generic.reasons[0].cites[0].references[0].hadith', '1904'),
 
        ('en', 'settings.location', 'Location'),
+       ('en', 'settings.grant-location-permission', 'Allow location for Fajr and Sunrise times'),
        ('en', 'settings.change', 'Change'),
        ('en', 'settings.time-zone', 'Time zone'),
        ('en', 'settings.change-location-window-title', 'Change Location'),
        ('en', 'settings.ok', 'Ok'),
-       ('en', 'settings.default', 'Default'),
+       ('en', 'settings.default-value', 'Default'),
 
        ('en', 'calendar.current-month', 'Current Month'),
        ('en', 'calendar.sunrise', 'Sunrise'),

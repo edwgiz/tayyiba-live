@@ -73,6 +73,7 @@ public record I18n(
 
     public record Settings(
             String location,
+            String grantLocationPermission,
             String change,
             String timeZone,
             String changeLocationWindowTitle,
