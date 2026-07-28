@@ -124,6 +124,17 @@
             color: var(--smart-primary-color);
         }
 
+        div#page-loading-spinner {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background-color: rgb(0 0 0 / 0.5);
+            background-image: url('/img/spinner-smart-base-800.svg');
+            background-size: min(25vw, 25vh);
+            background-repeat: no-repeat;
+            background-position: center center;
+        }
+
         main {
             display: flex;
             flex-direction: column;
@@ -353,6 +364,10 @@
             color: var(--smart-base-100);
             font-size: small;
         }
+
+        span.missed-permission {
+            color: #ffff00;
+        }
     </style>
 </head>
 <body theme="dark">
@@ -368,17 +383,22 @@
 <main>
     <section id="months">
         <smart-button id="prev-month-button"></smart-button>
-        <span id="current-month-label">Loading... <img alt="" style="height: 2ch" src="/img/spinner.svg"/></span>
+        <span id="current-month-label"></span>
         <smart-button id="next-month-button"></smart-button>
     </section>
-    <section id="calendar-grid-cells">
-    </section>
+    <section id="calendar-grid-cells"></section>
     <script>
-        function graphql(query, variables = {}) {
+        /**
+         * @param {string} query
+         * @param {string} requestId
+         * @param {object} variables
+         */
+        function graphql(query, requestId, variables = {}) {
             return fetch("/graphql", {
                 method: "POST",
                 headers: {
-                    "content-type": "application/json"
+                    "Content-Type": "application/json",
+                    "X-Request-ID": requestId
                 },
                 body: JSON.stringify({
                     query,
@@ -492,49 +512,6 @@
                 month: 'long',
                 year: 'numeric'
             }),
-            yearNumber: new Intl.DateTimeFormat(locale, {
-                timeZone: tzValue,
-                year: 'numeric',
-            }),
-            monthNumber: new Intl.DateTimeFormat(locale, {
-                timeZone: tzValue,
-                month: '2-digit',
-            }),
-            date: new Intl.DateTimeFormat(locale, {
-                timeZone: tzValue,
-                day: '2-digit',
-            }),
-            utcWeekday: new Intl.DateTimeFormat(locale, {
-                timeZone: 'UTC',
-                weekday: 'short',
-            }),
-            weekday: new Intl.DateTimeFormat(locale, {
-                timeZone: tzValue,
-                weekday: 'short',
-            }),
-            hijriDate: new Intl.DateTimeFormat(locale, {
-                calendar: "islamic",
-                timeZone: tzValue,
-                numberingSystem: "latn",
-                day: '2-digit',
-            }),
-            hijriMonth: new Intl.DateTimeFormat('ar-SA', {
-                calendar: "islamic",
-                timeZone: tzValue,
-                month: "long",
-            }),
-            hijriMonthNumber: new Intl.DateTimeFormat(locale, {
-                calendar: "islamic",
-                timeZone: tzValue,
-                numberingSystem: "latn",
-                month: "2-digit",
-            }),
-            time: new Intl.DateTimeFormat(locale, {
-                timeZone: tzValue,
-                hour: '2-digit',
-                hour12: false,
-                minute: '2-digit',
-            }),
         }
     }
 
@@ -559,18 +536,33 @@
     }
 
 
+    function getFastingEvent(dto, day) {
+        for (const calendarEvent of day.events) {
+            for (const reasonView of calendarEvent.reasonViews) {
+                for (const reason of dto.calendarEventReasons) {
+                    if (reason.id === reasonView.id) {
+                        if (reason.reasonGroup === 'VOLUNTARY_FASTING'
+                            || reason.reasonGroup === 'OBLIGATORY_FASTING') {
+                            return calendarEvent;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    function formatMinutes(minutes) {
+        const minutesOnly = minutes % 60;
+        return ((minutes-minutesOnly) / 60).toString().padStart(2, '0')
+            + ':'
+            + minutesOnly.toString().padStart(2, '0');
+    }
+
     function updateCalendarDates(dto) {
         for (let i = gridEl.children.length - 1; i >= 7; i--) {
             gridEl.children.item(i).remove();
         }
-
-        const geoPosition = geoPositionRepository.get();
-//        const todayDateId = getDateId(today);
-//        const activeMonthNumber = datetimeFormats.monthNumber.format(month);
-
-//        const weekdayIndex = 0;//getWeekdayIndex(month);
-//        let date = new Date(month);
-//        date.setDate(month.getDate() - weekdayIndex + firstDayOfWeek);
 
         for (let i = 0; i < dto.days.length; i++) {
             const day = dto.days[i];
@@ -600,58 +592,106 @@
                 cellEl.appendChild(hijriDateEl);
             }
             if (day.events && day.events.length > 0) {
-                const fastingEl = d.createElement('div');
-                if (false) { // geoPosition
-                             ///                  fastingEl.classList.add('calendar-grid-cell-fasting')
-//                    fastingEl.textContent = timeFormat.format(times.sunrise) + ' - ' + timeFormat.format(times.sunset);
-                } else {
-                    fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                    fastingEl.appendChild(d.createTextNode('Fajr '));
-                    const spinnerEl = d.createElement("img");
-                    spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                    spinnerEl.src = '/img/spinner.svg';
-                    fastingEl.appendChild(spinnerEl);
-                    fastingEl.appendChild(d.createTextNode(' Sunset'));
-                }
-                cellEl.appendChild(fastingEl);
-                const tooltip = d.createElement('smart-tooltip');
-                tooltip.selector = cellElId;
-                tooltip.position = 'bottom';
-                tooltip.arrow = true;
-                const tooltipContent = d.createElement('ul');
-                for (const calendarEvent of day.events) {
-                    for (const reasonView of calendarEvent.reasonViews) {
-                        const calendarEventReasonEl = d.createElement('li');
-                        const anchorEl = d.createElement('a');
-                        anchorEl.href = '#' + reasonView.id;
-                        anchorEl.textContent = reasonView.headline
-                            ? reasonView.headline
-                            : getCalendarEventReasonHeadline(reasonView.id);
-                        calendarEventReasonEl.appendChild(anchorEl);
-                        tooltipContent.appendChild(calendarEventReasonEl);
+                const fastingEvent = getFastingEvent(dto, day);
+                if(fastingEvent) {
+                    const fastingEl = d.createElement('div');
+                    if (fastingEvent.startMinute && fastingEvent.endMinute) {
+                        fastingEl.classList.add('calendar-grid-cell-fasting');
+                        fastingEl.textContent = formatMinutes(fastingEvent.startMinute) + ' - ' + formatMinutes(fastingEvent.endMinute);
+                    } else {
+                        fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
+                        fastingEl.appendChild(d.createTextNode('Fajr '));
+                        const spinnerEl = d.createElement("img");
+                        spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
+                        spinnerEl.src = '/img/spinner.svg';
+                        fastingEl.appendChild(spinnerEl);
+                        fastingEl.appendChild(d.createTextNode(' Sunset'));
                     }
+                    cellEl.appendChild(fastingEl);
+                    const tooltip = d.createElement('smart-tooltip');
+                    tooltip.selector = cellElId;
+                    tooltip.position = 'bottom';
+                    tooltip.arrow = true;
+                    const tooltipContent = d.createElement('ul');
+                    for (const calendarEvent of day.events) {
+                        for (const reasonView of calendarEvent.reasonViews) {
+                            const calendarEventReasonEl = d.createElement('li');
+                            const anchorEl = d.createElement('a');
+                            anchorEl.href = '#' + reasonView.id;
+                            anchorEl.textContent = reasonView.headline
+                                ? reasonView.headline
+                                : getCalendarEventReasonHeadline(reasonView.id);
+                            calendarEventReasonEl.appendChild(anchorEl);
+                            tooltipContent.appendChild(calendarEventReasonEl);
+                        }
+                    }
+                    tooltip.appendChild(tooltipContent);
+                    cellEl.appendChild(tooltip);
                 }
-                tooltip.appendChild(tooltipContent);
-                cellEl.appendChild(tooltip);
             }
             gridEl.appendChild(cellEl);
         }
     }
 
 
+    const prevMonthEl = d.getElementById('prev-month-button');
+    const currentMonthEl = d.getElementById('current-month-label');
+    const nextMonthEl = d.getElementById('next-month-button');
+
+    function updateMonthLabels() {
+        const prevMonth = new Date(month);
+        prevMonth.setUTCMonth(month.getUTCMonth() - 1);
+        const nextMonth = new Date(month);
+        nextMonth.setUTCMonth(month.getUTCMonth() + 1);
+        prevMonthEl.innerHTML = datetimeFormats.monthLabel.format(prevMonth) + '&nbsp; ◂◂';
+        currentMonthEl.textContent = datetimeFormats.monthLabel.format(month);
+        nextMonthEl.innerHTML = '▸▸ &nbsp;' + datetimeFormats.monthLabel.format(nextMonth);
+    }
+
+    const pageLoadingSpinner = {
+        show: function () {
+            let loadingSpinner = d.getElementById('page-loading-spinner');
+            if (!loadingSpinner) {
+                loadingSpinner = d.createElement('div');
+                loadingSpinner.id = 'page-loading-spinner';
+                d.body.appendChild(loadingSpinner);
+            }
+        },
+
+        hide: function() {
+            d.getElementById('page-loading-spinner')?.remove();
+        }
+    }
+
+    let reloadCalendarDatesRequestId = null;
+
     function reloadCalendarDates() {
+        reloadCalendarDatesRequestId = crypto.randomUUID();
+
+        pageLoadingSpinner.show()
+
         const today = new Date();
         const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
+
+        const args = {
+            millis: isTodayMonth ? today.getTime() : month.getTime(),
+            timezoneOffset: -today.getTimezoneOffset(),
+            method: "UAQ",
+            location: geoPositionRepository.get(),
+        };
+
         graphql(`query
                 GetCalendarCells(
                     $millis: Long!,
                     $timezoneOffset: Int!,
-                    $method: HijriMethod!
+                    $method: HijriMethod!,
+                    $location: GeoPointInput
                 ) {
                     getCalendarCells(
                         millis: $millis,
                         timezoneOffset: $timezoneOffset,
-                        method: $method
+                        method: $method,
+                        location: $location
                     ) {
                         hijriMonthNames {
                             key
@@ -683,13 +723,15 @@
                         }
                         todayIndex
                     }
-                }`,
-            {
-                millis: isTodayMonth ? today.getTime() : month.getTime(),
-                timezoneOffset: -today.getTimezoneOffset(),
-                method: "UAQ"
+                }`, reloadCalendarDatesRequestId, args)
+            .then(httpResp => {
+                const requestId = httpResp.headers.get('X-Request-ID');
+                if(requestId === reloadCalendarDatesRequestId) {
+                    pageLoadingSpinner.hide();
+                    updateMonthLabels();
+                }
+                return httpResp.json();
             })
-            .then(httpResp => httpResp.json())
             .then(jsonResp => {
                 const dto = jsonResp.data.getCalendarCells;
                 if(!isTodayMonth) {
@@ -701,37 +743,16 @@
     }
 
 
-    const prevMonthEl = d.getElementById('prev-month-button');
-    const currentMonthEl = d.getElementById('current-month-label');
-    const nextMonthEl = d.getElementById('next-month-button');
-
-
-    function updateMonthLabels() {
-        const prevMonth = new Date(month);
-        prevMonth.setUTCMonth(month.getUTCMonth() - 1);
-        const nextMonth = new Date(month);
-        nextMonth.setUTCMonth(month.getUTCMonth() + 1);
-        prevMonthEl.innerHTML = datetimeFormats.monthLabel.format(prevMonth) + '&nbsp; ◂◂';
-        currentMonthEl.textContent = datetimeFormats.monthLabel.format(month);
-        nextMonthEl.innerHTML = '▸▸ &nbsp;' + datetimeFormats.monthLabel.format(nextMonth);
-    }
-
-
-    function update() {
-        updateMonthLabels();
-        reloadCalendarDates();
-    }
-
-    update();
+    reloadCalendarDates();
 
 
     prevMonthEl.addEventListener('click', _ => {
         month.setUTCMonth(month.getUTCMonth() - 1);
-        update();
+        reloadCalendarDates();
     });
     nextMonthEl.addEventListener('click', _ => {
         month.setUTCMonth(month.getUTCMonth() + 1);
-        update();
+        reloadCalendarDates();
     });
 
 
@@ -752,10 +773,21 @@
                 }
             });
         } else {
-            const spinner = d.createElement('img');
-            spinner.style.height = '2em';
-            spinner.src = '/img/spinner.svg';
-            el.append(spinner);
+            navigator.permissions.query({
+                name: "geolocation"
+            }).then(permission => {
+                if (permission.state === 'granted') {
+                    const spinner = d.createElement('img');
+                    spinner.style.height = '2em';
+                    spinner.src = '/img/spinner.svg';
+                    el.replaceChildren(spinner);
+                } else {
+                    const missingPermissionDescriptionEl = d.createElement('span');
+                    missingPermissionDescriptionEl.classList.add('missed-permission');
+                    missingPermissionDescriptionEl.textContent = 'Please grant location permission to calculate relevant Fajr and Sunrise times';
+                    el.replaceChildren(missingPermissionDescriptionEl);
+                }
+            });
         }
     }
 
@@ -767,8 +799,8 @@
         const prevPositionStr = geoPositionRepository.getAsString();
         if (currentPositionStr !== prevPositionStr) {
             geoPositionRepository.setAsString(currentPositionStr);
-            updateCalendarDates();
             updateLocationDescription();
+            reloadCalendarDates();
         }
     }
 
@@ -779,6 +811,8 @@
             },
             error => {
                 console.error('Error getting location:', error);
+                geoPositionRepository.setAsString(null);
+                updateLocationDescription();
             },
             {
                 enableHighAccuracy: false,
@@ -786,6 +820,17 @@
             }
         );
     }
+
+    navigator.permissions.query({
+        name: 'geolocation'
+    }).then(permission => {
+        permission.addEventListener('change', () => {
+            if(permission.state !== 'granted') {
+                geoPositionRepository.setAsString(null);
+                reloadCalendarDates();
+            }
+        });
+    });
 
     requestIdleCallback(() => {
         updateLocationDescription();
