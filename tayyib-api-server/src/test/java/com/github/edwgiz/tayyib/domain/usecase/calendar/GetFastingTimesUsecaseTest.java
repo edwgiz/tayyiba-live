@@ -10,8 +10,8 @@ import org.junit.jupiter.params.shadow.de.siegmar.fastcsv.util.Nullable;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
-import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.SPIRITUAL_ADMINISTRATION_OF_MUSLIMS_OF_RUSSIA;
-import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.UMM_AL_QURA_UNIVERSITY_MAKKAH;
+import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.SAMR;
+import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.UMM_AL_QURA;
 import static java.lang.Math.toRadians;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,19 +27,19 @@ class GetFastingTimesUsecaseTest {
     final class Apply {
         @Test
         public void test() {
-            test("2026-01-20", "Asia/Riyadh", 20.666666, 41.333332, 0, UMM_AL_QURA_UNIVERSITY_MAKKAH,
+            test("2026-01-20", "Asia/Riyadh", 20.666666, 41.333332, 0, UMM_AL_QURA,
                     "AstronomicalEventOffset{05:34:03}",
                     "AstronomicalEventOffset{06:53:31}",
                     "AstronomicalEventOffset{17:57:45}");
-            test("2026-07-30", "Asia/Riyadh", 20.666666, 41.333332, 0, UMM_AL_QURA_UNIVERSITY_MAKKAH,
+            test("2026-07-30", "Asia/Riyadh", 20.666666, 41.333332, 0, UMM_AL_QURA,
                     "AstronomicalEventOffset{04:25:29}",
                     "AstronomicalEventOffset{05:48:24}",
                     "AstronomicalEventOffset{18:53:52}");
-            test("2026-07-30", "Europe/Moscow", 55.7522, 37.6156, 0, SPIRITUAL_ADMINISTRATION_OF_MUSLIMS_OF_RUSSIA,
+            test("2026-07-30", "Europe/Moscow", 55.7522, 37.6156, 0, SAMR,
                     "AdjustedAstronomicalEventOffset{02:26:19, TWILIGHT_ANGLE}",
                     "AstronomicalEventOffset{04:31:19}",
                     "AstronomicalEventOffset{20:40:41}");
-            test("2026-07-30", "Europe/Moscow", 55.7522, 37.6156, 161, SPIRITUAL_ADMINISTRATION_OF_MUSLIMS_OF_RUSSIA,
+            test("2026-07-30", "Europe/Moscow", 55.7522, 37.6156, 161, SAMR,
                     "AdjustedAstronomicalEventOffset{02:21:31, TWILIGHT_ANGLE}",
                     "AstronomicalEventOffset{04:27:44}",
                     "AstronomicalEventOffset{20:44:17}");

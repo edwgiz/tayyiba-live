@@ -1,4 +1,6 @@
+@import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod
 @import com.github.edwgiz.tayyib.domain.model.I18n
+@import java.util.Map
 
 @param Object $
 @param I18n i18n
@@ -124,6 +126,36 @@
             color: var(--smart-primary-color);
         }
 
+        geolocation {
+            --smart-button-flat-color: var(--smart-background-color) !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+            cursor: pointer !important;
+            text-transform: var(--smart-button-text-transform) !important;
+            letter-spacing: .08929em !important;
+            overflow: hidden !important;
+            border-color: var(--smart-border) !important;
+            border-radius: var(--smart-border-top-left-radius) var(--smart-border-top-right-radius) var(--smart-border-bottom-right-radius) var(--smart-border-bottom-left-radius) !important;
+            border-width: var(--smart-border-width) !important;
+            border-style: solid !important;
+
+            box-sizing: border-box !important;
+            font-family: var(--smart-font-family), sans-serif !important;
+            font-size: var(--smart-font-size) !important;
+            font-weight: var(--smart-font-weight) !important;
+            -webkit-tap-highlight-color: transparent !important;
+            background: var(--smart-background) !important;
+            color: var(--smart-background-color) !important;
+        }
+
+        geolocation:hover {
+            color: var(--smart-ui-state-color-hover);
+            border-color: var(--smart-ui-state-border-hover);
+            background-color: var(--smart-ui-state-hover);
+            transition: background-color .1s linear,box-shadow 280ms ease-in-out;
+            opacity: var(--smart-button-opacity-hover)
+        }
+
         div#page-loading-spinner {
             position: fixed;
             inset: 0;
@@ -245,6 +277,16 @@
 
                 .settings-label {
                     white-space: nowrap;
+                }
+
+                #change-prayer-time-method-dropdown {
+                    div.smart-drop-down-container {
+                        width: 50ch !important;
+                    }
+                }
+
+                div.settings-location-dependencies {
+                    display: none;
                 }
             }
 
@@ -412,18 +454,34 @@
     <section id="settings">
         <div class="settings-label">${i18n.settings().location()}:</div>
         <div><span id="location-value"></span>
+            <img src='/img/spinner-smart-base-800.svg' height='2em'/>
             <smart-button id="change-location-open-button">${i18n.settings().change()}</smart-button>
         </div>
-        <div class="settings-label">
-            <div class="settings-label">${i18n.settings().timeZone()}:</div>
-        </div>
-        <div>
+        <div class="settings-label settings-location-dependencies">${i18n.settings().timeZone()}:</div>
+        <div class="settings-location-dependencies">
             <smart-drop-down-list
                     id='change-tz-dropdown'
                     filterable
+                    filter-mode='containsIgnoreCase'
+                    virtualization="true"
                     selection-mode="one"
-                    disabled="disabled"
             ></smart-drop-down-list>
+        </div>
+        <div class="settings-label settings-location-dependencies">${i18n.settings().prayerTimeMethod()}:</div>
+        <div class="settings-location-dependencies">
+            <smart-drop-down-list
+                    id='change-prayer-time-method-dropdown'
+                    filterable
+                    width="auto"
+                    sorted="true"
+                    filter-mode='containsIgnoreCase'
+                    selected-values='["${PrayerTimeMethod.MWL}"]'
+                    horizontal-scroll-bar-visibility="hidden"
+                    selection-mode="one">
+                @for(var e : i18n.prayerTimeMethod().names().entrySet())
+                    <smart-list-item value="${e.getKey()}">${e.getValue()}</smart-list-item>
+                @endfor
+            </smart-drop-down-list>
         </div>
     </section>
     <section id="fasting-reasons">
@@ -472,17 +530,59 @@
 
     const d = document;
 
+    const prayerTimeMethodRepository = {
+        /**
+         * @param {string} value
+         */
+        set(value) {
+            return localStorage.setItem('prayerTimeMethod', value);
+        },
+
+        /**
+         * @return {string}
+         */
+        get() {
+            return localStorage.getItem('prayerTimeMethod');
+        },
+    }
+
     const geoPositionRepository = {
+        /**
+         * @return {string}
+         */
         getAsString() {
             return localStorage.getItem('geoPosition');
         },
         get() {
             return JSON.parse(this.getAsString());
         },
+        /**
+         * @param {string} str
+         */
         setAsString(str) {
             localStorage.setItem('geoPosition', str);
         },
     };
+
+    const setGeoPositionUsecase = {
+        /**
+         * @param {number|null} latitude
+         * @param {number|null} longitude
+         */
+        apply(latitude, longitude) {
+            const clean = latitude === null || longitude === null;
+            const oldStr = geoPositionRepository.getAsString();
+            const newStr = clean ? null : JSON.stringify({
+                latitude: latitude,
+                longitude: longitude
+            });
+            geoPositionRepository.setAsString(newStr);
+            if (oldStr !== newStr) {
+                updateLocationDependencies();
+            }
+        }
+    }
+
     const timezoneRepository = {
         getOrDefault(defaultValue) {
             const value = localStorage.getItem('timezone');
@@ -555,7 +655,7 @@
 
     function formatMinutes(minutes) {
         const minutesOnly = minutes % 60;
-        return ((minutes-minutesOnly) / 60).toString().padStart(2, '0')
+        return ((minutes - minutesOnly) / 60).toString().padStart(2, '0')
             + ':'
             + minutesOnly.toString().padStart(2, '0');
     }
@@ -594,7 +694,7 @@
             }
             if (day.events && day.events.length > 0) {
                 const fastingEvent = getFastingEvent(dto, day);
-                if(fastingEvent) {
+                if (fastingEvent) {
                     const fastingEl = d.createElement('div');
                     if (fastingEvent.startMinute && fastingEvent.endMinute) {
                         fastingEl.classList.add('calendar-grid-cell-fasting');
@@ -602,7 +702,7 @@
                     } else {
                         fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
                         fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()} '));
-                        if(geoPositionRepository.get()) {
+                        if (geoPositionRepository.get()) {
                             const spinnerEl = d.createElement("img");
                             spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
                             spinnerEl.src = '/img/spinner.svg';
@@ -663,7 +763,7 @@
             }
         },
 
-        hide: function() {
+        hide: function () {
             d.getElementById('page-loading-spinner')?.remove();
         }
     }
@@ -683,48 +783,48 @@
                 millis: isTodayMonth ? today.getTime() : month.getTime(),
                 timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
                 hijriMethod: "UAQ",
-                prayerTimeMethod: "SPIRITUAL_ADMINISTRATION_OF_MUSLIMS_OF_RUSSIA",
+                prayerTimeMethod: prayerTimeMethodRepository.get(),
                 location: geoPositionRepository.get(),
             }
         };
 
         graphql(`query
-                GetCalendarCells($input: GetCalendarCellsInput!) {
-                    getCalendarCells(input: $input) {
-                        hijriMonthNames {
-                            key
-                            value
-                        }
-                        calendarEventReasons {
-                            id
-                            reasonGroup
-                        }
-                        currentMonthLabel
-                        dayOfWeekNames
-                        days {
-                            gregorian {
-                                isAdjacentMonth
-                                dayOfMonth
-                            }
-                            hijri {
-                                dayOfMonth
-                                month
-                            }
-                            events {
-                                reasonViews {
-                                    id,
-                                    headline
-                                }
-                                startMinute
-                                endMinute
-                            }
-                        }
-                        todayIndex
+        GetCalendarCells($input: GetCalendarCellsInput!) {
+            getCalendarCells(input: $input) {
+                hijriMonthNames {
+                    key
+                    value
+                }
+                calendarEventReasons {
+                    id
+                    reasonGroup
+                }
+                currentMonthLabel
+                dayOfWeekNames
+                days {
+                    gregorian {
+                        isAdjacentMonth
+                        dayOfMonth
                     }
-                }`, reloadCalendarDatesRequestId, args)
+                    hijri {
+                        dayOfMonth
+                        month
+                    }
+                    events {
+                        reasonViews {
+                            id,
+                            headline
+                        }
+                        startMinute
+                        endMinute
+                    }
+                }
+                todayIndex
+            }
+        }`, reloadCalendarDatesRequestId, args)
             .then(httpResp => {
                 const requestId = httpResp.headers.get('X-Request-ID');
-                if(requestId === reloadCalendarDatesRequestId) {
+                if (requestId === reloadCalendarDatesRequestId) {
                     pageLoadingSpinner.hide();
                     updateMonthLabels();
                 }
@@ -732,7 +832,7 @@
             })
             .then(jsonResp => {
                 const dto = jsonResp.data.getCalendarCells;
-                if(!isTodayMonth) {
+                if (!isTodayMonth) {
                     dto.todayIndex = -1;
                 }
                 updateCalendarHeader(dto.dayOfWeekNames);
@@ -754,9 +854,20 @@
     });
 
 
-    function updateLocationDescription() {
-        const el = d.getElementById('location-value');
+    const locationValueEl = d.getElementById('location-value');
+    function addLocationSpinner() {
+        const spinner = d.createElement('img');
+        spinner.style.height = '2em';
+        spinner.src = '/img/spinner-smart-base-800.svg';
+        locationValueEl.replaceChildren(spinner);
+    }
+    addLocationSpinner();
+
+    function updateLocationDependencies() {
+        reloadCalendarDates();
+
         const position = geoPositionRepository.get();
+
         if (position) {
             const url = new URL("https://nominatim.openstreetmap.org/reverse");
             url.searchParams.set("format", "jsonv2");
@@ -766,51 +877,58 @@
             fetch(url).then(response => {
                 if (response.ok) {
                     response.json().then(data => {
-                        el.textContent = data.display_name + '.';
+                        locationValueEl.textContent = data.display_name + '.';
                     });
                 }
             });
         } else {
+            addLocationSpinner();
+
             navigator.permissions.query({
                 name: "geolocation"
             }).then(permission => {
                 if (permission.state === 'granted') {
-                    const spinner = d.createElement('img');
-                    spinner.style.height = '2em';
-                    spinner.src = '/img/spinner.svg';
-                    el.replaceChildren(spinner);
+                    addLocationSpinner();
                 } else {
                     const missingPermissionDescriptionEl = d.createElement('span');
                     missingPermissionDescriptionEl.classList.add('missed-permission');
                     missingPermissionDescriptionEl.textContent = '${i18n.settings().grantLocationPermission()}';
-                    el.replaceChildren(missingPermissionDescriptionEl);
+                    locationValueEl.replaceChildren(missingPermissionDescriptionEl, d.createElement('geolocation'));
                 }
             });
         }
+
+        Array.from(document.getElementsByClassName('settings-location-dependencies')).forEach(el => {
+            el.style.display = position ? 'block' : 'none';
+        });
     }
 
-    function setLocation(latitude, longitude) {
-        const currentPositionStr = JSON.stringify({
-            latitude: latitude,
-            longitude: longitude,
-        });
-        const prevPositionStr = geoPositionRepository.getAsString();
-        if (currentPositionStr !== prevPositionStr) {
-            geoPositionRepository.setAsString(currentPositionStr);
-            updateLocationDescription();
-            reloadCalendarDates();
+
+    {// init prayerTimeMethod
+        const el = d.getElementById('change-prayer-time-method-dropdown');
+
+        let oldVal = prayerTimeMethodRepository.get();
+        if (!oldVal) {
+            oldVal = '${PrayerTimeMethod.MWL}';
         }
+        prayerTimeMethodRepository.set(oldVal)
+        el.selectedValues = [oldVal];
+
+        el.addEventListener('change', _ => {
+            prayerTimeMethodRepository.set(el.selectedValues[0])
+            reloadCalendarDates();
+        });
     }
+
 
     function updateLocationByDevice() {
         navigator.geolocation.getCurrentPosition(
             position => {
-                setLocation(position.coords.latitude, position.coords.longitude);
+                setGeoPositionUsecase.apply(position.coords.latitude, position.coords.longitude);
             },
             error => {
                 console.error('Error getting location:', error);
-                geoPositionRepository.setAsString(null);
-                updateLocationDescription();
+                setGeoPositionUsecase.apply(null, null);
             },
             {
                 enableHighAccuracy: false,
@@ -823,16 +941,16 @@
         name: 'geolocation'
     }).then(permission => {
         permission.addEventListener('change', () => {
-            if(permission.state !== 'granted') {
-                geoPositionRepository.setAsString(null);
-                updateLocationByDevice();
-                reloadCalendarDates();
+            if (permission.state !== 'granted') {
+                setGeoPositionUsecase.apply(null, null);
+            } else {
+                addLocationSpinner();
             }
         });
     });
 
     requestIdleCallback(() => {
-        updateLocationDescription();
+        updateLocationDependencies();
         updateLocationByDevice();
     });
 
@@ -867,7 +985,7 @@
                 saveButtonEl.textContent = '${i18n.settings().ok()}';
                 saveButtonEl.addEventListener('click', _ => {
                     const markerPosition = changeLocationMarker.getLatLng();
-                    setLocation(markerPosition.lat, markerPosition.lng);
+                    setGeoPositionUsecase.apply(markerPosition.lat, markerPosition.lng);
                     changeLocationWindowEl.close();
                 });
                 smartButtonsEl.prepend(saveButtonEl);
@@ -908,7 +1026,7 @@
         changeTzDropdown.addEventListener('change', (event) => {
             timezoneRepository.set(event.detail.value);
             updateDatetimeFormats();
-            update();
+            reloadCalendarDates();
         });
     });
 </script>

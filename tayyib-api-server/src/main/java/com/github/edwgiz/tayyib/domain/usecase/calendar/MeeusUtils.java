@@ -52,8 +52,8 @@ public abstract class MeeusUtils {
      * <p>The returned value is the positive magnitude in radians.
      * Add or subtract it from solar noon to obtain afternoon or morning time.</p>
      *
-     * @param latitudeSin    sin(phi) - observer latitude sin
-     * @param latitudeCos    cos(phi) - observer latitude cos
+     * @param latitudeSin sin(phi) - observer latitude sin
+     * @param latitudeCos cos(phi) - observer latitude cos
      * @param declination delta - solar solarDeclination in radians
      * @param elevation   h - target solar elevation in radians
      * @return H - hour angle as the positive magnitude in radians

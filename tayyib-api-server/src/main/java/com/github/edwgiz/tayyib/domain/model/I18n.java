@@ -8,6 +8,7 @@ import java.util.Map;
 public record I18n(
         HadithReferencing hadithReferencing,
         Fasting fasting,
+        PrayerTimeMethod prayerTimeMethod,
         Settings settings,
         Calendar calendar,
         Footer footer,
@@ -78,7 +79,8 @@ public record I18n(
             String timeZone,
             String changeLocationWindowTitle,
             String ok,
-            String defaultValue
+            String defaultValue,
+            String prayerTimeMethod
     ) {
     }
 
@@ -111,6 +113,12 @@ public record I18n(
                 String label
         ) {
         }
+    }
+
+
+    public record PrayerTimeMethod(
+            Map<String, String> names
+    ) {
     }
 
     public record Errors(
