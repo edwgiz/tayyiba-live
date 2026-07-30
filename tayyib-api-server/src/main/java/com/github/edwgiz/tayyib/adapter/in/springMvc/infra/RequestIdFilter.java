@@ -15,7 +15,6 @@ import java.io.IOException;
 @Component
 public class RequestIdFilter extends OncePerRequestFilter {
 
-    public static final String HEADER = "X-Request-ID";
 
     @Override
     protected void doFilterInternal(
@@ -24,20 +23,19 @@ public class RequestIdFilter extends OncePerRequestFilter {
             final @Nonnull FilterChain filterChain)
             throws ServletException, IOException {
 
-        final var requestId = request.getHeader(HEADER);
+        final var headerName = "X-Request-ID";
+        final var requestId = request.getHeader(headerName);
 
         if (requestId == null || requestId.isBlank()) {
             filterChain.doFilter(request, response);
         } else {
-            response.setHeader(HEADER, requestId);
-
-            MDC.put("requestId", requestId);
-            request.setAttribute("requestId", requestId);
-
+            response.setHeader(headerName, requestId);
+            final var mdcKey = "requestId";
+            MDC.put(mdcKey, requestId);
             try {
                 filterChain.doFilter(request, response);
             } finally {
-                MDC.remove("requestId");
+                MDC.remove(mdcKey);
             }
         }
     }

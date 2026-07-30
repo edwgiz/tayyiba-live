@@ -601,7 +601,7 @@
                         fastingEl.textContent = formatMinutes(fastingEvent.startMinute) + ' - ' + formatMinutes(fastingEvent.endMinute);
                     } else {
                         fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                        fastingEl.appendChild(d.createTextNode('Fajr '));
+                        fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()} '));
                         if(geoPositionRepository.get()) {
                             const spinnerEl = d.createElement("img");
                             spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
@@ -610,7 +610,7 @@
                         } else {
                             fastingEl.appendChild(d.createTextNode('-'));
                         }
-                        fastingEl.appendChild(d.createTextNode(' Sunset'));
+                        fastingEl.appendChild(d.createTextNode(' ${i18n.calendar().event().sunset()}'));
                     }
                     cellEl.appendChild(fastingEl);
                     const tooltip = d.createElement('smart-tooltip');
@@ -679,25 +679,18 @@
         const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
 
         const args = {
-            millis: isTodayMonth ? today.getTime() : month.getTime(),
-            timezoneOffset: -today.getTimezoneOffset(),
-            method: "UAQ",
-            location: geoPositionRepository.get(),
+            input: {
+                millis: isTodayMonth ? today.getTime() : month.getTime(),
+                timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
+                hijriMethod: "UAQ",
+                prayerTimeMethod: "SPIRITUAL_ADMINISTRATION_OF_MUSLIMS_OF_RUSSIA",
+                location: geoPositionRepository.get(),
+            }
         };
 
         graphql(`query
-                GetCalendarCells(
-                    $millis: Long!,
-                    $timezoneOffset: Int!,
-                    $method: HijriMethod!,
-                    $location: GeoPointInput
-                ) {
-                    getCalendarCells(
-                        millis: $millis,
-                        timezoneOffset: $timezoneOffset,
-                        method: $method,
-                        location: $location
-                    ) {
+                GetCalendarCells($input: GetCalendarCellsInput!) {
+                    getCalendarCells(input: $input) {
                         hijriMonthNames {
                             key
                             value

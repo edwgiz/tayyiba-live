@@ -82,13 +82,19 @@ public record I18n(
     ) {
     }
 
+
     public record Calendar(
             String currentMonth,
-            String sunrise,
-            String sunset,
+            CalendarEvent event,
             String[] monthNames
     ) {
+        public record CalendarEvent(
+                String fajr,
+                String sunset
+        ) {
+        }
     }
+
 
     public record Footer(
             Contacts contacts,

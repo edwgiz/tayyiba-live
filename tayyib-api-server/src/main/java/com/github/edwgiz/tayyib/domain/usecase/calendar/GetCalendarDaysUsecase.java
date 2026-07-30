@@ -2,18 +2,16 @@ package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 import com.github.edwgiz.tayyib.adapter.out.httpClient.AladhanIslamicCalendarClient;
 import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository;
-import com.github.edwgiz.tayyib.domain.model.CalendarDay;
-import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
+import com.github.edwgiz.tayyib.domain.model.*;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReason;
-import com.github.edwgiz.tayyib.domain.model.GeoLocation;
-import com.github.edwgiz.tayyib.domain.model.HijriMethod;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
 import javax.sql.DataSource;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,15 +35,18 @@ import static org.apache.commons.lang3.ArrayUtils.contains;
 @Service
 public class GetCalendarDaysUsecase {
 
+    private final GetFastingTimesUsecase getFastingTimesUsecase;
     private final AladhanIslamicCalendarClient aladhanIslamicCalendarClient;
     private final DataSource dataSource;
     private final GregorianHijriMappingRepository gregorianHijriMappingRepository;
 
 
     public GetCalendarDaysUsecase(
+            final GetFastingTimesUsecase getFastingTimesUsecase,
             final AladhanIslamicCalendarClient aladhanIslamicCalendarClient,
             final DataSource dataSource,
             final GregorianHijriMappingRepository gregorianHijriMappingRepository) {
+        this.getFastingTimesUsecase = getFastingTimesUsecase;
         this.aladhanIslamicCalendarClient = aladhanIslamicCalendarClient;
         this.dataSource = dataSource;
         this.gregorianHijriMappingRepository = gregorianHijriMappingRepository;
@@ -53,10 +54,12 @@ public class GetCalendarDaysUsecase {
 
 
     public Result apply(
-            final long millis,
             final LocalDate today,
             final boolean isSundayFirst,
             final HijriMethod hijriMethod,
+            final PrayerTimeMethod prayerTimeMethod,
+            final ZoneId timezone,
+
             final @Nullable GeoLocation geoLocation
     ) {
         final var firstDayOfMonth = today.with(firstDayOfMonth());
@@ -73,9 +76,9 @@ public class GetCalendarDaysUsecase {
         final var length = (int) DAYS.between(firstDay, lastDay);
 
         final var calendarDays = new ArrayList<CalendarDayPair>(length);
+        final var getFastingTimesCache = getFastingTimesUsecase.createCache(geoLocation, 0, prayerTimeMethod, firstDay.minusDays(1), timezone);
         for (var day = firstDay; !day.isAfter(lastDay); day = day.plusDays(1)) {
             if (!gregorianHijriMapping.containsKey(day)) {
-                // download mapping by aladhan api
                 final var gregorianToHijriCalendar = aladhanIslamicCalendarClient.gregorianToHijriCalendar(day.getMonthValue(), day.getYear(), hijriMethod);
                 if (gregorianToHijriCalendar == null || !contains(gregorianToHijriCalendar.gregorian(), day)) {
                     return new Result.ServiceUnavailable();
@@ -93,6 +96,15 @@ public class GetCalendarDaysUsecase {
             }
             final var hijriDay = gregorianHijriMapping.get(day);
             final var fastingReasons = createFastingReasons(hijriDay, day.getDayOfWeek());
+
+            Integer startMinute = null;
+            Integer endMinute = null;
+            if (getFastingTimesCache != null) {
+                final var result = getFastingTimesUsecase.apply(day, getFastingTimesCache);
+                startMinute = getMinute(result.fajr());
+                endMinute = getMinute(result.sunset());
+            }
+
             calendarDays.add(new CalendarDayPair(
                     day,
                     hijriDay,
@@ -100,11 +112,24 @@ public class GetCalendarDaysUsecase {
                             ? List.of()
                             : List.of(new CalendarEvent(
                             fastingReasons,
-                            null,
-                            null))));
+                            startMinute,
+                            endMinute))));
         }
 
         return new Result.Ok(firstDayOfMonth, lastDayOfMonth, calendarDays);
+    }
+
+
+    private static @Nullable Integer getMinute(
+            final GetFastingTimesUsecase.Result.EventOffset eventOffset
+    ) {
+        return switch (eventOffset) {
+            case GetFastingTimesUsecase.Result.EventOffset.AstronomicalEventOffset astronomical ->
+                    astronomical.seconds() / 60;
+            case GetFastingTimesUsecase.Result.EventOffset.AdjustedAstronomicalEventOffset adjustedAstronomical ->
+                    adjustedAstronomical.seconds() / 60;
+            case GetFastingTimesUsecase.Result.EventOffset.Undefined _ -> null;
+        };
     }
 
 

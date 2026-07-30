@@ -1,9 +1,10 @@
 package com.github.edwgiz.tayyib.adapter.in.dgs.fetcher;
 
 import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.*;
-import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
+import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.CalendarDay;
+import com.github.edwgiz.tayyib.domain.model.*;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
-import com.github.edwgiz.tayyib.domain.model.I18n;
+import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
 import com.github.edwgiz.tayyib.domain.usecase.i18n.GetBundleUsecase;
 import com.netflix.graphql.dgs.DgsComponent;
@@ -19,12 +20,11 @@ import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.servlet.LocaleResolver;
 
 import java.time.DayOfWeek;
-import java.time.OffsetDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.*;
 
-import static java.time.Instant.ofEpochMilli;
-import static java.time.ZoneOffset.ofTotalSeconds;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Locale.ROOT;
 import static java.util.Map.entry;
@@ -57,19 +57,13 @@ public class CalendarFetcher {
 
     @DgsQuery
     GetCalendarCellsResult getCalendarCells(
-            final @InputArgument long millis,
-            final @InputArgument int timezoneOffset,
-            final @InputArgument("method") com.github.edwgiz.tayyib.adapter.commons.dgs.dto.HijriMethod methodDto,
-            final @InputArgument("location") com.github.edwgiz.tayyib.adapter.commons.dgs.dto.GeoPointInput locationDto,
+            final @InputArgument GetCalendarCellsInput input,
             final DgsDataFetchingEnvironment dfe) {
 
         final var requestData = getRequestData(dfe);
-        final var method = switch (methodDto) {
-            case HJCoSA -> HijriMethod.HJCoSA;
-            case UAQ -> HijriMethod.UAQ;
-            case Diyanet -> HijriMethod.Diyanet;
-        };
-
+        final var hijriMethod = HijriMethod.valueOf(input.getHijriMethod().name());
+        final var prayerTimeMethod = PrayerTimeMethod.valueOf(input.getPrayerTimeMethod().name());
+        final var geoLocation = toModel(input.getLocation());
 
         final var dayOfWeeks = DayOfWeek.values();
         final var dayOfWeekNames = new String[7];
@@ -79,8 +73,9 @@ public class CalendarFetcher {
             dayOfWeekNames[i] = dayOfWeeks[(i + dayOfWeekOffset) % 7].getDisplayName(TextStyle.SHORT, requestData.locale);
         }
         final var i18n = getBundleUsecase.apply(requestData.locale());
-        final var today = createOffsetDateTime(millis, timezoneOffset).toLocalDate();
-        final var calendarResult = getCalendarDaysUsecase.apply(millis, today, isSundayFirst, method, null);
+        final var timezone = ZoneId.of(input.getTimezone());
+        final var today = Instant.ofEpochMilli(input.getMillis()).atZone(timezone).toLocalDate();
+        final var calendarResult = getCalendarDaysUsecase.apply(today, isSundayFirst, hijriMethod, prayerTimeMethod, timezone, geoLocation);
         final var hijriMonthNames = new HashMap<Integer, String>();
         final var calendarEventReasons = new HashMap<String, CalendarEventReason>();
         var todayIndex = (Integer) null;
@@ -126,6 +121,11 @@ public class CalendarFetcher {
                 calendarDays,
                 todayIndex
         );
+    }
+
+
+    private static @Nullable GeoLocation toModel(final @Nullable GeoPointInput location) {
+        return location == null ? null : new GeoLocation(location.getLatitude(), location.getLongitude());
     }
 
 
@@ -177,11 +177,6 @@ public class CalendarFetcher {
             }
         }
         return null;
-    }
-
-
-    private static OffsetDateTime createOffsetDateTime(long millis, int timezoneOffset) {
-        return ofEpochMilli(millis).atOffset(ofTotalSeconds(timezoneOffset * 60));
     }
 
 
