@@ -10,6 +10,7 @@ import org.junit.jupiter.params.shadow.de.siegmar.fastcsv.util.Nullable;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
+import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.MWL;
 import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.SAMR;
 import static com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod.UMM_AL_QURA;
 import static java.lang.Math.toRadians;
@@ -43,6 +44,15 @@ class GetFastingTimesUsecaseTest {
                     "AdjustedAstronomicalEventOffset{02:21:31, TWILIGHT_ANGLE}",
                     "AstronomicalEventOffset{04:27:44}",
                     "AstronomicalEventOffset{20:44:17}");
+            // test polar night conditions when no sunset/sunrise occured
+            test("2026-11-29", "Europe/Oslo", 69.6489, 18.9551, 0, MWL,
+                    "AstronomicalEventOffset{05:57:11}",
+                    "AstronomicalEventOffset{11:22:34}",
+                    "AstronomicalEventOffset{11:42:44}");
+            test("2027-01-15", "Europe/Oslo", 69.6489, 18.9551, 0, MWL,
+                    "AstronomicalEventOffset{06:13:51}",
+                    "AstronomicalEventOffset{11:34:23}",
+                    "AstronomicalEventOffset{12:12:34}");
         }
 
         private void test(

@@ -3,6 +3,8 @@ package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset.AstronomicalEventOffset;
 import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.function.Function;
 
 import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.HighLatitudeRule.NONE;
 import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.HighLatitudeRule.TWILIGHT_ANGLE;
@@ -21,6 +24,9 @@ import static java.lang.Math.toDegrees;
 import static java.lang.Math.toRadians;
 
 
+/**
+ * TODO check  <img src='img.png'>
+ */
 @Service
 public class GetFastingTimesUsecase {
 
@@ -119,20 +125,11 @@ public class GetFastingTimesUsecase {
             final Cache cache) {
 
         final var startOfDay = day.atStartOfDay(cache.timezone);
-        final var jd = MeeusUtils.julianDay(startOfDay.plusHours(12).toEpochSecond() * 1000L);
-        final var T = MeeusUtils.julianCentury(jd);
-        final var dailyAngles = MeeusUtils.dailyAngles(T);
-        final var solarNoonAngle = solarNoonAngle(cache.longitude, dailyAngles.equationOfTime());
+        final var prerequisites = createAstronomicalEventOffsetPrerequisites(cache, startOfDay);
+        final var sunrise = createLightTransitionEventOffset(cache, prerequisites, cache.sunriseAngle, true, Cache.NearestAstronomicalBounds::sunrise);
+        final var sunset = createLightTransitionEventOffset(cache, prerequisites, cache.sunsetAngle, false, Cache.NearestAstronomicalBounds::sunset);
 
-        final var timezoneOffset = startOfDay.getOffset().getTotalSeconds();
-
-        var sunrise = createAstronomicalEventOffset(cache, solarNoonAngle, dailyAngles.solarDeclination(), cache.sunriseAngle, true, timezoneOffset);
-        if (sunrise == null) {
-
-        }
-        var sunset = createAstronomicalEventOffset(cache, solarNoonAngle, dailyAngles.solarDeclination(), cache.sunsetAngle, false, timezoneOffset);
-
-        Result.EventOffset fajr = createAstronomicalEventOffset(cache, solarNoonAngle, dailyAngles.solarDeclination(), cache.fajrAngle, true, timezoneOffset);
+        var fajr = (Result.EventOffset) createAstronomicalEventOffset(cache, prerequisites, cache.fajrAngle, true);
         if (fajr == null) {
             if (cache.previousSunset != null) {
                 fajr = switch (cache.prayerTimeMethod.highLatitudeRule) {
@@ -153,6 +150,101 @@ public class GetFastingTimesUsecase {
         final var result = new Result(fajr, sunrise, sunset);
         cache.previousSunset = result.sunset;
         return result;
+    }
+
+    private Result.EventOffset createLightTransitionEventOffset(
+            final Cache cache,
+            final AstronomicalEventOffsetPrerequisites prerequisites,
+            final double elevation,
+            final boolean morning,
+            final Function<Cache.NearestAstronomicalBounds, Cache.NearestAstronomicalBounds.InterpolationPrerequisites> getter) {
+        var eventOffset = (Result.EventOffset) createAstronomicalEventOffset(cache, prerequisites, elevation, morning);
+        if (eventOffset == null) {
+            final var nearestAstronomicalBounds = getNearestAstronomicalBounds(cache, prerequisites.day());
+            if (nearestAstronomicalBounds == null) {
+                eventOffset = new Result.EventOffset.Undefined();
+            } else {
+                eventOffset = interpolateAstronomicalEvent(prerequisites.day(), nearestAstronomicalBounds, getter);
+            }
+        }
+        return eventOffset;
+    }
+
+
+    private static GetFastingTimesUsecase.AstronomicalEventOffsetPrerequisites createAstronomicalEventOffsetPrerequisites(
+            final Cache cache,
+            final ZonedDateTime startOfDay) {
+        final var timezoneOffset = startOfDay.getOffset().getTotalSeconds();
+        final var jd = MeeusUtils.julianDay(startOfDay.plusHours(12).toEpochSecond() * 1000L);
+        final var T = MeeusUtils.julianCentury(jd);
+        final var dailyAngles = MeeusUtils.dailyAngles(T);
+        final var solarNoonAngle = solarNoonAngle(cache.longitude, dailyAngles.equationOfTime());
+        return new AstronomicalEventOffsetPrerequisites(startOfDay, timezoneOffset, dailyAngles, solarNoonAngle);
+    }
+
+
+    private record AstronomicalEventOffsetPrerequisites(
+            ZonedDateTime day,
+            int timezoneOffset,
+            MeeusUtils.DailyAngles dailyAngles,
+            double solarNoonAngle) {
+    }
+
+
+    private static Cache.@Nullable NearestAstronomicalBounds getNearestAstronomicalBounds(
+            final Cache cache,
+            final ZonedDateTime startOfDay) {
+        if (cache.nearestAstronomicalBounds != null) {
+            return cache.nearestAstronomicalBounds;
+        }
+
+        final var previous = createAstronomicalSunriseAndSunset(cache, startOfDay, true);
+        final var next = createAstronomicalSunriseAndSunset(cache, startOfDay, false);
+        if (previous != null && next != null) {
+            cache.nearestAstronomicalBounds = new Cache.NearestAstronomicalBounds(
+                    createNearestAstronomicalBoundsInterpolationPrerequisites(previous, next, AstronomicalSunriseAndSunset::sunrise),
+                    createNearestAstronomicalBoundsInterpolationPrerequisites(previous, next, AstronomicalSunriseAndSunset::sunset));
+        }
+        return cache.nearestAstronomicalBounds;
+    }
+
+    private static Cache.NearestAstronomicalBounds.@NonNull InterpolationPrerequisites createNearestAstronomicalBoundsInterpolationPrerequisites(
+            final AstronomicalSunriseAndSunset previous,
+            final AstronomicalSunriseAndSunset next,
+            final Function<AstronomicalSunriseAndSunset, AstronomicalEventOffset> getter) {
+        final var previousEventOffset = getter.apply(previous);
+        final var nextEventOffset = getter.apply(next);
+        return new Cache.NearestAstronomicalBounds.InterpolationPrerequisites(
+                previousEventOffset.astronomicalEventOffset().seconds(),
+                previousEventOffset.epochSecond(),
+                nextEventOffset.astronomicalEventOffset().seconds() - previousEventOffset.astronomicalEventOffset().seconds(),
+                nextEventOffset.epochSecond() - previousEventOffset.epochSecond());
+    }
+
+
+    private static @Nullable AstronomicalSunriseAndSunset createAstronomicalSunriseAndSunset(
+            final Cache cache,
+            final ZonedDateTime startDay,
+            final boolean backward) {
+        AstronomicalEventOffset sunriseResult = null;
+        AstronomicalEventOffset sunsetResult = null;
+        final var direction = backward ? -1L : 1L;
+        for (long i = 0; i < 366; i += 1) {
+            final var day = startDay.plusDays(direction * i);
+            final var prerequisites = createAstronomicalEventOffsetPrerequisites(cache, day);
+            final var sunrise = createAstronomicalEventOffset(cache, prerequisites, cache.sunriseAngle, true);
+            if (sunrise != null && sunriseResult == null) {
+                sunriseResult = new AstronomicalEventOffset(day.toEpochSecond(), sunrise);
+            }
+            final var sunset = createAstronomicalEventOffset(cache, prerequisites, cache.sunsetAngle, false);
+            if (sunset != null && sunsetResult == null) {
+                sunsetResult = new AstronomicalEventOffset(day.toEpochSecond(), sunset);
+            }
+            if (sunriseResult != null && sunsetResult != null) {
+                return new AstronomicalSunriseAndSunset(sunriseResult, sunsetResult);
+            }
+        }
+        return null;
     }
 
 
@@ -176,7 +268,60 @@ public class GetFastingTimesUsecase {
     }
 
 
+    private Result.EventOffset.AstronomicalEventOffset interpolateAstronomicalEvent(
+            final ZonedDateTime day,
+            final Cache.NearestAstronomicalBounds nearestAstronomicalBounds,
+            final Function<Cache.NearestAstronomicalBounds, Cache.NearestAstronomicalBounds.InterpolationPrerequisites> getter) {
+
+        final var epoch = day.toEpochSecond();
+        final var prerequisites = getter.apply(nearestAstronomicalBounds);
+
+        final var eventSeconds = prerequisites.previousEventOffset() +
+                (epoch - prerequisites.previousEpoch())
+                        * prerequisites.eventOffsetDelta()
+                        / prerequisites.epochDelta();
+
+        return new Result.EventOffset.AstronomicalEventOffset((int) eventSeconds);
+    }
+
+
     public static class Cache {
+        public record NearestAstronomicalBounds(
+                InterpolationPrerequisites sunrise,
+                InterpolationPrerequisites sunset
+        ) {
+            /**
+             * All values are in seconds
+             *
+             * @param previousEventOffset previous existing event (sunrise or sunset) offset
+             * @param previousEpoch       previous existing event (sunrise or sunset) day
+             * @param eventOffsetDelta    offset delta between next and previous existing event pair
+             * @param epochDelta          start day delta between next and previous existing event pair
+             */
+            public record InterpolationPrerequisites(
+                    int previousEventOffset,
+                    long previousEpoch,
+                    int eventOffsetDelta,
+                    long epochDelta
+            ) {
+            }
+
+            public record AstronomicalSunriseAndSunset(
+                    AstronomicalEventOffset sunrise,
+                    AstronomicalEventOffset sunset
+            ) {
+                /**
+                 * @param epochSecond             epoch second, UTC
+                 * @param astronomicalEventOffset sunrise astronomical event offset
+                 */
+                public record AstronomicalEventOffset(
+                        long epochSecond,
+                        Result.EventOffset.AstronomicalEventOffset astronomicalEventOffset
+                ) {
+                }
+            }
+        }
+
 
         private final double latitudeSin;
         private final double latitudeCos;
@@ -187,8 +332,10 @@ public class GetFastingTimesUsecase {
         private final double sunsetAngle;
         private final Method prayerTimeMethod;
         private GetFastingTimesUsecase.Result.@Nullable EventOffset previousSunset;
-        private @Nullable NearestValidDays nearestValidDays;
-
+        /**
+         * The nearest sunrise and sunset bounds of polar day or night
+         */
+        private @Nullable NearestAstronomicalBounds nearestAstronomicalBounds;
 
         private Cache(
                 final double latitudeSin,
@@ -207,19 +354,6 @@ public class GetFastingTimesUsecase {
             this.sunriseAngle = sunriseAngle;
             this.sunsetAngle = sunsetAngle;
             this.prayerTimeMethod = prayerTimeMethod;
-        }
-
-
-        private record NearestValidDays(
-                NearestValidDay previous,
-                NearestValidDay next
-        ) {
-            private record NearestValidDay(
-                    ZonedDateTime date,
-                    int sunrise,
-                    int sunset
-            ) {
-            }
         }
     }
 
@@ -262,21 +396,24 @@ public class GetFastingTimesUsecase {
 
 
     static Result.EventOffset.AstronomicalEventOffset createAstronomicalEventOffset(
-            Cache cache,
-            final double solarNoonAngle,
-            final double declination,
+            final Cache cache,
+            final AstronomicalEventOffsetPrerequisites prerequisites,
             final double elevation,
-            final boolean morning,
-            final int timezoneOffset) {
+            final boolean morning) {
 
-        final var hourAngle = MeeusUtils.hourAngle(cache.latitudeSin, cache.latitudeCos, declination, elevation);
+        final var hourAngle = MeeusUtils.hourAngle(
+                cache.latitudeSin,
+                cache.latitudeCos,
+                prerequisites.dailyAngles().solarDeclination(),
+                elevation);
+
         if (hourAngle == null) {
             return null;
         }
 
-        final var utcOffset = eventUtcOffset(solarNoonAngle, hourAngle, morning);
+        final var utcOffset = eventUtcOffset(prerequisites.solarNoonAngle(), hourAngle, morning);
 
-        return new Result.EventOffset.AstronomicalEventOffset(utcOffset + timezoneOffset);
+        return new Result.EventOffset.AstronomicalEventOffset(utcOffset + prerequisites.timezoneOffset());
     }
 
 
@@ -306,7 +443,7 @@ public class GetFastingTimesUsecase {
     }
 
     /**
-     * Implements folmulae <pre>
+     * Implements formulae <pre>
      * solarNoon = 12:00 - λ - E
      * </pre>
      *
