@@ -1,6 +1,5 @@
 @import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod
 @import com.github.edwgiz.tayyib.domain.model.I18n
-@import java.util.Map
 
 @param Object $
 @param I18n i18n
@@ -152,7 +151,7 @@
             color: var(--smart-ui-state-color-hover);
             border-color: var(--smart-ui-state-border-hover);
             background-color: var(--smart-ui-state-hover);
-            transition: background-color .1s linear,box-shadow 280ms ease-in-out;
+            transition: background-color .1s linear, box-shadow 280ms ease-in-out;
             opacity: var(--smart-button-opacity-hover)
         }
 
@@ -637,27 +636,44 @@
     }
 
 
-    function getFastingEvent(dto, day) {
-        for (const calendarEvent of day.events) {
-            for (const reasonView of calendarEvent.reasonViews) {
-                for (const reason of dto.calendarEventReasons) {
-                    if (reason.id === reasonView.id) {
-                        if (reason.reasonGroup === 'VOLUNTARY_FASTING'
-                            || reason.reasonGroup === 'OBLIGATORY_FASTING') {
-                            return calendarEvent;
+    function getFastingEvents(dto, day) {
+        const result = [];
+        if (day.events && day.events.length > 0) {
+            for (const calendarEvent of day.events) {
+                REASONS:
+                for (const reasonView of calendarEvent.reasonViews) {
+                    for (const reason of dto.calendarEventReasons) {
+                        if (reason.id === reasonView.id) {
+                            if (reason.reasonGroup === 'VOLUNTARY_FASTING'
+                                || reason.reasonGroup === 'OBLIGATORY_FASTING') {
+                                result.push(calendarEvent);
+                                break REASONS;
+                            }
                         }
                     }
                 }
             }
         }
-        return null;
+        return result;
     }
 
-    function formatMinutes(minutes) {
-        const minutesOnly = minutes % 60;
-        return ((minutes - minutesOnly) / 60).toString().padStart(2, '0')
-            + ':'
-            + minutesOnly.toString().padStart(2, '0');
+    /**
+     * @param minutes {Number}
+     * @param defaultResult {String}
+     * @return {string}
+     */
+    function formatMinutes(minutes, defaultResult) {
+        if (!minutes) {
+            return defaultResult;
+        }
+        if (0 <= minutes && minutes <= 1440) {
+            const minutesOnly = minutes % 60;
+            return ((minutes - minutesOnly) / 60).toString().padStart(2, '0')
+                + ':'
+                + minutesOnly.toString().padStart(2, '0');
+        } else {
+            return "";
+        }
     }
 
     function updateCalendarDates(dto) {
@@ -692,34 +708,38 @@
                 hijriDateEl.textContent = day.hijri.dayOfMonth;
                 cellEl.appendChild(hijriDateEl);
             }
-            if (day.events && day.events.length > 0) {
-                const fastingEvent = getFastingEvent(dto, day);
-                if (fastingEvent) {
-                    const fastingEl = d.createElement('div');
-                    if (fastingEvent.startMinute && fastingEvent.endMinute) {
-                        fastingEl.classList.add('calendar-grid-cell-fasting');
-                        fastingEl.textContent = formatMinutes(fastingEvent.startMinute) + ' - ' + formatMinutes(fastingEvent.endMinute);
+            const fastingEvents = getFastingEvents(dto, day);
+            for (const fastingEvent of fastingEvents) {
+                const fastingEl = d.createElement('div');
+                if (fastingEvent.startMinute || fastingEvent.endMinute) {
+                    fastingEl.classList.add('calendar-grid-cell-fasting');
+                    fastingEl.textContent = formatMinutes(fastingEvent.startMinute, '${i18n.calendar().event().fajr()}')
+                        + '…'
+                        + formatMinutes(fastingEvent.endMinute, '${i18n.calendar().event().sunset()}');
+                } else {
+                    fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
+                    fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
+                    if (geoPositionRepository.get()) {
+                        const spinnerEl = d.createElement("img");
+                        spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
+                        spinnerEl.src = '/img/spinner.svg';
+                        fastingEl.appendChild(spinnerEl);
                     } else {
-                        fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                        fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()} '));
-                        if (geoPositionRepository.get()) {
-                            const spinnerEl = d.createElement("img");
-                            spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                            spinnerEl.src = '/img/spinner.svg';
-                            fastingEl.appendChild(spinnerEl);
-                        } else {
-                            fastingEl.appendChild(d.createTextNode('-'));
-                        }
-                        fastingEl.appendChild(d.createTextNode(' ${i18n.calendar().event().sunset()}'));
+                        fastingEl.appendChild(d.createTextNode('…'));
                     }
-                    cellEl.appendChild(fastingEl);
-                    const tooltip = d.createElement('smart-tooltip');
-                    tooltip.selector = cellElId;
-                    tooltip.position = 'bottom';
-                    tooltip.arrow = true;
-                    const tooltipContent = d.createElement('ul');
-                    for (const calendarEvent of day.events) {
-                        for (const reasonView of calendarEvent.reasonViews) {
+                    fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
+                }
+                cellEl.appendChild(fastingEl);
+                const tooltip = d.createElement('smart-tooltip');
+                tooltip.selector = cellElId;
+                tooltip.position = 'bottom';
+                tooltip.arrow = true;
+                const tooltipContent = d.createElement('ul');
+                const reasonIds = new Set();
+                for (const calendarEvent of day.events) {
+                    for (const reasonView of calendarEvent.reasonViews) {
+                        if(!reasonIds.has(reasonView.id)) {
+                            reasonIds.add(reasonView.id)
                             const calendarEventReasonEl = d.createElement('li');
                             const anchorEl = d.createElement('a');
                             anchorEl.href = '#' + reasonView.id;
@@ -730,9 +750,9 @@
                             tooltipContent.appendChild(calendarEventReasonEl);
                         }
                     }
-                    tooltip.appendChild(tooltipContent);
-                    cellEl.appendChild(tooltip);
                 }
+                tooltip.appendChild(tooltipContent);
+                cellEl.appendChild(tooltip);
             }
             gridEl.appendChild(cellEl);
         }
@@ -855,12 +875,14 @@
 
 
     const locationValueEl = d.getElementById('location-value');
+
     function addLocationSpinner() {
         const spinner = d.createElement('img');
         spinner.style.height = '2em';
         spinner.src = '/img/spinner-smart-base-800.svg';
         locationValueEl.replaceChildren(spinner);
     }
+
     addLocationSpinner();
 
     function updateLocationDependencies() {

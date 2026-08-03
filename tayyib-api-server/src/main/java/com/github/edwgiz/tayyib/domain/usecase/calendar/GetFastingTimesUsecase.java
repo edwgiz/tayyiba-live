@@ -1,6 +1,7 @@
 package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset;
@@ -13,6 +14,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.TreeMap;
 import java.util.function.Function;
 
 import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.HighLatitudeRule.NONE;
@@ -24,9 +27,6 @@ import static java.lang.Math.toDegrees;
 import static java.lang.Math.toRadians;
 
 
-/**
- * TODO check  <img src='img.png'>
- */
 @Service
 public class GetFastingTimesUsecase {
 
@@ -82,7 +82,7 @@ public class GetFastingTimesUsecase {
     }
 
 
-    public Cache createCache(
+    public @Nullable Cache createCache(
             final @Nullable GeoLocation location,
             final @Nullable Integer altitude,
             final PrayerTimeMethod prayerTimeMethod,
@@ -323,6 +323,13 @@ public class GetFastingTimesUsecase {
         }
 
 
+        public record ProlongedCalendarEvent(
+                List<CalendarDayPair.CalendarEventReason> reasons,
+                int endMinute
+        ) {
+        }
+
+
         private final double latitudeSin;
         private final double latitudeCos;
         private final double longitude;
@@ -331,7 +338,9 @@ public class GetFastingTimesUsecase {
         private final double sunriseAngle;
         private final double sunsetAngle;
         private final Method prayerTimeMethod;
+        public final TreeMap<LocalDate, ProlongedCalendarEvent> prolongedCalendarEvents;
         private GetFastingTimesUsecase.Result.@Nullable EventOffset previousSunset;
+
         /**
          * The nearest sunrise and sunset bounds of polar day or night
          */
@@ -353,6 +362,7 @@ public class GetFastingTimesUsecase {
             this.fajrAngle = fajrAngle;
             this.sunriseAngle = sunriseAngle;
             this.sunsetAngle = sunsetAngle;
+            this.prolongedCalendarEvents = new TreeMap<>();
             this.prayerTimeMethod = prayerTimeMethod;
         }
     }
@@ -363,6 +373,7 @@ public class GetFastingTimesUsecase {
             EventOffset sunrise,
             EventOffset sunset
     ) {
+
         public sealed interface EventOffset {
             record AstronomicalEventOffset(
                     int seconds
@@ -370,7 +381,7 @@ public class GetFastingTimesUsecase {
                 @Override
                 public @NonNull String toString() {
                     return "AstronomicalEventOffset{" +
-                            LocalTime.ofSecondOfDay(seconds) +
+                            formatSeconds(seconds) +
                             '}';
                 }
             }
@@ -382,7 +393,7 @@ public class GetFastingTimesUsecase {
                 @Override
                 public @NonNull String toString() {
                     return "AdjustedAstronomicalEventOffset{" +
-                            LocalTime.ofSecondOfDay(seconds) +
+                            formatSeconds(seconds) +
                             ", " + highLatitudeRule +
                             '}';
                 }
@@ -390,6 +401,20 @@ public class GetFastingTimesUsecase {
 
             record Undefined(
             ) implements EventOffset {
+            }
+
+            private static String formatSeconds(long seconds) {
+                var dayOffsetCorrection = seconds / 86400;
+                var dayOffset = dayOffsetCorrection;
+                if (seconds < 0) {
+                    seconds += 86400;
+                    dayOffset--;
+                }
+                if (dayOffset == 0) {
+                    return LocalTime.ofSecondOfDay(seconds).toString();
+                } else {
+                    return (dayOffset > 0 ? "+" : "") + dayOffset + " " + LocalTime.ofSecondOfDay(seconds - dayOffsetCorrection * 86400);
+                }
             }
         }
     }

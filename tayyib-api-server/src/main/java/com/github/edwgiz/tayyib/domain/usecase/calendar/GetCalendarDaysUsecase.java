@@ -5,6 +5,7 @@ import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository
 import com.github.edwgiz.tayyib.domain.model.*;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReason;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.ProlongedCalendarEvent;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.txWithout
 import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.OBLIGATORY_FASTING;
 import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.PROHIBITING_FASTING;
 import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.VOLUNTARY_FASTING;
+import static java.lang.Math.min;
 import static java.time.DayOfWeek.MONDAY;
 import static java.time.DayOfWeek.SATURDAY;
 import static java.time.DayOfWeek.SUNDAY;
@@ -28,7 +30,6 @@ import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.nextOrSame;
 import static java.time.temporal.TemporalAdjusters.previousOrSame;
-import static org.apache.commons.collections4.CollectionUtils.isEmpty;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 
 
@@ -76,7 +77,7 @@ public class GetCalendarDaysUsecase {
         final var length = (int) DAYS.between(firstDay, lastDay);
 
         final var calendarDays = new ArrayList<CalendarDayPair>(length);
-        final var getFastingTimesCache = getFastingTimesUsecase.createCache(geoLocation, 0, prayerTimeMethod, firstDay.minusDays(1), timezone);
+        final var fastingTimesCache = getFastingTimesUsecase.createCache(geoLocation, 0, prayerTimeMethod, firstDay.minusDays(1), timezone);
         for (var day = firstDay; !day.isAfter(lastDay); day = day.plusDays(1)) {
             if (!gregorianHijriMapping.containsKey(day)) {
                 final var gregorianToHijriCalendar = aladhanIslamicCalendarClient.gregorianToHijriCalendar(day.getMonthValue(), day.getYear(), hijriMethod);
@@ -97,26 +98,68 @@ public class GetCalendarDaysUsecase {
             final var hijriDay = gregorianHijriMapping.get(day);
             final var fastingReasons = createFastingReasons(hijriDay, day.getDayOfWeek());
 
-            Integer startMinute = null;
-            Integer endMinute = null;
-            if (getFastingTimesCache != null) {
-                final var result = getFastingTimesUsecase.apply(day, getFastingTimesCache);
-                startMinute = getMinute(result.fajr());
-                endMinute = getMinute(result.sunset());
-            }
 
-            calendarDays.add(new CalendarDayPair(
-                    day,
-                    hijriDay,
-                    isEmpty(fastingReasons)
-                            ? List.of()
-                            : List.of(new CalendarEvent(
-                            fastingReasons,
-                            startMinute,
-                            endMinute))));
+            final var calendarEvents = fastingTimesCache == null
+                    ? List.of(new CalendarEvent(fastingReasons, null, null))
+                    : createCalendarEvents(fastingTimesCache, day, calendarDays, fastingReasons);
+            calendarDays.add(new CalendarDayPair(day, hijriDay, calendarEvents));
         }
 
         return new Result.Ok(firstDayOfMonth, lastDayOfMonth, calendarDays);
+    }
+
+    private List<CalendarEvent> createCalendarEvents(
+            final GetFastingTimesUsecase.Cache fastingTimesCache,
+            final LocalDate day,
+            final ArrayList<CalendarDayPair> calendarDays, List<CalendarEventReason> fastingReasons) {
+
+        final var prolongedCalendarEvents = fastingTimesCache.prolongedCalendarEvents;
+        var fastingReasonEvent = (CalendarEvent) null;
+        if (!fastingReasons.isEmpty()) {
+            var startMinute = (Integer) null;
+            var endMinute = (Integer) null;
+            final var result = getFastingTimesUsecase.apply(day, fastingTimesCache);
+            startMinute = getMinute(result.fajr());
+            endMinute = getMinute(result.sunset());
+            if (endMinute != null && endMinute > 1440) {
+                prolongedCalendarEvents.put(day.plusDays(1), new ProlongedCalendarEvent(fastingReasons, endMinute - 1440));
+                endMinute = 1441;
+            }
+            if (startMinute == null && endMinute == null) {
+                fastingReasonEvent = new CalendarEvent(fastingReasons, null, null);
+            } else if (startMinute != null && startMinute < 0) {
+                if (!calendarDays.isEmpty()) {
+                    final var previousDay = calendarDays.getLast();
+                    previousDay.events().add(new CalendarEvent(
+                            fastingReasons,
+                            startMinute + 1440,
+                            endMinute == null ? null : min(endMinute + 1440, 1441)));
+                }
+                fastingReasonEvent = new CalendarEvent(fastingReasons, -1, endMinute);
+            } else {
+                fastingReasonEvent = new CalendarEvent(fastingReasons, startMinute, endMinute);
+            }
+        }
+
+        final var calendarEvents = new ArrayList<CalendarEvent>();
+        final var prolongedCalendarEvent = prolongedCalendarEvents.remove(day);
+        if (prolongedCalendarEvent != null) {
+            final var prolongedEndMinute = prolongedCalendarEvent.endMinute();
+            calendarEvents.add(new CalendarEvent(
+                    prolongedCalendarEvent.reasons(),
+                    -1,
+                    min(prolongedEndMinute, 1441)
+            ));
+            if (prolongedEndMinute > 1440) {
+                prolongedCalendarEvents.put(day.plusDays(1), new ProlongedCalendarEvent(
+                        prolongedCalendarEvent.reasons(),
+                        prolongedEndMinute - 1440));
+            }
+        }
+        if (fastingReasonEvent != null) {
+            calendarEvents.add(fastingReasonEvent);
+        }
+        return calendarEvents;
     }
 
 
