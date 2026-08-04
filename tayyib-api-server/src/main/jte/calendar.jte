@@ -572,7 +572,7 @@
             if (o1 === o2) {
                 return true;
             }
-            if(o1 !== null && o2 !== null) {
+            if (o1 !== null && o2 !== null) {
                 return o1.latitude === o2.latitude && o1.longitude === o2.longitude
             }
             return false;
@@ -606,11 +606,11 @@
          */
         apply() {
             const custom = geoPositionRepository.get('CUSTOM')
-            if(custom != null) {
+            if (custom != null) {
                 return custom;
             }
             const device = geoPositionRepository.get('DEVICE')
-            if(device != null) {
+            if (device != null) {
                 return device;
             }
             return null;
@@ -631,7 +631,7 @@
                 geoPositionRepository.set(newModel, source);
                 const actualModel = getGeoPositionUsecase.apply();
                 if (!GetPositionUtils.equals(oldModel, actualModel)) {
-                    updateLocationDependencies();
+                    reloadCalendar();
                 }
             }
         }
@@ -814,6 +814,46 @@
     }
 
 
+    const locationValueEl = d.getElementById('location-value');
+
+
+    function addLocationSpinner() {
+        const spinner = d.createElement('img');
+        spinner.style.height = '2em';
+        spinner.src = '/img/spinner-smart-base-800.svg';
+        locationValueEl.replaceChildren(spinner);
+    }
+
+
+    addLocationSpinner();
+
+
+    /**
+     * @param {string|null} displayName
+     */
+    function updateLocationLabel(displayName) {
+        if (displayName) {
+            locationValueEl.textContent = displayName;
+        } else {
+            addLocationSpinner();
+            navigator.permissions.query({
+                name: "geolocation"
+            }).then(permission => {
+                if (permission.state !== 'granted') {
+                    const missingPermissionDescriptionEl = d.createElement('span');
+                    missingPermissionDescriptionEl.classList.add('missed-permission');
+                    missingPermissionDescriptionEl.textContent = '${i18n.settings().grantLocationPermission()}';
+                    locationValueEl.replaceChildren(missingPermissionDescriptionEl, d.createElement('geolocation'));
+                }
+            });
+        }
+
+        Array.from(document.getElementsByClassName('settings-location-dependencies')).forEach(el => {
+            el.style.display = displayName ? 'block' : 'none';
+        });
+    }
+
+
     const prevMonthEl = d.getElementById('prev-month-button');
     const currentMonthEl = d.getElementById('current-month-label');
     const nextMonthEl = d.getElementById('next-month-button');
@@ -829,23 +869,24 @@
     }
 
     const pageLoadingSpinner = {
+        loadingSpinnerEl: null,
         show: function () {
-            let loadingSpinner = d.getElementById('page-loading-spinner');
-            if (!loadingSpinner) {
-                loadingSpinner = d.createElement('div');
-                loadingSpinner.id = 'page-loading-spinner';
-                d.body.appendChild(loadingSpinner);
+            if (!this.loadingSpinnerEl) {
+                this.loadingSpinnerEl = d.createElement('div');
+                this.loadingSpinnerEl.id = 'page-loading-spinner';
+                d.body.appendChild(this.loadingSpinnerEl);
             }
         },
 
         hide: function () {
-            d.getElementById('page-loading-spinner')?.remove();
+            this.loadingSpinnerEl?.remove();
+            this.loadingSpinnerEl = null;
         }
     }
 
     let reloadCalendarDatesRequestId = null;
 
-    function reloadCalendarDates() {
+    function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
 
         pageLoadingSpinner.show()
@@ -894,7 +935,8 @@
                         endMinute
                     }
                 }
-                todayIndex
+                todayIndex,
+                locationDisplayName
             }
         }`, reloadCalendarDatesRequestId, args)
             .then(httpResp => {
@@ -912,73 +954,22 @@
                 }
                 updateCalendarHeader(dto.dayOfWeekNames);
                 updateCalendarDates(dto);
+                updateLocationLabel(dto.locationDisplayName);
             });
     }
 
 
-    reloadCalendarDates();
+    reloadCalendar();
 
 
     prevMonthEl.addEventListener('click', _ => {
         month.setUTCMonth(month.getUTCMonth() - 1);
-        reloadCalendarDates();
+        reloadCalendar();
     });
     nextMonthEl.addEventListener('click', _ => {
         month.setUTCMonth(month.getUTCMonth() + 1);
-        reloadCalendarDates();
+        reloadCalendar();
     });
-
-
-    const locationValueEl = d.getElementById('location-value');
-
-    function addLocationSpinner() {
-        const spinner = d.createElement('img');
-        spinner.style.height = '2em';
-        spinner.src = '/img/spinner-smart-base-800.svg';
-        locationValueEl.replaceChildren(spinner);
-    }
-
-    addLocationSpinner();
-
-    function updateLocationDependencies() {
-        reloadCalendarDates();
-
-        const position = getGeoPositionUsecase.apply();
-
-        if (position) {
-            const url = new URL("https://nominatim.openstreetmap.org/reverse");
-            url.searchParams.set("format", "jsonv2");
-            url.searchParams.set("lat", position.latitude);
-            url.searchParams.set("lon", position.longitude);
-            url.searchParams.set("accept-language", locale);
-            fetch(url).then(response => {
-                if (response.ok) {
-                    response.json().then(data => {
-                        locationValueEl.textContent = data.display_name + '.';
-                    });
-                }
-            });
-        } else {
-            addLocationSpinner();
-
-            navigator.permissions.query({
-                name: "geolocation"
-            }).then(permission => {
-                if (permission.state === 'granted') {
-                    addLocationSpinner();
-                } else {
-                    const missingPermissionDescriptionEl = d.createElement('span');
-                    missingPermissionDescriptionEl.classList.add('missed-permission');
-                    missingPermissionDescriptionEl.textContent = '${i18n.settings().grantLocationPermission()}';
-                    locationValueEl.replaceChildren(missingPermissionDescriptionEl, d.createElement('geolocation'));
-                }
-            });
-        }
-
-        Array.from(document.getElementsByClassName('settings-location-dependencies')).forEach(el => {
-            el.style.display = position ? 'block' : 'none';
-        });
-    }
 
 
     {// init prayerTimeMethod
@@ -993,7 +984,7 @@
 
         el.addEventListener('change', _ => {
             prayerTimeMethodRepository.set(el.selectedValues[0])
-            reloadCalendarDates();
+            reloadCalendar();
         });
     }
 
@@ -1026,7 +1017,7 @@
     });
 
     requestIdleCallback(() => {
-        updateLocationDependencies();
+        reloadCalendar();
         if (!getGeoPositionUsecase.apply()) {
             updateLocationByDevice();
         }
@@ -1104,7 +1095,7 @@
         changeTzDropdown.addEventListener('change', (event) => {
             timezoneRepository.set(event.detail.value);
             updateDatetimeFormats();
-            reloadCalendarDates();
+            reloadCalendar();
         });
     });
 </script>

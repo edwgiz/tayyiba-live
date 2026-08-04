@@ -1,1 +1,2 @@
 com.github.edwgiz.tayyib.adapter.in.dgs.configuration.DgsAutoConfiguration
+com.github.edwgiz.tayyib.adapter.out.httpClient.HttpClientConfiguration

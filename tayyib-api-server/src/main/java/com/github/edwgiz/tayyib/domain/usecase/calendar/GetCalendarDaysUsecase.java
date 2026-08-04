@@ -1,6 +1,7 @@
 package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 import com.github.edwgiz.tayyib.adapter.out.httpClient.AladhanIslamicCalendarClient;
+import com.github.edwgiz.tayyib.adapter.out.httpClient.NominatimClient;
 import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository;
 import com.github.edwgiz.tayyib.domain.model.*;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
@@ -38,6 +39,7 @@ public class GetCalendarDaysUsecase {
 
     private final GetFastingTimesUsecase getFastingTimesUsecase;
     private final AladhanIslamicCalendarClient aladhanIslamicCalendarClient;
+    private final NominatimClient nominatimClient;
     private final DataSource dataSource;
     private final GregorianHijriMappingRepository gregorianHijriMappingRepository;
 
@@ -45,10 +47,12 @@ public class GetCalendarDaysUsecase {
     public GetCalendarDaysUsecase(
             final GetFastingTimesUsecase getFastingTimesUsecase,
             final AladhanIslamicCalendarClient aladhanIslamicCalendarClient,
+            final NominatimClient nominatimClient,
             final DataSource dataSource,
             final GregorianHijriMappingRepository gregorianHijriMappingRepository) {
         this.getFastingTimesUsecase = getFastingTimesUsecase;
         this.aladhanIslamicCalendarClient = aladhanIslamicCalendarClient;
+        this.nominatimClient = nominatimClient;
         this.dataSource = dataSource;
         this.gregorianHijriMappingRepository = gregorianHijriMappingRepository;
     }
@@ -58,15 +62,24 @@ public class GetCalendarDaysUsecase {
             final LocalDate today,
             final boolean isSundayFirst,
             final HijriMethod hijriMethod,
-            final PrayerTimeMethod prayerTimeMethod,
+            final @Nullable PrayerTimeMethod prayerTimeMethod,
             final ZoneId timezone,
 
-            final @Nullable GeoLocation geoLocation
+            final @Nullable GeoLocation geoLocation,
+            final @Nullable String acceptLanguage
     ) {
         final var firstDayOfMonth = today.with(firstDayOfMonth());
         final var firstDay = firstDayOfMonth.with(previousOrSame(isSundayFirst ? SUNDAY : MONDAY));
         final var lastDayOfMonth = firstDayOfMonth.with(lastDayOfMonth());
         final var lastDay = lastDayOfMonth.with(nextOrSame(isSundayFirst ? SATURDAY : SUNDAY));
+
+        var locationDisplayName = (String) null;
+        if(geoLocation != null) {
+            final var reverseGeoCoding = nominatimClient.reverse(geoLocation.lat(), geoLocation.lon(), acceptLanguage);
+            if(reverseGeoCoding != null) {
+                locationDisplayName = reverseGeoCoding.displayName();
+            }
+        }
 
         final var gregorianHijriMapping = tx(dataSource, tx -> gregorianHijriMappingRepository.findBetween(
                 hijriMethod,
@@ -105,7 +118,7 @@ public class GetCalendarDaysUsecase {
             calendarDays.add(new CalendarDayPair(day, hijriDay, calendarEvents));
         }
 
-        return new Result.Ok(firstDayOfMonth, lastDayOfMonth, calendarDays);
+        return new Result.Ok(firstDayOfMonth, lastDayOfMonth, calendarDays, locationDisplayName);
     }
 
     private List<CalendarEvent> createCalendarEvents(
@@ -230,7 +243,8 @@ public class GetCalendarDaysUsecase {
         record Ok(
                 LocalDate firstDayOfMonth,
                 LocalDate lastDayOfMonth,
-                ArrayList<CalendarDayPair> calendarDayPairs
+                ArrayList<CalendarDayPair> calendarDayPairs,
+                @Nullable String locationDisplayName
         ) implements Result {
 
         }

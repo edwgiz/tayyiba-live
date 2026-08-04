@@ -30,6 +30,7 @@ import static java.util.Locale.ROOT;
 import static java.util.Map.entry;
 import static org.apache.commons.collections4.MapUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
+import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
 
 
 @DgsComponent
@@ -67,7 +68,7 @@ public class CalendarFetcher {
 
         final var dayOfWeeks = DayOfWeek.values();
         final var dayOfWeekNames = new String[7];
-        final var isSundayFirst = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_2);
+        final var isSundayFirst = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_1_alpha2);
         int dayOfWeekOffset = isSundayFirst ? 6 : 0;
         for (int i = 0; i < dayOfWeekNames.length; i++) {
             dayOfWeekNames[i] = dayOfWeeks[(i + dayOfWeekOffset) % 7].getDisplayName(TextStyle.SHORT, requestData.locale);
@@ -75,11 +76,12 @@ public class CalendarFetcher {
         final var i18n = getBundleUsecase.apply(requestData.locale());
         final var timezone = ZoneId.of(input.getTimezone());
         final var today = Instant.ofEpochMilli(input.getMillis()).atZone(timezone).toLocalDate();
-        final var calendarResult = getCalendarDaysUsecase.apply(today, isSundayFirst, hijriMethod, prayerTimeMethod, timezone, geoLocation);
+        final var calendarResult = getCalendarDaysUsecase.apply(today, isSundayFirst, hijriMethod, prayerTimeMethod, timezone, geoLocation, requestData.acceptLanguage());
         final var hijriMonthNames = new HashMap<Integer, String>();
         final var calendarEventReasons = new HashMap<String, CalendarEventReason>();
         var todayIndex = (Integer) null;
 
+        var locationDisplayName = (String)null;
         final var calendarDays = switch (calendarResult) {
             case GetCalendarDaysUsecase.Result.Ok ok -> {
                 final var result = new ArrayList<CalendarDay>();
@@ -106,6 +108,7 @@ public class CalendarFetcher {
                             events));
                 }
 
+                locationDisplayName = ok.locationDisplayName();
                 yield result;
             }
             case GetCalendarDaysUsecase.Result.ServiceUnavailable _ -> List.<CalendarDay>of();
@@ -119,7 +122,8 @@ public class CalendarFetcher {
                 monthLabel,
                 Arrays.asList(dayOfWeekNames),
                 calendarDays,
-                todayIndex
+                todayIndex,
+                locationDisplayName
         );
     }
 
@@ -192,14 +196,16 @@ public class CalendarFetcher {
         final var servletRequest = (HttpServletRequest) dgsWebRequest.getNativeRequest();
 
         return new RequestData(
+                servletRequest.getHeader(ACCEPT_LANGUAGE),
                 localeResolver.resolveLocale(servletRequest),
                 getCountry(servletRequest));
     }
 
 
     private record RequestData(
+            @Nullable String acceptLanguage,
             Locale locale,
-            @Nullable String iso3166_2
+            @Nullable String iso3166_1_alpha2
     ) {
     }
 
@@ -208,9 +214,9 @@ public class CalendarFetcher {
         final var acceptedLocales = servletRequest.getLocales();
         while (acceptedLocales.hasMoreElements()) {
             final var acceptedLocale = acceptedLocales.nextElement();
-            final var iso3166_2 = acceptedLocale.getCountry();
-            if (isNotEmpty(iso3166_2)) {
-                return iso3166_2.toUpperCase(ROOT);
+            final var iso3166_1_alpha2 = acceptedLocale.getCountry();
+            if (isNotEmpty(iso3166_1_alpha2)) {
+                return iso3166_1_alpha2.toUpperCase(ROOT);
             }
         }
         return null;

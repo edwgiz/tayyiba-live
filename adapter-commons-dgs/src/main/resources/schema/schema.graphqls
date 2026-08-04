@@ -82,7 +82,8 @@ type GetCalendarCellsResult {
     currentMonthLabel: String!
     dayOfWeekNames: [String!]!
     days: [CalendarDay!]!
-    todayIndex: Int
+    todayIndex: Int,
+    locationDisplayName: String,
 }
 
 type StringToStringEntry {

@@ -16,9 +16,10 @@ public class AladhanIslamicCalendarClient {
     private final RestClient restClient;
 
 
-    AladhanIslamicCalendarClient() {
-        restClient = RestClient.create();
+    AladhanIslamicCalendarClient(final RestClient.Builder builder) {
+        restClient = builder.build();
     }
+
 
     public @Nullable GregorianToHijriCalendar gregorianToHijriCalendar(
             final int gregorianMonth,
