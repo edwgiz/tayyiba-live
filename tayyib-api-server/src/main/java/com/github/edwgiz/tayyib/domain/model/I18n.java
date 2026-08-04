@@ -79,7 +79,7 @@ public record I18n(
             String timeZone,
             String changeLocationWindowTitle,
             String ok,
-            String defaultValue,
+            String byDevice,
             String prayerTimeMethod
     ) {
     }

@@ -545,39 +545,94 @@
         },
     }
 
+
+    class GeoPositionModel {
+        /**
+         * @param {number} latitude
+         * @param {number} longitude
+         */
+        constructor(latitude, longitude) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+        }
+    }
+
+
+    /**
+     * @typedef {'CUSTOM' | 'DEVICE'} GeoPositionSourceModel
+     */
+
+    class GetPositionUtils {
+        /**
+         * @param {GeoPositionModel|null} o1
+         * @param {GeoPositionModel|null} o2
+         * @return {boolean}
+         */
+        static equals(o1, o2) {
+            if (o1 === o2) {
+                return true;
+            }
+            if(o1 !== null && o2 !== null) {
+                return o1.latitude === o2.latitude && o1.longitude === o2.longitude
+            }
+            return false;
+        }
+    }
+
     const geoPositionRepository = {
+
         /**
-         * @return {string}
+         * @param {GeoPositionSourceModel} source
+         * @return {GeoPositionModel|null}
          */
-        getAsString() {
-            return localStorage.getItem('geoPosition');
+        get(source) {
+            const str = localStorage.getItem('geoPosition' + source);
+            return JSON.parse(str);
         },
-        get() {
-            return JSON.parse(this.getAsString());
-        },
+
         /**
-         * @param {string} str
+         * @param {GeoPositionModel} model
+         * @param {GeoPositionSourceModel} source
          */
-        setAsString(str) {
-            localStorage.setItem('geoPosition', str);
+        set(model, source) {
+            const str = JSON.stringify(model);
+            localStorage.setItem('geoPosition' + source, str);
         },
     };
+
+    const getGeoPositionUsecase = {
+        /**
+         * @return {GeoPositionModel|null}
+         */
+        apply() {
+            const custom = geoPositionRepository.get('CUSTOM')
+            if(custom != null) {
+                return custom;
+            }
+            const device = geoPositionRepository.get('DEVICE')
+            if(device != null) {
+                return device;
+            }
+            return null;
+        }
+    }
 
     const setGeoPositionUsecase = {
         /**
          * @param {number|null} latitude
          * @param {number|null} longitude
+         * @param {GeoPositionSourceModel} source
          */
-        apply(latitude, longitude) {
+        apply(latitude, longitude, source) {
             const clean = latitude === null || longitude === null;
-            const oldStr = geoPositionRepository.getAsString();
-            const newStr = clean ? null : JSON.stringify({
-                latitude: latitude,
-                longitude: longitude
-            });
-            geoPositionRepository.setAsString(newStr);
-            if (oldStr !== newStr) {
-                updateLocationDependencies();
+            const oldModel = geoPositionRepository.get(source);
+            const newModel = clean ? null : new GeoPositionModel(latitude, longitude);
+            if (!GetPositionUtils.equals(oldModel, newModel)) {
+                geoPositionRepository.set(newModel, source);
+                const actualModel = getGeoPositionUsecase.apply();
+                if (!GetPositionUtils.equals(oldModel, actualModel)) {
+                    updateLocationDependencies();
+                }
             }
         }
     }
@@ -641,17 +696,17 @@
         if (day.events && day.events.length > 0) {
             for (const calendarEvent of day.events) {
                 REASONS:
-                for (const reasonView of calendarEvent.reasonViews) {
-                    for (const reason of dto.calendarEventReasons) {
-                        if (reason.id === reasonView.id) {
-                            if (reason.reasonGroup === 'VOLUNTARY_FASTING'
-                                || reason.reasonGroup === 'OBLIGATORY_FASTING') {
-                                result.push(calendarEvent);
-                                break REASONS;
+                    for (const reasonView of calendarEvent.reasonViews) {
+                        for (const reason of dto.calendarEventReasons) {
+                            if (reason.id === reasonView.id) {
+                                if (reason.reasonGroup === 'VOLUNTARY_FASTING'
+                                    || reason.reasonGroup === 'OBLIGATORY_FASTING') {
+                                    result.push(calendarEvent);
+                                    break REASONS;
+                                }
                             }
                         }
                     }
-                }
             }
         }
         return result;
@@ -719,7 +774,7 @@
                 } else {
                     fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
                     fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
-                    if (geoPositionRepository.get()) {
+                    if (getGeoPositionUsecase.apply()) {
                         const spinnerEl = d.createElement("img");
                         spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
                         spinnerEl.src = '/img/spinner.svg';
@@ -738,7 +793,7 @@
                 const reasonIds = new Set();
                 for (const calendarEvent of day.events) {
                     for (const reasonView of calendarEvent.reasonViews) {
-                        if(!reasonIds.has(reasonView.id)) {
+                        if (!reasonIds.has(reasonView.id)) {
                             reasonIds.add(reasonView.id)
                             const calendarEventReasonEl = d.createElement('li');
                             const anchorEl = d.createElement('a');
@@ -804,7 +859,7 @@
                 timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
                 hijriMethod: "UAQ",
                 prayerTimeMethod: prayerTimeMethodRepository.get(),
-                location: geoPositionRepository.get(),
+                location: getGeoPositionUsecase.apply(),
             }
         };
 
@@ -888,7 +943,7 @@
     function updateLocationDependencies() {
         reloadCalendarDates();
 
-        const position = geoPositionRepository.get();
+        const position = getGeoPositionUsecase.apply();
 
         if (position) {
             const url = new URL("https://nominatim.openstreetmap.org/reverse");
@@ -946,15 +1001,14 @@
     function updateLocationByDevice() {
         navigator.geolocation.getCurrentPosition(
             position => {
-                setGeoPositionUsecase.apply(position.coords.latitude, position.coords.longitude);
+                setGeoPositionUsecase.apply(position.coords.latitude, position.coords.longitude, 'DEVICE');
             },
             error => {
                 console.error('Error getting location:', error);
-                setGeoPositionUsecase.apply(null, null);
+                setGeoPositionUsecase.apply(null, null, 'DEVICE');
             },
             {
                 enableHighAccuracy: false,
-                maximumAge: 3600000 // 1 hour
             }
         );
     }
@@ -964,7 +1018,7 @@
     }).then(permission => {
         permission.addEventListener('change', () => {
             if (permission.state !== 'granted') {
-                setGeoPositionUsecase.apply(null, null);
+                setGeoPositionUsecase.apply(null, null, 'DEVICE');
             } else {
                 addLocationSpinner();
             }
@@ -973,7 +1027,9 @@
 
     requestIdleCallback(() => {
         updateLocationDependencies();
-        updateLocationByDevice();
+        if (!getGeoPositionUsecase.apply()) {
+            updateLocationByDevice();
+        }
     });
 
     let changeLocationWindowEl = null;
@@ -981,7 +1037,7 @@
     let changeLocationMapView = null;
 
     d.getElementById('change-location-open-button').addEventListener('click', async _ => {
-        let geoPosition = geoPositionRepository.get();
+        let geoPosition = getGeoPositionUsecase.apply();
         if (!geoPosition) {
             geoPosition = { // default Kaaba
                 latitude: 21.4225,
@@ -1007,7 +1063,7 @@
                 saveButtonEl.textContent = '${i18n.settings().ok()}';
                 saveButtonEl.addEventListener('click', _ => {
                     const markerPosition = changeLocationMarker.getLatLng();
-                    setGeoPositionUsecase.apply(markerPosition.lat, markerPosition.lng);
+                    setGeoPositionUsecase.apply(markerPosition.lat, markerPosition.lng, 'CUSTOM');
                     changeLocationWindowEl.close();
                 });
                 smartButtonsEl.prepend(saveButtonEl);
@@ -1015,9 +1071,9 @@
             {
                 const defaultButtonEl = document.createElement('smart-button');
                 defaultButtonEl.id = 'change-location-default-button';
-                defaultButtonEl.textContent = '${i18n.settings().defaultValue()}';
+                defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
                 defaultButtonEl.addEventListener('click', _ => {
-                    updateLocationByDevice();
+                    setGeoPositionUsecase.apply(null, null, 'CUSTOM');
                     changeLocationWindowEl.close();
                 });
                 smartButtonsEl.prepend(defaultButtonEl);
