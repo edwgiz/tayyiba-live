@@ -1,7 +1,6 @@
 package com.github.edwgiz.tayyib.adapter.out.jdbc;
 
 
-import com.github.edwgiz.tayyib.adapter.in.dgs.fetcher.CalendarFetcher;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +18,7 @@ import static java.util.Optional.empty;
 @Component
 public class PrayerTimeMethodByCountryRepository {
 
-    private static final Logger log = LoggerFactory.getLogger(CalendarFetcher.class);
+    private static final Logger log = LoggerFactory.getLogger(PrayerTimeMethodByCountryRepository.class);
 
 
     public Optional<PrayerTimeMethod> find(final Connection tx, String countryCode) {

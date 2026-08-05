@@ -12,7 +12,6 @@ import java.sql.SQLException;
 @FunctionalInterface
 public interface NullableResultSetExtractor<T> extends ResultSetExtractor<T> {
 
-
     @Override
     @Nullable T extractData(ResultSet rs) throws SQLException, DataAccessException;
 }
