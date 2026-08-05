@@ -482,13 +482,7 @@
         </div>
         <div class="settings-label settings-location-dependencies">${i18n.settings().timeZone()}:</div>
         <div class="settings-location-dependencies">
-            <smart-drop-down-list
-                    id='change-tz-dropdown'
-                    filterable
-                    filter-mode='containsIgnoreCase'
-                    virtualization="true"
-                    selection-mode="one"
-            ></smart-drop-down-list>
+            <smart-drop-down-list id='change-tz-dropdown'></smart-drop-down-list>
         </div>
         <div class="settings-label settings-location-dependencies">${i18n.settings().prayerTimeMethod()}:</div>
         <table class="settings-location-dependencies">
@@ -917,11 +911,18 @@
         }
     }
 
-    let reloadCalendarDatesRequestId = null;
+    function ensureSelectedItemVisible(smartDropDownListEl) {
+        smartDropDownListEl.addEventListener('open', _ => {
+            const selectedValue = smartDropDownListEl.selectedValues[0];
+            const selectedItem = smartDropDownListEl.getItem(selectedValue);
+            smartDropDownListEl.ensureVisible(selectedItem);
+        }, {once: true});
+    }
+
+    const changePrayerTimeMethodDropdownEl = d.getElementById('change-prayer-time-method-dropdown')
 
     const updateSettingsPrayerTimeMethodLabelUsecase = {
         labelEl: document.getElementById('settings-prayer-time-method-label'),
-        dropdownEl: d.getElementById('change-prayer-time-method-dropdown'),
         /**
          * @param {string|null} usedPrayerTimeMethod
          */
@@ -936,7 +937,7 @@
          * @return {string|null}
          */
         getPrayerTimeMethodLabel(key) {
-            const item = this.dropdownEl.items.find(item => item.value === key);
+            const item = changePrayerTimeMethodDropdownEl.items.find(item => item.value === key);
             if (item) {
                 return ': \u00A0 \u00A0 ' + item.label;
             } else {
@@ -945,6 +946,7 @@
         }
     }
 
+    let reloadCalendarDatesRequestId = null;
     function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
 
@@ -1042,7 +1044,7 @@
 
 
     {// init prayerTimeMethod
-        const el = d.getElementById('change-prayer-time-method-dropdown');
+        const el = changePrayerTimeMethodDropdownEl;
 
         let oldVal = prayerTimeMethodRepository.get();
         if (!oldVal) {
@@ -1055,6 +1057,7 @@
             prayerTimeMethodRepository.set(el.selectedValues[0])
             reloadCalendar();
         });
+        ensureSelectedItemVisible(el);
     }
 
 
@@ -1145,28 +1148,28 @@
         changeLocationWindowEl.open();
     });
 
-    requestIdleCallback(() => {
+
+    {
+        const dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
+        const selectedValue = getTimezoneUsecase.apply();
         const changeTzDropdown = d.getElementById('change-tz-dropdown');
-        changeTzDropdown.disabled = false;
+        changeTzDropdown.selectionMode = 'one';
         changeTzDropdown.filterable = true;
-        changeTzDropdown.filterMode = 'contains';
+        changeTzDropdown.filterMode = 'containsIgnoreCase';
         changeTzDropdown.horizontalScrollBarVisibility = 'hidden';
-        changeTzDropdown.virtualized = true;
-        changeTzDropdown.dataSource = Intl.supportedValuesOf('timeZone').map(v => ({'l': v, 'v': v}));
+        changeTzDropdown.virtualization = true;
         changeTzDropdown.displayMember = 'l';
         changeTzDropdown.valueMember = 'v';
-        const selectedValue = getTimezoneUsecase.apply();
+        changeTzDropdown.dataSource = dataSource;
         changeTzDropdown.selectedValues = [selectedValue];
-        const selectedItem = changeTzDropdown.getItem(selectedValue);
-        if (selectedItem) {
-            changeTzDropdown.ensureVisible(selectedItem);
-        }
         changeTzDropdown.addEventListener('change', (event) => {
             timezoneRepository.set(event.detail.value);
             updateDatetimeFormats();
             reloadCalendar();
         });
-    });
+        ensureSelectedItemVisible(changeTzDropdown);
+        changeTzDropdown.disabled = false;
+    }
 </script>
 </body>
 </html>
