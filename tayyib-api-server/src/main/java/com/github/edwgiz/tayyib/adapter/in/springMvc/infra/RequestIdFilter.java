@@ -1,10 +1,10 @@
 package com.github.edwgiz.tayyib.adapter.in.springMvc.infra;
 
-import jakarta.annotation.Nonnull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -18,9 +18,9 @@ public class RequestIdFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(
-            final @Nonnull HttpServletRequest request,
-            final @Nonnull HttpServletResponse response,
-            final @Nonnull FilterChain filterChain)
+            final @NonNull HttpServletRequest request,
+            final @NonNull HttpServletResponse response,
+            final @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
         final var headerName = "X-Request-ID";

@@ -3,9 +3,13 @@ package com.github.edwgiz.tayyib.domain.usecase.calendar;
 import com.github.edwgiz.tayyib.adapter.out.httpClient.AladhanIslamicCalendarClient;
 import com.github.edwgiz.tayyib.adapter.out.httpClient.NominatimClient;
 import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository;
-import com.github.edwgiz.tayyib.domain.model.*;
+import com.github.edwgiz.tayyib.adapter.out.jdbc.PrayerTimeMethodByCountryRepository;
+import com.github.edwgiz.tayyib.domain.model.CalendarDay;
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEvent;
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReason;
+import com.github.edwgiz.tayyib.domain.model.HijriMethod;
+import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.ProlongedCalendarEvent;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.tx;
 import static com.github.edwgiz.tayyib.adapter.out.jdbc.core.JdbcUtils.txWithoutResult;
@@ -42,6 +48,7 @@ public class GetCalendarDaysUsecase {
     private final NominatimClient nominatimClient;
     private final DataSource dataSource;
     private final GregorianHijriMappingRepository gregorianHijriMappingRepository;
+    private final PrayerTimeMethodByCountryRepository prayerTimeMethodByCountryRepository;
 
 
     public GetCalendarDaysUsecase(
@@ -49,12 +56,14 @@ public class GetCalendarDaysUsecase {
             final AladhanIslamicCalendarClient aladhanIslamicCalendarClient,
             final NominatimClient nominatimClient,
             final DataSource dataSource,
-            final GregorianHijriMappingRepository gregorianHijriMappingRepository) {
+            final GregorianHijriMappingRepository gregorianHijriMappingRepository,
+            final PrayerTimeMethodByCountryRepository prayerTimeMethodByCountryRepository) {
         this.getFastingTimesUsecase = getFastingTimesUsecase;
         this.aladhanIslamicCalendarClient = aladhanIslamicCalendarClient;
         this.nominatimClient = nominatimClient;
         this.dataSource = dataSource;
         this.gregorianHijriMappingRepository = gregorianHijriMappingRepository;
+        this.prayerTimeMethodByCountryRepository = prayerTimeMethodByCountryRepository;
     }
 
 
@@ -62,21 +71,23 @@ public class GetCalendarDaysUsecase {
             final LocalDate today,
             final boolean isSundayFirst,
             final HijriMethod hijriMethod,
-            final @Nullable PrayerTimeMethod prayerTimeMethod,
             final ZoneId timezone,
-
-            final @Nullable GeoLocation geoLocation,
-            final @Nullable String acceptLanguage
+            final @Nullable FastingTimeCalculationArgs fastingTimeCalculationArgs
     ) {
         final var firstDayOfMonth = today.with(firstDayOfMonth());
         final var firstDay = firstDayOfMonth.with(previousOrSame(isSundayFirst ? SUNDAY : MONDAY));
         final var lastDayOfMonth = firstDayOfMonth.with(lastDayOfMonth());
         final var lastDay = lastDayOfMonth.with(nextOrSame(isSundayFirst ? SATURDAY : SUNDAY));
 
+        var locationIso3166_1_alpha2 = (String) null;
         var locationDisplayName = (String) null;
-        if(geoLocation != null) {
-            final var reverseGeoCoding = nominatimClient.reverse(geoLocation.lat(), geoLocation.lon(), acceptLanguage);
-            if(reverseGeoCoding != null) {
+        if (fastingTimeCalculationArgs != null) {
+            final var reverseGeoCoding = nominatimClient.reverse(
+                    fastingTimeCalculationArgs.lat(),
+                    fastingTimeCalculationArgs.lon(),
+                    fastingTimeCalculationArgs.acceptLanguage());
+            if (reverseGeoCoding != null) {
+                locationIso3166_1_alpha2 = reverseGeoCoding.iso3166_1_alpha2();
                 locationDisplayName = reverseGeoCoding.displayName();
             }
         }
@@ -90,7 +101,7 @@ public class GetCalendarDaysUsecase {
         final var length = (int) DAYS.between(firstDay, lastDay);
 
         final var calendarDays = new ArrayList<CalendarDayPair>(length);
-        final var fastingTimesCache = getFastingTimesUsecase.createCache(geoLocation, 0, prayerTimeMethod, firstDay.minusDays(1), timezone);
+        final var fastingTimesEntry = createFastingTimesCache(firstDay.minusDays(1), timezone, fastingTimeCalculationArgs, locationIso3166_1_alpha2);
         for (var day = firstDay; !day.isAfter(lastDay); day = day.plusDays(1)) {
             if (!gregorianHijriMapping.containsKey(day)) {
                 final var gregorianToHijriCalendar = aladhanIslamicCalendarClient.gregorianToHijriCalendar(day.getMonthValue(), day.getYear(), hijriMethod);
@@ -112,14 +123,56 @@ public class GetCalendarDaysUsecase {
             final var fastingReasons = createFastingReasons(hijriDay, day.getDayOfWeek());
 
 
-            final var calendarEvents = fastingTimesCache == null
+            final var calendarEvents = fastingTimesEntry == null
                     ? List.of(new CalendarEvent(fastingReasons, null, null))
-                    : createCalendarEvents(fastingTimesCache, day, calendarDays, fastingReasons);
+                    : createCalendarEvents(fastingTimesEntry.getKey(), day, calendarDays, fastingReasons);
             calendarDays.add(new CalendarDayPair(day, hijriDay, calendarEvents));
         }
 
-        return new Result.Ok(firstDayOfMonth, lastDayOfMonth, calendarDays, locationDisplayName);
+        return new Result.Ok(
+                firstDayOfMonth,
+                lastDayOfMonth,
+                calendarDays,
+                locationDisplayName,
+                fastingTimesEntry == null ? null : fastingTimesEntry.getValue());
     }
+
+
+    private Entry<GetFastingTimesUsecase.Cache, PrayerTimeMethod> createFastingTimesCache(
+            final LocalDate firstDay,
+            final ZoneId timezone,
+            final @Nullable FastingTimeCalculationArgs fastingTimeCalculationArgs,
+            final @Nullable String locationIso3166_1_alpha2) {
+        if (fastingTimeCalculationArgs == null) {
+            return null;
+        }
+        final var prayerTimeMethod = getPrayerTimeMethod(fastingTimeCalculationArgs.prayerTimeMethod(), locationIso3166_1_alpha2);
+        final var cache = getFastingTimesUsecase.createCache(
+                fastingTimeCalculationArgs.lat(),
+                fastingTimeCalculationArgs.lon(),
+                0,
+                prayerTimeMethod,
+                firstDay.minusDays(1), timezone);
+        return Map.entry(cache, prayerTimeMethod);
+    }
+
+
+    private PrayerTimeMethod getPrayerTimeMethod(
+            @Nullable PrayerTimeMethod prayerTimeMethod,
+            @Nullable String locationIso3166_1_alpha2) {
+        if (prayerTimeMethod != null) {
+            return prayerTimeMethod;
+        }
+        if (locationIso3166_1_alpha2 != null) {
+            final var prayerTimeMethodByCountry = tx(dataSource, tx ->
+                    prayerTimeMethodByCountryRepository.find(tx, locationIso3166_1_alpha2));
+            if (prayerTimeMethodByCountry.isPresent()) {
+                return prayerTimeMethodByCountry.get();
+            }
+        }
+        return PrayerTimeMethod.MWL;
+    }
+
 
     private List<CalendarEvent> createCalendarEvents(
             final GetFastingTimesUsecase.Cache fastingTimesCache,
@@ -239,14 +292,23 @@ public class GetCalendarDaysUsecase {
     }
 
 
+    public record FastingTimeCalculationArgs(
+            double lat,
+            double lon,
+            @Nullable String acceptLanguage,
+            @Nullable PrayerTimeMethod prayerTimeMethod
+    ) {
+    }
+
+
     public sealed interface Result {
         record Ok(
                 LocalDate firstDayOfMonth,
                 LocalDate lastDayOfMonth,
                 ArrayList<CalendarDayPair> calendarDayPairs,
-                @Nullable String locationDisplayName
+                @Nullable String locationDisplayName,
+                @Nullable PrayerTimeMethod prayerTimeMethod
         ) implements Result {
-
         }
 
         record ServiceUnavailable() implements Result {

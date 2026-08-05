@@ -35,14 +35,14 @@ input GetCalendarCellsInput {
     millis: Long!,
     timezone: String!,
     hijriMethod: HijriMethod!,
-    prayerTimeMethod: PrayerTimeMethod!,
-    location: GeoPointInput
+    fastingTimeCalculationInput: FastingTimeCalculationInput
 }
 
 
-input GeoPointInput {
-    latitude: Float!
-    longitude: Float!
+input FastingTimeCalculationInput {
+    latitude: Float!,
+    longitude: Float!,
+    prayerTimeMethod: PrayerTimeMethod!,
 }
 
 enum HijriMethod {
@@ -52,6 +52,7 @@ enum HijriMethod {
 }
 
 enum PrayerTimeMethod {
+    AUTO_BY_LOCATION,
     MWL,
     ISNA,
     EGAS,
@@ -84,6 +85,7 @@ type GetCalendarCellsResult {
     days: [CalendarDay!]!
     todayIndex: Int,
     locationDisplayName: String,
+    prayerTimeMethod: PrayerTimeMethod,
 }
 
 type StringToStringEntry {

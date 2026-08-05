@@ -2,7 +2,6 @@ package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 
 import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
-import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset.AstronomicalEventOffset;
@@ -82,16 +81,15 @@ public class GetFastingTimesUsecase {
     }
 
 
-    public @Nullable Cache createCache(
-            final @Nullable GeoLocation location,
+    public Cache createCache(
+            final double WGS84_lat,
+            final double WGS84_lon,
             final @Nullable Integer altitude,
             final PrayerTimeMethod prayerTimeMethod,
             final LocalDate previousDay,
-            final ZoneId timezone) {
-        if (location == null) {
-            return null;
-        }
-        final var latitude = toRadians(location.lat());
+            final ZoneId timezone
+    ) {
+        final var latitude = toRadians(WGS84_lat);
         final var latitudeSin = sin(latitude);
         final var latitudeCos = cos(latitude);
         final var horizonDip = altitude != null && altitude > 0
@@ -101,7 +99,7 @@ public class GetFastingTimesUsecase {
         final var cache = new Cache(
                 latitudeSin,
                 latitudeCos,
-                toRadians(location.lon()),
+                toRadians(WGS84_lon),
                 timezone,
                 method.fajrAngle - horizonDip,
                 SUNRISE_ANGLE - horizonDip,
@@ -110,6 +108,7 @@ public class GetFastingTimesUsecase {
         cache.previousSunset = apply(previousDay, cache).sunset;
         return cache;
     }
+
 
     /**
      * <p>The calculation is based on Jean Meeus' "Astronomical Algorithms".
@@ -122,8 +121,8 @@ public class GetFastingTimesUsecase {
      */
     public Result apply(
             final LocalDate day,
-            final Cache cache) {
-
+            final Cache cache
+    ) {
         final var startOfDay = day.atStartOfDay(cache.timezone);
         final var prerequisites = createAstronomicalEventOffsetPrerequisites(cache, startOfDay);
         final var sunrise = createLightTransitionEventOffset(cache, prerequisites, cache.sunriseAngle, true, Cache.NearestAstronomicalBounds::sunrise);
@@ -151,6 +150,7 @@ public class GetFastingTimesUsecase {
         cache.previousSunset = result.sunset;
         return result;
     }
+
 
     private Result.EventOffset createLightTransitionEventOffset(
             final Cache cache,
@@ -208,6 +208,7 @@ public class GetFastingTimesUsecase {
         return cache.nearestAstronomicalBounds;
     }
 
+
     private static Cache.NearestAstronomicalBounds.@NonNull InterpolationPrerequisites createNearestAstronomicalBoundsInterpolationPrerequisites(
             final AstronomicalSunriseAndSunset previous,
             final AstronomicalSunriseAndSunset next,
@@ -252,7 +253,7 @@ public class GetFastingTimesUsecase {
             final Result.EventOffset.AstronomicalEventOffset sunset,
             final Result.EventOffset.AstronomicalEventOffset sunrise,
             final double angle,
-            final boolean morning) {
+            @SuppressWarnings("SameParameterValue") final boolean morning) {
         int nightSeconds = sunrise.seconds() - sunset.seconds();
         while (nightSeconds < 0) {
             nightSeconds += 86400;

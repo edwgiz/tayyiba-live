@@ -278,13 +278,26 @@
                     white-space: nowrap;
                 }
 
-                #change-prayer-time-method-dropdown {
+                smart-drop-down-list#change-prayer-time-method-dropdown {
+                    display: inline-block;
+
                     div.smart-drop-down-container {
                         width: 50ch !important;
                     }
                 }
 
-                div.settings-location-dependencies {
+                > div > table {
+                    margin: 0;
+                    border-style: none;
+                    border-collapse: collapse;
+
+                    > tr > td {
+                        padding: 0;
+                        vertical-align: middle;
+                    }
+                }
+
+                .settings-location-dependencies {
                     display: none;
                 }
             }
@@ -353,6 +366,17 @@
                     }
                 }
             }
+        }
+
+        span.smart-list-items-group-label {
+            font-size: small !important;
+            text-align: right !important;
+            display: inline-block;
+            color: var(--smart-base-100) !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            cursor: default;
+            height: min-content;
         }
 
         smart-window#change-location-window {
@@ -467,21 +491,30 @@
             ></smart-drop-down-list>
         </div>
         <div class="settings-label settings-location-dependencies">${i18n.settings().prayerTimeMethod()}:</div>
-        <div class="settings-location-dependencies">
-            <smart-drop-down-list
-                    id='change-prayer-time-method-dropdown'
-                    filterable
-                    width="auto"
-                    sorted="true"
-                    filter-mode='containsIgnoreCase'
-                    selected-values='["${PrayerTimeMethod.MWL}"]'
-                    horizontal-scroll-bar-visibility="hidden"
-                    selection-mode="one">
-                @for(var e : i18n.prayerTimeMethod().names().entrySet())
-                    <smart-list-item value="${e.getKey()}">${e.getValue()}</smart-list-item>
-                @endfor
-            </smart-drop-down-list>
-        </div>
+        <table class="settings-location-dependencies">
+            <tr>
+                <td>
+                    <smart-drop-down-list
+                            id='change-prayer-time-method-dropdown'
+                            filterable
+                            width='auto'
+                            sorted='true'
+                            filter-mode='containsIgnoreCase'
+                            selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
+                            horizontal-scroll-bar-visibility='hidden'
+                            selection-mode='one'>
+                        @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
+                            <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
+                                @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
+                                    <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
+                                @endfor
+                            </smart-list-items-group>
+                        @endfor
+                    </smart-drop-down-list>
+                </td>
+                <td id='settings-prayer-time-method-label'></td>
+            </tr>
+        </table>
     </section>
     <section id="fasting-reasons">
         @template.calendar.fastingReasons(
@@ -531,14 +564,14 @@
 
     const prayerTimeMethodRepository = {
         /**
-         * @param {string} value
+         * @param {string|null} value
          */
         set(value) {
             return localStorage.setItem('prayerTimeMethod', value);
         },
 
         /**
-         * @return {string}
+         * @return {string|null}
          */
         get() {
             return localStorage.getItem('prayerTimeMethod');
@@ -886,6 +919,32 @@
 
     let reloadCalendarDatesRequestId = null;
 
+    const updateSettingsPrayerTimeMethodLabelUsecase = {
+        labelEl: document.getElementById('settings-prayer-time-method-label'),
+        dropdownEl: d.getElementById('change-prayer-time-method-dropdown'),
+        /**
+         * @param {string|null} usedPrayerTimeMethod
+         */
+        apply(usedPrayerTimeMethod) {
+            const chosenPrayerTimeMethod = prayerTimeMethodRepository.get();
+            this.labelEl.replaceChildren(usedPrayerTimeMethod !== chosenPrayerTimeMethod
+                ? this.getPrayerTimeMethodLabel(usedPrayerTimeMethod)
+                : []);
+        },
+        /**
+         * @param {string|null} key
+         * @return {string|null}
+         */
+        getPrayerTimeMethodLabel(key) {
+            const item = this.dropdownEl.items.find(item => item.value === key);
+            if (item) {
+                return ': \u00A0 \u00A0 ' + item.label;
+            } else {
+                return '';
+            }
+        }
+    }
+
     function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
 
@@ -894,13 +953,21 @@
         const today = new Date();
         const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
 
+        function fastingTimeCalculationInput() {
+            const getGeoPosition = getGeoPositionUsecase.apply();
+            return !getGeoPosition ? null : {
+                latitude: getGeoPosition.latitude,
+                longitude: getGeoPosition.longitude,
+                prayerTimeMethod: prayerTimeMethodRepository.get() ?? 'AUTO_BY_LOCATION'
+            };
+        }
+
         const args = {
             input: {
                 millis: isTodayMonth ? today.getTime() : month.getTime(),
                 timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
                 hijriMethod: "UAQ",
-                prayerTimeMethod: prayerTimeMethodRepository.get(),
-                location: getGeoPositionUsecase.apply(),
+                fastingTimeCalculationInput: fastingTimeCalculationInput()
             }
         };
 
@@ -936,7 +1003,8 @@
                     }
                 }
                 todayIndex,
-                locationDisplayName
+                locationDisplayName,
+                prayerTimeMethod
             }
         }`, reloadCalendarDatesRequestId, args)
             .then(httpResp => {
@@ -955,6 +1023,7 @@
                 updateCalendarHeader(dto.dayOfWeekNames);
                 updateCalendarDates(dto);
                 updateLocationLabel(dto.locationDisplayName);
+                updateSettingsPrayerTimeMethodLabelUsecase.apply(dto.prayerTimeMethod);
             });
     }
 
@@ -977,9 +1046,9 @@
 
         let oldVal = prayerTimeMethodRepository.get();
         if (!oldVal) {
-            oldVal = '${PrayerTimeMethod.MWL}';
+            oldVal = '${PrayerTimeMethod.AUTO_BY_LOCATION}';
+            prayerTimeMethodRepository.set(oldVal)
         }
-        prayerTimeMethodRepository.set(oldVal)
         el.selectedValues = [oldVal];
 
         el.addEventListener('change', _ => {

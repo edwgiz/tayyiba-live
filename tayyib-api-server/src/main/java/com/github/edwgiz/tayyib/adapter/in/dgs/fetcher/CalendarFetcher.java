@@ -1,9 +1,9 @@
 package com.github.edwgiz.tayyib.adapter.in.dgs.fetcher;
 
 import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.*;
-import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.CalendarDay;
-import com.github.edwgiz.tayyib.domain.model.*;
+import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
+import com.github.edwgiz.tayyib.domain.model.I18n;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
 import com.github.edwgiz.tayyib.domain.usecase.i18n.GetBundleUsecase;
@@ -25,6 +25,7 @@ import java.time.ZoneId;
 import java.time.format.TextStyle;
 import java.util.*;
 
+import static com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod.AUTO_BY_LOCATION;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.util.Locale.ROOT;
 import static java.util.Map.entry;
@@ -37,8 +38,7 @@ import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
 public class CalendarFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(CalendarFetcher.class);
-
-    private final static Set<String> SUNDAY_FIRST_COUNTRIES = Set.of(
+    private static final Set<String> SUNDAY_FIRST_COUNTRIES = Set.of(
             "US", "CA", "AU", "NZ", "PH", "JP", "KR", "TW", "HK", "SA", "EG", "IL");
 
     private final LocaleResolver localeResolver;
@@ -63,12 +63,11 @@ public class CalendarFetcher {
 
         final var requestData = getRequestData(dfe);
         final var hijriMethod = HijriMethod.valueOf(input.getHijriMethod().name());
-        final var prayerTimeMethod = PrayerTimeMethod.valueOf(input.getPrayerTimeMethod().name());
-        final var geoLocation = toModel(input.getLocation());
+        final var fastingTimeCalculationArgs = toUsecaseArgs(input.getFastingTimeCalculationInput(), requestData.acceptLanguage());
 
+        final var isSundayFirst = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_1_alpha2);
         final var dayOfWeeks = DayOfWeek.values();
         final var dayOfWeekNames = new String[7];
-        final var isSundayFirst = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_1_alpha2);
         int dayOfWeekOffset = isSundayFirst ? 6 : 0;
         for (int i = 0; i < dayOfWeekNames.length; i++) {
             dayOfWeekNames[i] = dayOfWeeks[(i + dayOfWeekOffset) % 7].getDisplayName(TextStyle.SHORT, requestData.locale);
@@ -76,12 +75,13 @@ public class CalendarFetcher {
         final var i18n = getBundleUsecase.apply(requestData.locale());
         final var timezone = ZoneId.of(input.getTimezone());
         final var today = Instant.ofEpochMilli(input.getMillis()).atZone(timezone).toLocalDate();
-        final var calendarResult = getCalendarDaysUsecase.apply(today, isSundayFirst, hijriMethod, prayerTimeMethod, timezone, geoLocation, requestData.acceptLanguage());
+        final var calendarResult = getCalendarDaysUsecase.apply(today, isSundayFirst, hijriMethod, timezone, fastingTimeCalculationArgs);
         final var hijriMonthNames = new HashMap<Integer, String>();
         final var calendarEventReasons = new HashMap<String, CalendarEventReason>();
         var todayIndex = (Integer) null;
 
-        var locationDisplayName = (String)null;
+        var locationDisplayName = (String) null;
+        var prayerTimeMethod = (PrayerTimeMethod) null;
         final var calendarDays = switch (calendarResult) {
             case GetCalendarDaysUsecase.Result.Ok ok -> {
                 final var result = new ArrayList<CalendarDay>();
@@ -109,6 +109,7 @@ public class CalendarFetcher {
                 }
 
                 locationDisplayName = ok.locationDisplayName();
+                prayerTimeMethod = ok.prayerTimeMethod();
                 yield result;
             }
             case GetCalendarDaysUsecase.Result.ServiceUnavailable _ -> List.<CalendarDay>of();
@@ -123,13 +124,33 @@ public class CalendarFetcher {
                 Arrays.asList(dayOfWeekNames),
                 calendarDays,
                 todayIndex,
-                locationDisplayName
+                locationDisplayName,
+                prayerTimeMethod == null ? null : com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod.valueOf(prayerTimeMethod.name())
         );
     }
 
 
-    private static @Nullable GeoLocation toModel(final @Nullable GeoPointInput location) {
-        return location == null ? null : new GeoLocation(location.getLatitude(), location.getLongitude());
+    private static GetCalendarDaysUsecase.@Nullable FastingTimeCalculationArgs toUsecaseArgs(
+            final @Nullable FastingTimeCalculationInput input,
+            final @Nullable String acceptLanguage) {
+        return input == null ? null : new GetCalendarDaysUsecase.FastingTimeCalculationArgs(
+                input.getLatitude(),
+                input.getLongitude(),
+                acceptLanguage,
+                getPrayerTimeMethod(input.getPrayerTimeMethod())
+        );
+    }
+
+
+    private static @Nullable PrayerTimeMethod getPrayerTimeMethod(com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod input) {
+        if (input != AUTO_BY_LOCATION) {
+            try {
+                return PrayerTimeMethod.valueOf(input.name());
+            } catch (IllegalArgumentException _) {
+                log.warn("Ignore unsupported PrayerTimeMethod: {} ", input);
+            }
+        }
+        return null;
     }
 
 

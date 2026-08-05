@@ -8,7 +8,7 @@ import java.util.Map;
 public record I18n(
         HadithReferencing hadithReferencing,
         Fasting fasting,
-        PrayerTimeMethod prayerTimeMethod,
+        Map<String, PrayerTimeMethodGroup> prayerTimeMethodGroups,
         Settings settings,
         Calendar calendar,
         Footer footer,
@@ -116,8 +116,9 @@ public record I18n(
     }
 
 
-    public record PrayerTimeMethod(
-            Map<String, String> names
+    public record PrayerTimeMethodGroup(
+            String name,
+            Map<String, String> methodNames
     ) {
     }
 

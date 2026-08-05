@@ -1,6 +1,5 @@
 package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
-import com.github.edwgiz.tayyib.domain.model.GeoLocation;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -107,8 +106,8 @@ class GetFastingTimesUsecaseTest {
                 final String description,
                 final String dayStr,
                 final String timezoneName,
-                final double lat,
-                final double lon,
+                final double WGS84_lat,
+                final double WGS84_lon,
                 final @Nullable Integer altitude,
                 final PrayerTimeMethod prayerTimeMethod,
                 final String expectedFajr,
@@ -116,8 +115,7 @@ class GetFastingTimesUsecaseTest {
                 final String expectedSunset) {
             final var day = LocalDate.parse(dayStr);
             final var timezone = ZoneId.of(timezoneName);
-            final var location = new GeoLocation(lat, lon);
-            final var cache = u.createCache(location, altitude, prayerTimeMethod, day.minusDays(1), timezone);
+            final var cache = u.createCache(WGS84_lat, WGS84_lon, altitude, prayerTimeMethod, day.minusDays(1), timezone);
             final var result = u.apply(day, cache);
 
             assertEquals(expectedFajr, result.fajr().toString());
