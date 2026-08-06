@@ -90,11 +90,6 @@
             }
         }
 
-        h3.fasting-reason-group {
-            margin-block-start: 2em;
-            color: var(--smart-base-100);
-        }
-
         section.fasting-reason > h4 {
             margin: 0;
         }
@@ -165,7 +160,18 @@
             background-size: min(25vw, 25vh);
             background-repeat: no-repeat;
             background-position: center center;
+            opacity: 0;
+            transition: opacity 500ms ease;
         }
+
+        div#page-loading-spinner.shown {
+            opacity: 1;
+        }
+
+        div#page-loading-spinner.hidden {
+            display: none;
+        }
+
 
         main {
             display: flex;
@@ -548,6 +554,8 @@
         modal
 ></smart-window>
 
+<div id="page-loading-spinner"></div>
+
 <script type="module">
     const defaultDatetimeOptions = Intl.DateTimeFormat().resolvedOptions();
     let locale = defaultDatetimeOptions.locale;
@@ -894,18 +902,17 @@
     }
 
     const pageLoadingSpinner = {
-        loadingSpinnerEl: null,
+        el: d.getElementById('page-loading-spinner'),
         show: function () {
-            if (!this.loadingSpinnerEl) {
-                this.loadingSpinnerEl = d.createElement('div');
-                this.loadingSpinnerEl.id = 'page-loading-spinner';
-                d.body.appendChild(this.loadingSpinnerEl);
-            }
+            const el = this.el;
+            el.classList.remove("hidden");
+            requestAnimationFrame(() => el.classList.add("shown"));
         },
 
         hide: function () {
-            this.loadingSpinnerEl?.remove();
-            this.loadingSpinnerEl = null;
+            const el = this.el;
+            el.classList.remove("shown");
+            el.addEventListener("transitionend", () => el.classList.add("hidden"), {once: true});
         }
     }
 
@@ -945,6 +952,7 @@
     }
 
     let reloadCalendarDatesRequestId = null;
+
     function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
 
