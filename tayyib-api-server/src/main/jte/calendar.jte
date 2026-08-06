@@ -1028,10 +1028,12 @@
                 if (!isTodayMonth) {
                     dto.todayIndex = -1;
                 }
+                const pageScrollTop = window.scrollY;
                 updateCalendarHeader(dto.dayOfWeekNames);
                 updateCalendarDates(dto);
                 updateLocationLabel(dto.locationDisplayName);
                 updateSettingsPrayerTimeMethodLabelUsecase.apply(dto.prayerTimeMethod);
+                window.scrollTo({top: pageScrollTop, behavior: 'smooth'});
             });
     }
 
