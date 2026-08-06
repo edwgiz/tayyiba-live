@@ -279,8 +279,6 @@
                 }
 
                 smart-drop-down-list#change-prayer-time-method-dropdown {
-                    display: inline-block;
-
                     div.smart-drop-down-container {
                         width: 50ch !important;
                     }
