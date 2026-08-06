@@ -387,7 +387,7 @@
             height: min-content;
         }
 
-        smart-window#change-location-window {
+        smart-window#pick-location-on-map-window {
             position: fixed;
             inset: 0;
             width: 100%;
@@ -403,19 +403,19 @@
             }
         }
 
-        div#change-location-windowContent {
+        div#pick-location-on-map-windowContent {
             overflow: hidden;
         }
 
-        smart-button#change-location-save-button,
-        smart-button#change-location-default-button {
+        smart-button#pick-location-on-map-save-button,
+        smart-button#pick-location-on-map-default-button {
             margin-right: 1em;
             padding: 0.2em 1em;
             --smart-window-header-button-size: max-content !important;
             width: max-content !important;
         }
 
-        smart-button#change-location-default-button {
+        smart-button#pick-location-on-map-default-button {
             background-color: var(--smart-base-200)
         }
 
@@ -440,7 +440,7 @@
         }
 
         span.missed-permission {
-            color: #ffff00;
+            color: var(--smart-base-100);
         }
     </style>
 </head>
@@ -483,10 +483,10 @@
 
     </script>
     <section id="settings">
-        <div class="settings-label">${i18n.settings().location()}:</div>
-        <div><span id="location-value"></span>
+        <div class="settings-label">${i18n.settings().location().label()}:</div>
+        <div><span id='location-value'></span>
             <img src='/img/spinner-smart-base-800.svg' height='2em'/>
-            <smart-button id="change-location-open-button">${i18n.settings().change()}</smart-button>
+            <smart-button id="pick-location-on-map-button">${i18n.settings().location().pickOnMap()}</smart-button>
         </div>
         <div class="settings-label settings-location-dependencies">${i18n.settings().timeZone()}:</div>
         <div class="settings-location-dependencies">
@@ -553,7 +553,7 @@
 </footer>
 
 <smart-window
-        id='change-location-window'
+        id='pick-location-on-map-window'
         header-buttons='["close"]'
         modal
 ></smart-window>
@@ -768,11 +768,15 @@
         }
     }
 
-    function updateCalendarDates(dto) {
+
+    /**
+     * @param {object} dto
+     * @param {boolean} hasLocation
+     */
+    function updateCalendarDates(dto, hasLocation) {
         for (let i = gridEl.children.length - 1; i >= 7; i--) {
             gridEl.children.item(i).remove();
         }
-
         for (let i = 0; i < dto.days.length; i++) {
             const day = dto.days[i];
             const cellElId = 'calendar-grid-cell-' + i;
@@ -811,13 +815,13 @@
                 } else {
                     fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
                     fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
-                    if (getGeoPositionUsecase.apply()) {
+                    if (!hasLocation) {
+                        fastingEl.appendChild(d.createTextNode('…'));
+                    } else {
                         const spinnerEl = d.createElement("img");
                         spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
                         spinnerEl.src = '/img/spinner.svg';
                         fastingEl.appendChild(spinnerEl);
-                    } else {
-                        fastingEl.appendChild(d.createTextNode('…'));
                     }
                     fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
                 }
@@ -865,29 +869,75 @@
     addLocationSpinner();
 
 
-    /**
-     * @param {string|null} displayName
-     */
-    function updateLocationLabel(displayName) {
-        if (displayName) {
-            locationValueEl.textContent = displayName;
-        } else {
-            addLocationSpinner();
-            navigator.permissions.query({
-                name: "geolocation"
-            }).then(permission => {
-                if (permission.state !== 'granted') {
-                    const missingPermissionDescriptionEl = d.createElement('span');
-                    missingPermissionDescriptionEl.classList.add('missed-permission');
-                    missingPermissionDescriptionEl.textContent = '${i18n.settings().grantLocationPermission()}';
-                    locationValueEl.replaceChildren(missingPermissionDescriptionEl, d.createElement('geolocation'));
-                }
-            });
-        }
+    const locationLabelAdapter = {
 
-        Array.from(document.getElementsByClassName('settings-location-dependencies')).forEach(el => {
-            el.style.display = displayName ? 'block' : 'none';
-        });
+        /**
+         * @param {PermissionStatus} permission
+         */
+        updateByPermission(permission) {
+            if (permission.state === 'granted') {
+                addLocationSpinner();
+            } else {
+                const grantI18n = '${i18n.settings().location().permission().grant()}';
+                const orI18n = ' ${i18n.commons().or()} ';
+                const revokeBlockingI18n = ' ${i18n.settings().location().permission().revokeBlocking()} ';
+                const missingPermissionDescriptionEl = d.createElement('span');
+                missingPermissionDescriptionEl.classList.add('missed-permission');
+                missingPermissionDescriptionEl.textContent = grantI18n;
+                if (typeof HTMLGeolocationElement === 'function') {
+                    locationValueEl.replaceChildren(missingPermissionDescriptionEl, ' ', d.createElement('geolocation'), orI18n);
+                } else {
+                    if (permission.state === 'denied') {
+                        missingPermissionDescriptionEl.appendChild(d.createTextNode(', ' + revokeBlockingI18n + orI18n));
+                        locationValueEl.replaceChildren(missingPermissionDescriptionEl);
+                    } else {
+                        const geolocationEl = d.createElement('smart-button');
+                        geolocationEl.id = 'grant-geolocation-permission';
+                        geolocationEl.textContent = grantI18n;
+                        geolocationEl.addEventListener('click', updateLocationByDevice);
+                        locationValueEl.replaceChildren(' ', geolocationEl, orI18n);
+                    }
+                }
+            }
+        }
+    }
+
+    const updateLocationDependenciesUsecase = {
+        wgs84Formatter: new Intl.NumberFormat(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 5,
+        }),
+        settingsLocationDependantEls: Array.from(document.getElementsByClassName('settings-location-dependencies')),
+
+
+        /**
+         * @param {number} latitude
+         * @param {number} longitude
+         * @return {string}
+         */
+        formatWgs84(latitude, longitude) {
+            return this.wgs84Formatter.format(latitude) + ',' + this.wgs84Formatter.format(longitude);
+        },
+
+        /**
+         * @param {number|null} latitude
+         * @param {number|null} longitude
+         * @param {string|null} displayName
+         */
+        apply(latitude, longitude, displayName) {
+            const hasLocation = latitude != null;
+            if (hasLocation) {
+                locationValueEl.textContent = displayName != null && displayName.trim().length > 0 ? displayName : this.formatWgs84(latitude, longitude);
+            } else {
+                navigator.permissions.query({name: "geolocation"}).then(locationLabelAdapter.updateByPermission);
+            }
+
+            for (const el of this.settingsLocationDependantEls) {
+                if (el instanceof HTMLElement) {
+                    el.style.display = hasLocation ? 'block' : 'none';
+                }
+            }
+        }
     }
 
 
@@ -965,6 +1015,9 @@
         const today = new Date();
         const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
 
+        /**
+         * @return {null|{latitude: number, longitude: number, prayerTimeMethod}}
+         */
         function fastingTimeCalculationInput() {
             const getGeoPosition = getGeoPositionUsecase.apply();
             return !getGeoPosition ? null : {
@@ -1034,8 +1087,13 @@
                 }
                 const pageScrollTop = window.scrollY;
                 updateCalendarHeader(dto.dayOfWeekNames);
-                updateCalendarDates(dto);
-                updateLocationLabel(dto.locationDisplayName);
+                const locationInput = args.input.fastingTimeCalculationInput;
+                const hasLocation = locationInput != null;
+                updateCalendarDates(dto, hasLocation);
+                updateLocationDependenciesUsecase.apply(
+                    locationInput?.latitude,
+                    locationInput?.longitude,
+                    dto.locationDisplayName);
                 updateSettingsPrayerTimeMethodLabelUsecase.apply(dto.prayerTimeMethod);
                 window.scrollTo({top: pageScrollTop, behavior: 'smooth'});
             });
@@ -1079,8 +1137,15 @@
                 setGeoPositionUsecase.apply(position.coords.latitude, position.coords.longitude, 'DEVICE');
             },
             error => {
-                console.error('Error getting location:', error);
-                setGeoPositionUsecase.apply(null, null, 'DEVICE');
+                if (error.code === error.PERMISSION_DENIED) {
+                    setGeoPositionUsecase.apply(null, null, 'DEVICE');
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    console.warn('Error getting location: position unavailable');
+                } else if (error.code === error.TIMEOUT) {
+                    console.warn('Error getting location: timeout');
+                } else {
+                    console.error('Error getting location:', error);
+                }
             },
             {
                 enableHighAccuracy: false,
@@ -1092,10 +1157,11 @@
         name: 'geolocation'
     }).then(permission => {
         permission.addEventListener('change', () => {
+            locationLabelAdapter.updateByPermission(permission);
             if (permission.state !== 'granted') {
                 setGeoPositionUsecase.apply(null, null, 'DEVICE');
             } else {
-                addLocationSpinner();
+                updateLocationByDevice();
             }
         });
     });
@@ -1111,7 +1177,7 @@
     let changeLocationMarker = null;
     let changeLocationMapView = null;
 
-    d.getElementById('change-location-open-button').addEventListener('click', async _ => {
+    d.getElementById('pick-location-on-map-button').addEventListener('click', async _ => {
         let geoPosition = getGeoPositionUsecase.apply();
         if (!geoPosition) {
             geoPosition = { // default Kaaba
@@ -1120,10 +1186,10 @@
             };
         }
         if (changeLocationWindowEl == null) {
-            changeLocationWindowEl = d.getElementById('change-location-window');
-            changeLocationWindowEl.label = '${i18n.settings().changeLocationWindowTitle()}';
+            changeLocationWindowEl = d.getElementById('pick-location-on-map-window');
+            changeLocationWindowEl.label = '${i18n.settings().location().pickOnMap()}';
             await import('https://unpkg.com/leaflet/dist/leaflet.js');
-            changeLocationMapView = L.map('change-location-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
+            changeLocationMapView = L.map('pick-location-on-map-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
                 attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -1134,8 +1200,8 @@
             const smartButtonsEl = changeLocationWindowEl.querySelector('.smart-buttons-container');
             {
                 const saveButtonEl = d.createElement('smart-button');
-                saveButtonEl.id = 'change-location-save-button';
-                saveButtonEl.textContent = '${i18n.settings().ok()}';
+                saveButtonEl.id = 'pick-location-on-map-save-button';
+                saveButtonEl.textContent = '${i18n.commons().ok()}';
                 saveButtonEl.addEventListener('click', _ => {
                     const markerPosition = changeLocationMarker.getLatLng();
                     setGeoPositionUsecase.apply(markerPosition.lat, markerPosition.lng, 'CUSTOM');
@@ -1145,7 +1211,7 @@
             }
             {
                 const defaultButtonEl = document.createElement('smart-button');
-                defaultButtonEl.id = 'change-location-default-button';
+                defaultButtonEl.id = 'pick-location-on-map-default-button';
                 defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
                 defaultButtonEl.addEventListener('click', _ => {
                     setGeoPositionUsecase.apply(null, null, 'CUSTOM');

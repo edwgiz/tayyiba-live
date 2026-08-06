@@ -6,6 +6,7 @@ import java.util.Map;
 
 
 public record I18n(
+        Commons commons,
         HadithReferencing hadithReferencing,
         Fasting fasting,
         Map<String, PrayerTimeMethodGroup> prayerTimeMethodGroups,
@@ -14,6 +15,11 @@ public record I18n(
         Footer footer,
         Errors errors
 ) {
+    public record Commons(
+            String ok,
+            String or
+    ) {}
+
     public record HadithReferencing(
             Map<String, String> collections
     ) {
@@ -73,15 +79,22 @@ public record I18n(
     }
 
     public record Settings(
-            String location,
-            String grantLocationPermission,
-            String change,
+            Location location,
             String timeZone,
-            String changeLocationWindowTitle,
-            String ok,
             String byDevice,
             String prayerTimeMethod
     ) {
+        public record Location(
+                String label,
+                String pickOnMap,
+                Permission permission
+        ) {
+            public record Permission(
+                    String grant,
+                    String revokeBlocking
+            ) {
+            }
+        }
     }
 
 
