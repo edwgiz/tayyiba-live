@@ -22,7 +22,6 @@ import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUs
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static java.lang.Math.sqrt;
-import static java.lang.Math.toDegrees;
 import static java.lang.Math.toRadians;
 
 
@@ -127,28 +126,42 @@ public class GetFastingTimesUsecase {
         final var prerequisites = createAstronomicalEventOffsetPrerequisites(cache, startOfDay);
         final var sunrise = createLightTransitionEventOffset(cache, prerequisites, cache.sunriseAngle, true, Cache.NearestAstronomicalBounds::sunrise);
         final var sunset = createLightTransitionEventOffset(cache, prerequisites, cache.sunsetAngle, false, Cache.NearestAstronomicalBounds::sunset);
-
-        var fajr = (Result.EventOffset) createAstronomicalEventOffset(cache, prerequisites, cache.fajrAngle, true);
-        if (fajr == null) {
-            if (cache.previousSunset != null) {
-                fajr = switch (cache.prayerTimeMethod.highLatitudeRule) {
-                    case TWILIGHT_ANGLE -> {
-                        if (cache.previousSunset instanceof Result.EventOffset.AstronomicalEventOffset astronomicalSunset
-                                && sunrise instanceof Result.EventOffset.AstronomicalEventOffset astronomicalSunrise) {
-                            yield createTwilightAngleAstronomicalEventOffset(astronomicalSunset, astronomicalSunrise, cache.fajrAngle, true);
-                        } else {
-                            yield new Result.EventOffset.Undefined();
-                        }
-                    }
-                    case NONE -> new Result.EventOffset.Undefined();
-                };
-            }
-        }
-
-
+        final var fajr = createFajrEventOffset(cache, prerequisites, sunrise);
         final var result = new Result(fajr, sunrise, sunset);
         cache.previousSunset = result.sunset;
         return result;
+    }
+
+    private Result.@Nullable EventOffset createFajrEventOffset(
+            final Cache cache,
+            final AstronomicalEventOffsetPrerequisites prerequisites,
+            final Result.EventOffset sunrise
+    ) {
+        final var astronomicalFajr = createAstronomicalEventOffset(cache, prerequisites, cache.fajrAngle, true);
+        return switch (cache.prayerTimeMethod.highLatitudeRule) {
+            case NONE -> astronomicalFajr;
+            case TWILIGHT_ANGLE -> {
+                if (cache.previousSunset instanceof Result.EventOffset.AstronomicalEventOffset(int sunsetSeconds)
+                        && sunrise instanceof Result.EventOffset.AstronomicalEventOffset(int sunriseSeconds)) {
+
+                    int nightSeconds = sunriseSeconds - sunsetSeconds;
+                    while (nightSeconds < 0) {
+                        nightSeconds += 86400;
+                    }
+                    final var minTwilightNightPortion = (Math.abs(cache.fajrAngle) / (Math.PI / 3));
+                    final var minTwilightSeconds = (int) Math.round(minTwilightNightPortion * nightSeconds);
+                    final var twilightAdjustedOffsetSeconds = sunriseSeconds - minTwilightSeconds;
+
+                    if (astronomicalFajr != null && astronomicalFajr.seconds() > twilightAdjustedOffsetSeconds) {
+                        yield astronomicalFajr;
+                    }
+
+                    yield new Result.EventOffset.AdjustedAstronomicalEventOffset(twilightAdjustedOffsetSeconds, TWILIGHT_ANGLE);
+                } else {
+                    yield new Result.EventOffset.Undefined();
+                }
+            }
+        };
     }
 
 
@@ -246,26 +259,6 @@ public class GetFastingTimesUsecase {
             }
         }
         return null;
-    }
-
-
-    private Result.EventOffset.AdjustedAstronomicalEventOffset createTwilightAngleAstronomicalEventOffset(
-            final Result.EventOffset.AstronomicalEventOffset sunset,
-            final Result.EventOffset.AstronomicalEventOffset sunrise,
-            final double angle,
-            @SuppressWarnings("SameParameterValue") final boolean morning) {
-        int nightSeconds = sunrise.seconds() - sunset.seconds();
-        while (nightSeconds < 0) {
-            nightSeconds += 86400;
-        }
-
-        final int offset = (int) Math.round(nightSeconds * Math.abs(toDegrees(angle)) / 60);
-
-        final int minutesFromStartOfDay = morning
-                ? sunrise.seconds() - offset
-                : sunset.seconds() + offset;
-
-        return new Result.EventOffset.AdjustedAstronomicalEventOffset(minutesFromStartOfDay, TWILIGHT_ANGLE);
     }
 
 

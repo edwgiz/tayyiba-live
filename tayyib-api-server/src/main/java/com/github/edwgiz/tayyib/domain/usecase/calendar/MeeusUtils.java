@@ -54,7 +54,7 @@ public abstract class MeeusUtils {
      *
      * @param latitudeSin sin(phi) - observer latitude sin
      * @param latitudeCos cos(phi) - observer latitude cos
-     * @param declination delta - solar solarDeclination in radians
+     * @param declination delta - solar declination in radians
      * @param elevation   h - target solar elevation in radians
      * @return H - hour angle as the positive magnitude in radians
      * or {@code null} if the Sun never reaches the requested elevation
@@ -65,10 +65,14 @@ public abstract class MeeusUtils {
             final double declination,
             final double elevation) {
 
-        final var cosH = (sin(elevation) - latitudeSin * sin(declination)) / (latitudeCos * cos(declination));
+        double denominator = latitudeCos * cos(declination);
+        if (Math.abs(denominator) < 1e-10) {// Avoid division by zero (poles)
+            return null;
+        }
+        final var cosH = (sin(elevation) - latitudeSin * sin(declination)) / denominator;
 
         // No sunrise/sunset exists for this elevation
-        if (cosH < -1.0 || cosH > 1.0) {
+        if (cosH < -1.0 || 1.0 < cosH) {
             return null;
         }
 

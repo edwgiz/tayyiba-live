@@ -54,6 +54,13 @@ class GetFastingTimesUsecaseTest {
                             "AstronomicalEventOffset{20:40:41}"
                     ),
                     arguments(
+                            "Moscow summer day 2",
+                            "2026-08-03", "Europe/Moscow", 55.7522, 37.6156, 0, SAMR,
+                            "AdjustedAstronomicalEventOffset{02:29:40, TWILIGHT_ANGLE}",
+                            "AstronomicalEventOffset{04:38:42}",
+                            "AstronomicalEventOffset{20:32:49}"
+                    ),
+                    arguments(
                             "Moscow summer day with 161 m altitude",
                             "2026-07-30", "Europe/Moscow", 55.7522, 37.6156, 161, SAMR,
                             "AdjustedAstronomicalEventOffset{02:21:31, TWILIGHT_ANGLE}",
