@@ -54,6 +54,10 @@
             font-size: larger;
         }
 
+        body > * {
+            background: none;
+        }
+
         a {
             color: var(--smart-base-100);
         }
