@@ -276,17 +276,14 @@
 
             section#settings {
                 display: grid;
-                grid-template-columns: min-content fit-content(80vw);
+                grid-template-columns: min-content auto;
+                grid-column-gap: 0.5em;
+                grid-row-gap: 2em;
                 justify-content: center;
                 align-items: center;
-                gap: 2em;
                 font-size: var(--smart-font-size);
                 margin-top: 3em;
                 margin-bottom: 3em;
-
-                .settings-label {
-                    white-space: nowrap;
-                }
 
                 smart-drop-down-list#change-prayer-time-method-dropdown {
                     div.smart-drop-down-container {
@@ -294,19 +291,17 @@
                     }
                 }
 
-                > div > table {
-                    margin: 0;
-                    border-style: none;
-                    border-collapse: collapse;
-
-                    > tr > td {
-                        padding: 0;
-                        vertical-align: middle;
-                    }
+                div.settings-prayer-time-method {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    row-gap: 0.5em;
+                    column-gap: 1em;
+                    flex-wrap: wrap;
                 }
 
-                .settings-location-dependencies {
-                    display: none;
+                .settings-location-hidden-dependencies {
+                    display: none !important;
                 }
             }
 
@@ -488,35 +483,31 @@
             <img src='/img/spinner-smart-base-800.svg' height='2em'/>
             <smart-button id="pick-location-on-map-button">${i18n.settings().location().pickOnMap()}</smart-button>
         </div>
-        <div class="settings-label settings-location-dependencies">${i18n.settings().timeZone()}:</div>
-        <div class="settings-location-dependencies">
+        <div class="settings-label settings-location-hidden-dependencies">${i18n.settings().timeZone()}:</div>
+        <div class="settings-location-hidden-dependencies">
             <smart-drop-down-list id='change-tz-dropdown'></smart-drop-down-list>
         </div>
-        <div class="settings-label settings-location-dependencies">${i18n.settings().prayerTimeMethod()}:</div>
-        <table class="settings-location-dependencies">
-            <tr>
-                <td>
-                    <smart-drop-down-list
-                            id='change-prayer-time-method-dropdown'
-                            filterable
-                            width='auto'
-                            sorted='true'
-                            filter-mode='containsIgnoreCase'
-                            selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
-                            horizontal-scroll-bar-visibility='hidden'
-                            selection-mode='one'>
-                        @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
-                            <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
-                                @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
-                                    <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
-                                @endfor
-                            </smart-list-items-group>
+        <div class="settings-label settings-location-hidden-dependencies">${i18n.settings().prayerTimeMethod()}:</div>
+        <div class="settings-prayer-time-method settings-location-hidden-dependencies">
+            <smart-drop-down-list
+                    id='change-prayer-time-method-dropdown'
+                    filterable
+                    width='auto'
+                    sorted='true'
+                    filter-mode='containsIgnoreCase'
+                    selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
+                    horizontal-scroll-bar-visibility='hidden'
+                    selection-mode='one'>
+                @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
+                    <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
+                        @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
+                            <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
                         @endfor
-                    </smart-drop-down-list>
-                </td>
-                <td id='settings-prayer-time-method-label'></td>
-            </tr>
-        </table>
+                    </smart-list-items-group>
+                @endfor
+            </smart-drop-down-list>
+            <span id='settings-prayer-time-method-label'></span>
+        </div>
     </section>
     <section id="fasting-reasons">
         @template.calendar.fastingReasons(
@@ -907,7 +898,7 @@
             minimumFractionDigits: 0,
             maximumFractionDigits: 5,
         }),
-        settingsLocationDependantEls: Array.from(document.getElementsByClassName('settings-location-dependencies')),
+        settingsLocationDependantEls: Array.from(document.getElementsByClassName('settings-location-hidden-dependencies')),
 
 
         /**
@@ -934,7 +925,11 @@
 
             for (const el of this.settingsLocationDependantEls) {
                 if (el instanceof HTMLElement) {
-                    el.style.display = hasLocation ? 'block' : 'none';
+                    if(hasLocation) {
+                        el.classList.remove('settings-location-hidden-dependencies');
+                    } else {
+                        el.classList.add('settings-location-hidden-dependencies');
+                    }
                 }
             }
         }
@@ -971,7 +966,7 @@
         },
 
         show() {
-            if(this.timeoutId != null) {
+            if (this.timeoutId != null) {
                 clearTimeout(this.timeoutId);
                 this.timeoutId = null;
             }
@@ -998,20 +993,24 @@
          */
         apply(usedPrayerTimeMethod) {
             const chosenPrayerTimeMethod = prayerTimeMethodRepository.get();
-            this.labelEl.replaceChildren(usedPrayerTimeMethod !== chosenPrayerTimeMethod
-                ? this.getPrayerTimeMethodLabel(usedPrayerTimeMethod)
-                : []);
+            if(usedPrayerTimeMethod !== chosenPrayerTimeMethod) {
+                this.labelEl.style.removeProperty('display');
+                const label = this.getPrayerTimeMethodLabel(usedPrayerTimeMethod);
+                this.labelEl.replaceChildren(label);
+            } else {
+                this.labelEl.style.display = 'none';
+            }
         },
         /**
          * @param {string|null} key
-         * @return {string|null}
+         * @return {string[]}
          */
         getPrayerTimeMethodLabel(key) {
             const item = changePrayerTimeMethodDropdownEl.items.find(item => item.value === key);
             if (item) {
-                return ': \u00A0 \u00A0 ' + item.label;
+                return [item.label];
             } else {
-                return '';
+                return [];
             }
         }
     }
