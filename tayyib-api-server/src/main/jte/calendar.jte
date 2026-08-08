@@ -161,10 +161,10 @@
             backdrop-filter: blur(1px);
             -webkit-backdrop-filter: blur(1px);
             background-image: url('/img/spinner-smart-base-800.svg');
-            background-size: min(25vw, 25vh);
+            background-size: max(2rem, min(25vw, 25vh));
             background-repeat: no-repeat;
             background-position: center center;
-            opacity: 0;
+            opacity: 0.0;
             transition: opacity 500ms ease;
         }
 
@@ -558,7 +558,7 @@
         modal
 ></smart-window>
 
-<div id="page-loading-spinner"></div>
+<div id="page-loading-spinner" class='hidden'></div>
 
 <script type="module">
     const defaultDatetimeOptions = Intl.DateTimeFormat().resolvedOptions();
@@ -957,17 +957,28 @@
 
     const pageLoadingSpinner = {
         el: d.getElementById('page-loading-spinner'),
-        show: function () {
-            const el = this.el;
-            el.classList.remove("hidden");
-            requestAnimationFrame(() => el.classList.add("shown"));
+        timeoutId: null,
+
+        hideTransitionHandler() {
+            pageLoadingSpinner.el.classList.add('hidden');
+            pageLoadingSpinner.timeoutId = null;
         },
 
-        hide: function () {
+        hide() {
             const el = this.el;
-            el.classList.remove("shown");
-            el.addEventListener("transitionend", () => el.classList.add("hidden"), {once: true});
-        }
+            el.classList.remove('shown');
+            this.timeoutId = setTimeout(this.hideTransitionHandler, 500);
+        },
+
+        show() {
+            if(this.timeoutId != null) {
+                clearTimeout(this.timeoutId);
+                this.timeoutId = null;
+            }
+            const el = this.el;
+            el.classList.remove('hidden');
+            requestAnimationFrame(_ => el.classList.add('shown'));
+        },
     }
 
     function ensureSelectedItemVisible(smartDropDownListEl) {
