@@ -1,7 +1,6 @@
 package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 import com.github.edwgiz.tayyib.adapter.out.httpClient.AladhanIslamicCalendarClient;
-import com.github.edwgiz.tayyib.adapter.out.httpClient.NominatimClient;
 import com.github.edwgiz.tayyib.adapter.out.jdbc.GregorianHijriMappingRepository;
 import com.github.edwgiz.tayyib.adapter.out.jdbc.PrayerTimeMethodByCountryRepository;
 import com.github.edwgiz.tayyib.domain.model.CalendarDay;
@@ -11,6 +10,8 @@ import com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReason
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.ProlongedCalendarEvent;
+import com.github.edwgiz.tayyib.domain.usecase.geo.GetReverseGeocodingUsecase;
+import com.github.edwgiz.tayyib.domain.usecase.geo.GetReverseGeocodingUsecase.GetReverseGeocodingArgs;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -44,8 +45,8 @@ import static org.apache.commons.lang3.ArrayUtils.contains;
 public class GetCalendarDaysUsecase {
 
     private final GetFastingTimesUsecase getFastingTimesUsecase;
+    private final GetReverseGeocodingUsecase getReverseGeocodingUsecase;
     private final AladhanIslamicCalendarClient aladhanIslamicCalendarClient;
-    private final NominatimClient nominatimClient;
     private final DataSource dataSource;
     private final GregorianHijriMappingRepository gregorianHijriMappingRepository;
     private final PrayerTimeMethodByCountryRepository prayerTimeMethodByCountryRepository;
@@ -53,14 +54,14 @@ public class GetCalendarDaysUsecase {
 
     public GetCalendarDaysUsecase(
             final GetFastingTimesUsecase getFastingTimesUsecase,
+            final GetReverseGeocodingUsecase getReverseGeocodingUsecase,
             final AladhanIslamicCalendarClient aladhanIslamicCalendarClient,
-            final NominatimClient nominatimClient,
             final DataSource dataSource,
             final GregorianHijriMappingRepository gregorianHijriMappingRepository,
             final PrayerTimeMethodByCountryRepository prayerTimeMethodByCountryRepository) {
         this.getFastingTimesUsecase = getFastingTimesUsecase;
+        this.getReverseGeocodingUsecase = getReverseGeocodingUsecase;
         this.aladhanIslamicCalendarClient = aladhanIslamicCalendarClient;
-        this.nominatimClient = nominatimClient;
         this.dataSource = dataSource;
         this.gregorianHijriMappingRepository = gregorianHijriMappingRepository;
         this.prayerTimeMethodByCountryRepository = prayerTimeMethodByCountryRepository;
@@ -82,10 +83,10 @@ public class GetCalendarDaysUsecase {
         var locationIso3166_1_alpha2 = (String) null;
         var locationDisplayName = (String) null;
         if (fastingTimeCalculationArgs != null) {
-            final var reverseGeoCoding = nominatimClient.reverse(
+            final var reverseGeoCoding = getReverseGeocodingUsecase.apply(new GetReverseGeocodingArgs(
                     fastingTimeCalculationArgs.lat(),
                     fastingTimeCalculationArgs.lon(),
-                    fastingTimeCalculationArgs.acceptLanguage());
+                    fastingTimeCalculationArgs.acceptLanguage()));
             if (reverseGeoCoding != null) {
                 locationIso3166_1_alpha2 = reverseGeoCoding.iso3166_1_alpha2();
                 locationDisplayName = reverseGeoCoding.displayName();
@@ -138,7 +139,7 @@ public class GetCalendarDaysUsecase {
     }
 
 
-    private Entry<GetFastingTimesUsecase.Cache, PrayerTimeMethod> createFastingTimesCache(
+    private @Nullable Entry<GetFastingTimesUsecase.Cache, PrayerTimeMethod> createFastingTimesCache(
             final LocalDate firstDay,
             final ZoneId timezone,
             final @Nullable FastingTimeCalculationArgs fastingTimeCalculationArgs,

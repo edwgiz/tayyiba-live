@@ -5,7 +5,6 @@ import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Cache.NearestAstronomicalBounds.AstronomicalSunriseAndSunset.AstronomicalEventOffset;
-import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 
@@ -19,10 +18,12 @@ import java.util.function.Function;
 
 import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.HighLatitudeRule.NONE;
 import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.HighLatitudeRule.TWILIGHT_ANGLE;
+import static com.github.edwgiz.tayyib.domain.usecase.calendar.GetFastingTimesUsecase.Result.EventOffset.UNDEFINED;
 import static java.lang.Math.cos;
 import static java.lang.Math.sin;
 import static java.lang.Math.sqrt;
 import static java.lang.Math.toRadians;
+import static java.util.Objects.requireNonNullElse;
 
 
 @Service
@@ -132,14 +133,14 @@ public class GetFastingTimesUsecase {
         return result;
     }
 
-    private Result.@Nullable EventOffset createFajrEventOffset(
+    private Result.EventOffset createFajrEventOffset(
             final Cache cache,
             final AstronomicalEventOffsetPrerequisites prerequisites,
             final Result.EventOffset sunrise
     ) {
         final var astronomicalFajr = createAstronomicalEventOffset(cache, prerequisites, cache.fajrAngle, true);
         return switch (cache.prayerTimeMethod.highLatitudeRule) {
-            case NONE -> astronomicalFajr;
+            case NONE -> requireNonNullElse(astronomicalFajr, UNDEFINED);
             case TWILIGHT_ANGLE -> {
                 if (cache.previousSunset instanceof Result.EventOffset.AstronomicalEventOffset(int sunsetSeconds)
                         && sunrise instanceof Result.EventOffset.AstronomicalEventOffset(int sunriseSeconds)) {
@@ -158,7 +159,7 @@ public class GetFastingTimesUsecase {
 
                     yield new Result.EventOffset.AdjustedAstronomicalEventOffset(twilightAdjustedOffsetSeconds, TWILIGHT_ANGLE);
                 } else {
-                    yield new Result.EventOffset.Undefined();
+                    yield UNDEFINED;
                 }
             }
         };
@@ -175,7 +176,7 @@ public class GetFastingTimesUsecase {
         if (eventOffset == null) {
             final var nearestAstronomicalBounds = getNearestAstronomicalBounds(cache, prerequisites.day());
             if (nearestAstronomicalBounds == null) {
-                eventOffset = new Result.EventOffset.Undefined();
+                eventOffset = UNDEFINED;
             } else {
                 eventOffset = interpolateAstronomicalEvent(prerequisites.day(), nearestAstronomicalBounds, getter);
             }
@@ -222,7 +223,7 @@ public class GetFastingTimesUsecase {
     }
 
 
-    private static Cache.NearestAstronomicalBounds.@NonNull InterpolationPrerequisites createNearestAstronomicalBoundsInterpolationPrerequisites(
+    private static Cache.NearestAstronomicalBounds.InterpolationPrerequisites createNearestAstronomicalBoundsInterpolationPrerequisites(
             final AstronomicalSunriseAndSunset previous,
             final AstronomicalSunriseAndSunset next,
             final Function<AstronomicalSunriseAndSunset, AstronomicalEventOffset> getter) {
@@ -369,11 +370,15 @@ public class GetFastingTimesUsecase {
     ) {
 
         public sealed interface EventOffset {
+
+            Undefined UNDEFINED = new Undefined();
+
+
             record AstronomicalEventOffset(
                     int seconds
             ) implements EventOffset {
                 @Override
-                public @NonNull String toString() {
+                public String toString() {
                     return "AstronomicalEventOffset{" +
                             formatSeconds(seconds) +
                             '}';
@@ -385,7 +390,7 @@ public class GetFastingTimesUsecase {
                     HighLatitudeRule highLatitudeRule
             ) implements EventOffset {
                 @Override
-                public @NonNull String toString() {
+                public String toString() {
                     return "AdjustedAstronomicalEventOffset{" +
                             formatSeconds(seconds) +
                             ", " + highLatitudeRule +
@@ -414,7 +419,7 @@ public class GetFastingTimesUsecase {
     }
 
 
-    static Result.EventOffset.AstronomicalEventOffset createAstronomicalEventOffset(
+    static Result.EventOffset.@Nullable AstronomicalEventOffset createAstronomicalEventOffset(
             final Cache cache,
             final AstronomicalEventOffsetPrerequisites prerequisites,
             final double elevation,

@@ -1,6 +1,8 @@
 package com.github.edwgiz.tayyib.domain.usecase.calendar;
 
 
+import org.jspecify.annotations.Nullable;
+
 import static java.lang.Math.PI;
 import static java.lang.Math.acos;
 import static java.lang.Math.asin;
@@ -59,7 +61,7 @@ public abstract class MeeusUtils {
      * @return H - hour angle as the positive magnitude in radians
      * or {@code null} if the Sun never reaches the requested elevation
      */
-    static Double hourAngle(
+    static @Nullable Double hourAngle(
             final double latitudeSin,
             final double latitudeCos,
             final double declination,
