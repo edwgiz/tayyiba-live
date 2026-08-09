@@ -45,16 +45,21 @@
                 <version>2.1.0</version>
             </dependency>
             <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-csv</artifactId>
+                <version>1.14.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mnode.ical4j</groupId>
+                <artifactId>ical4j</artifactId>
+                <version>4.3.0</version>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>4.1.0</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-csv</artifactId>
-                <version>1.14.1</version>
             </dependency>
             <dependency>
                 <groupId>org.junit</groupId>

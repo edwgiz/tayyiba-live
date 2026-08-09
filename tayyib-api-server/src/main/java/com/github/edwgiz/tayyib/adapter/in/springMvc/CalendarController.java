@@ -11,7 +11,7 @@ import java.util.Locale;
 public class CalendarController {
 
     @GetMapping("/calendar")
-    public String get(Model model, Locale locale) {
+    public String get(Model model) {
         model.addAttribute("$", new Object());
         return "calendar";
     }
