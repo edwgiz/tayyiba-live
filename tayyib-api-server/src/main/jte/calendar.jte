@@ -5,21 +5,21 @@
 @param I18n i18n
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang='en'>
 <head>
-    <link rel="icon" type="image/svg+xml" href="/img/icon.svg">
-    <link rel="canonical" href="https://calendar.tayyiba.live/"/>
-    <meta charset="UTF-8"/>
-    <meta property="og:title" content="Islamic Fasting Calendar"/>
-    <meta property="og:description" content="Track Ramadan, White Days, Monday & Thursday fasting, Ashura and more."/>
-    <meta property="og:type" content="website"/>
-    <meta property="og:url" content="https://calendar.tayyiba.live/"/>
-    <meta property="og:image" content="https://calendar.tayyiba.live/img/logo.svg"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <meta name="description"
-          content="Interactive Islamic fasting calendar with Ramadan, White Days, Monday & Thursday fasting, Ashura, Arafah,
-    Hijri dates, and sunrise/sunset times based on your location."/>
-    <script type="application/ld+json">
+    <link rel='icon' type='image/svg+xml' href='/img/icon.svg'>
+    <link rel='canonical' href='https://calendar.tayyiba.live/'/>
+    <meta charset='UTF-8'/>
+    <meta property='og:title' content='Islamic Fasting Calendar'/>
+    <meta property='og:description' content='Track Ramadan, White Days, Monday & Thursday fasting, Ashura and more.'/>
+    <meta property='og:type' content='website'/>
+    <meta property='og:url' content='https://calendar.tayyiba.live/'/>
+    <meta property='og:image' content='https://calendar.tayyiba.live/img/logo.svg'/>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
+    <meta name='description'
+          content='Interactive Islamic fasting calendar with Ramadan, White Days, Monday & Thursday fasting, Ashura, Arafah,
+    Hijri dates, and sunrise/sunset times based on your location.'/>
+    <script type='application/ld+json'>
         {
             "@context": "https://schema.org",
             "@type": "WebApplication",
@@ -30,14 +30,14 @@
             "url": "https://calendar.tayyiba.live/"
         }
     </script>
-    <link rel="stylesheet" href="https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.default.css"
-          type="text/css"/>
-    <link rel="stylesheet" href="https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.dark-green.css"
-          type="text/css"/>
-    <link rel="stylesheet" href="https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.ui.default.css"
-          type="text/css"/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" type="text/css"/>
-    <script type="module">
+    <link rel='stylesheet' href='https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.default.css'
+          type='text/css'/>
+    <link rel='stylesheet' href='https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.dark-green.css'
+          type='text/css'/>
+    <link rel='stylesheet' href='https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.ui.default.css'
+          type='text/css'/>
+    <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' type='text/css'/>
+    <script type='module'>
         import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.button.js';
         import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.tooltip.js';
         import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.window.js';
@@ -113,7 +113,7 @@
         }
 
         blockquote::before {
-            content: "- ";
+            content: '- ';
         }
 
         li:has(>q) {
@@ -267,7 +267,7 @@
                 }
 
                 div.calendar-grid-cell-today {
-                    background-image: url("/img/hand-drawn-circle.svg");
+                    background-image: url('/img/hand-drawn-circle.svg');
                     background-size: auto 100%;
                     @media (max-width: 35em) {
                         background-size: 100% 100%;
@@ -446,10 +446,10 @@
         }
     </style>
 </head>
-<body theme="dark">
+<body theme='dark'>
 <header>
     <h1>
-        <img alt="Khatim icon" style="height: 2ch; vertical-align: center" src="/img/logo.svg">
+        <img alt='Khatim icon' style='height: 2ch; vertical-align: center' src='/img/logo.svg'>
         <span>${i18n.fasting().head().title()}</span>
     </h1>
     @template.calendar.fastingReasons(
@@ -457,12 +457,12 @@
     hadithCollectionReferencing = i18n.hadithReferencing().collections())
 </header>
 <main>
-    <section id="months">
-        <smart-button id="prev-month-button"></smart-button>
-        <span id="current-month-label"></span>
-        <smart-button id="next-month-button"></smart-button>
+    <section id='months'>
+        <smart-button id='prev-month-button'></smart-button>
+        <span id='current-month-label'></span>
+        <smart-button id='next-month-button'></smart-button>
     </section>
-    <section id="calendar-grid-cells"></section>
+    <section id='calendar-grid-cells'></section>
     <script>
         /**
          * @param {string} query
@@ -470,11 +470,11 @@
          * @param {object} variables
          */
         function graphql(query, requestId, variables = {}) {
-            return fetch("/graphql", {
-                method: "POST",
+            return fetch('/graphql', {
+                method: 'POST',
                 headers: {
-                    "Content-Type": "application/json",
-                    "X-Request-ID": requestId
+                    'Content-Type': 'application/json',
+                    'X-Request-ID': requestId
                 },
                 body: JSON.stringify({
                     query,
@@ -484,18 +484,18 @@
         }
 
     </script>
-    <section id="settings">
-        <div class="settings-label">${i18n.settings().location().label()}:</div>
+    <section id='settings'>
+        <div class='settings-label'>${i18n.settings().location().label()}:</div>
         <div><span id='location-value'></span>
             <img src='/img/spinner-smart-base-800.svg' height='2em'/>
-            <smart-button id="pick-location-on-map-button">${i18n.settings().location().pickOnMap()}</smart-button>
+            <smart-button id='pick-location-on-map-button'>${i18n.settings().location().pickOnMap()}</smart-button>
         </div>
-        <div class="settings-label settings-location-hidden-dependencies">${i18n.settings().timeZone()}:</div>
-        <div class="settings-location-hidden-dependencies">
+        <div class='settings-label settings-location-hidden-dependencies'>${i18n.settings().timeZone()}:</div>
+        <div class='settings-location-hidden-dependencies'>
             <smart-drop-down-list id='change-tz-dropdown'></smart-drop-down-list>
         </div>
-        <div class="settings-label settings-location-hidden-dependencies">${i18n.settings().prayerTimeMethod()}:</div>
-        <div class="settings-prayer-time-method settings-location-hidden-dependencies">
+        <div class='settings-label settings-location-hidden-dependencies'>${i18n.settings().prayerTimeMethod()}:</div>
+        <div class='settings-prayer-time-method settings-location-hidden-dependencies'>
             <smart-drop-down-list
                     id='change-prayer-time-method-dropdown'
                     filterable
@@ -516,7 +516,7 @@
             <span id='settings-prayer-time-method-label'></span>
         </div>
     </section>
-    <section id="fasting-reasons">
+    <section id='fasting-reasons'>
         @template.calendar.fastingReasons(
         reasonGroup = i18n.fasting().reasonGroups().obligatory(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
@@ -524,7 +524,7 @@
         reasonGroup = i18n.fasting().reasonGroups().voluntary(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
     </section>
-    <section id="prohibiting-fasting-reasons">
+    <section id='prohibiting-fasting-reasons'>
         @template.calendar.fastingReasons(
         reasonGroup = i18n.fasting().reasonGroups().prohibiting(),
         hadithCollectionReferencing = i18n.hadithReferencing().collections())
@@ -537,15 +537,15 @@
             ${i18n.footer().contacts().label()}
             :
             <a
-                    href="https://github.com/edwgiz/tayyib-fasting-calendar"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href='https://github.com/edwgiz/tayyib-fasting-calendar'
+                    target='_blank'
+                    rel='noopener noreferrer'
             >${i18n.footer().contacts().githubRefDescription()}</a>
         </li>
         <li>
             ${i18n.footer().attributions().label()}
             :
-            <a href="https://iconscout.com/contributors/rizsign-icon" target="_blank">Rizsign icon</a>
+            <a href='https://iconscout.com/contributors/rizsign-icon' target='_blank'>Rizsign icon</a>
         </li>
     </ul>
 </footer>
@@ -556,9 +556,9 @@
         modal
 ></smart-window>
 
-<div id="page-loading-spinner" class='hidden'></div>
+<div id='page-loading-spinner' class='hidden'></div>
 
-<script type="module">
+<script type='module'>
     const defaultDatetimeOptions = Intl.DateTimeFormat().resolvedOptions();
     let locale = defaultDatetimeOptions.locale;
 
@@ -713,7 +713,7 @@
         gridEl.innerHTML = '';
         for (const dayOfWeekName of dayOfWeekNames) {
             const cellEl = d.createElement('div');
-            cellEl.classList.add("calendar-grid-header");
+            cellEl.classList.add('calendar-grid-header');
             cellEl.textContent = dayOfWeekName;
             gridEl.appendChild(cellEl);
         }
@@ -762,7 +762,7 @@
                 + ':'
                 + minutesOnly.toString().padStart(2, '0');
         } else {
-            return "";
+            return '';
         }
     }
 
@@ -816,7 +816,7 @@
                     if (!hasLocation) {
                         fastingEl.appendChild(d.createTextNode('…'));
                     } else {
-                        const spinnerEl = d.createElement("img");
+                        const spinnerEl = d.createElement('img');
                         spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
                         spinnerEl.src = '/img/spinner.svg';
                         fastingEl.appendChild(spinnerEl);
@@ -876,12 +876,11 @@
             if (permission.state === 'granted') {
                 addLocationSpinner();
             } else {
-                const grantI18n = '${i18n.settings().location().permission().grant()}';
                 const orI18n = ' ${i18n.commons().or()} ';
                 const revokeBlockingI18n = ' ${i18n.settings().location().permission().revokeBlocking()} ';
                 const missingPermissionDescriptionEl = d.createElement('span');
                 missingPermissionDescriptionEl.classList.add('missed-permission');
-                missingPermissionDescriptionEl.textContent = grantI18n;
+                missingPermissionDescriptionEl.textContent = '${i18n.settings().location().permission().grantReason()}';
                 if (typeof HTMLGeolocationElement === 'function') {
                     locationValueEl.replaceChildren(missingPermissionDescriptionEl, ' ', d.createElement('geolocation'), orI18n);
                 } else {
@@ -891,9 +890,9 @@
                     } else {
                         const geolocationEl = d.createElement('smart-button');
                         geolocationEl.id = 'grant-geolocation-permission';
-                        geolocationEl.textContent = grantI18n;
+                        geolocationEl.textContent = '${i18n.settings().location().permission().changeInBrowser()}';
                         geolocationEl.addEventListener('click', updateLocationByDevice);
-                        locationValueEl.replaceChildren(' ', geolocationEl, orI18n);
+                        locationValueEl.replaceChildren(missingPermissionDescriptionEl, ' ', geolocationEl, orI18n);
                     }
                 }
             }
@@ -927,7 +926,7 @@
             if (hasLocation) {
                 locationValueEl.textContent = displayName != null && displayName.trim().length > 0 ? displayName : this.formatWgs84(latitude, longitude);
             } else {
-                navigator.permissions.query({name: "geolocation"}).then(locationLabelAdapter.updateByPermission);
+                navigator.permissions.query({name: 'geolocation'}).then(locationLabelAdapter.updateByPermission);
             }
 
             for (const el of this.settingsLocationDependantEls) {
@@ -1048,7 +1047,7 @@
             input: {
                 millis: isTodayMonth ? today.getTime() : month.getTime(),
                 timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
-                hijriMethod: "UAQ",
+                hijriMethod: 'UAQ',
                 fastingTimeCalculationInput: fastingTimeCalculationInput()
             }
         };

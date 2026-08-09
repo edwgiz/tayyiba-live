@@ -90,7 +90,8 @@ public record I18n(
                 Permission permission
         ) {
             public record Permission(
-                    String grant,
+                    String changeInBrowser,
+                    String grantReason,
                     String revokeBlocking
             ) {
             }
