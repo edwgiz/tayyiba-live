@@ -79,18 +79,21 @@
             border-color: var(--smart-border);
         }
 
-        header > h1 {
-            text-align: center;
-            display: flex;
-            flex-direction: row;
-            @media (max-width: 50em) {
-                flex-direction: column;
-            }
-            align-items: center;
-            justify-content: center;
+        header {
 
-            img {
-                margin-right: 0.4em;
+            h1 {
+                font-size: clamp(1.38em, 4vw, 2.5rem);
+                text-align: center;
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: center;
+                padding: 0.5em 0;
+
+                img {
+                    margin-right: 0.4em;
+                }
             }
         }
 
@@ -226,10 +229,12 @@
                     div.calendar-grid-cell-hijri-month {
                         color: #00b300;
                         font-size: small;
-                        @media (max-width: 50em) {
-                            font-size: x-small;
-                        }
                         overflow-wrap: break-word;
+                        @media (max-width: 50em) {
+                            font-size: 2.6vw;
+                            overflow: visible;
+                            overflow-wrap: normal;
+                        }
                     }
 
                     div.calendar-grid-cell-hijri-date {
@@ -240,7 +245,8 @@
                         color: #b3b300;
                         font-size: small;
                         @media (max-width: 50em) {
-                            font-size: x-small;
+                            font-size: 2.6vw;
+                            overflow: visible;
                         }
 
                         img.calendar-grid-cell-fasting-undefined-spinner {
@@ -254,7 +260,8 @@
                         color: #ffff00;
                         font-size: small;
                         @media (max-width: 50em) {
-                            font-size: x-small;
+                            font-size: 2.6vw;
+                            overflow: visible;
                         }
                     }
                 }
