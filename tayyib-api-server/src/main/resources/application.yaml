@@ -20,8 +20,12 @@ spring:
   liquibase:
     enabled: true
 
+  web:
+    resources:
+      static-locations: classpath:webapp/static
+
 server:
-  port: 9443
+  port: 12443
   shutdown: graceful
 
 dgs:
@@ -31,7 +35,7 @@ dgs:
 
 gg:
   jte:
-    development-mode: true
+    use-precompiled-templates: true
 
 logging:
   level:

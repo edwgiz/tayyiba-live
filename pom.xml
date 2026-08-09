@@ -74,6 +74,11 @@
                     <artifactId>graphqlcodegen-maven-plugin</artifactId>
                     <version>3.8.0</version>
                 </plugin>
+                <plugin>
+                    <groupId>gg.jte</groupId>
+                    <artifactId>jte-maven-plugin</artifactId>
+                    <version>3.2.4</version>
+                </plugin>
                 <!-- clean lifecycle, see https://maven.apache.org/ref/current/maven-core/lifecycles.html#clean_Lifecycle -->
                 <plugin>
                     <artifactId>maven-clean-plugin</artifactId>

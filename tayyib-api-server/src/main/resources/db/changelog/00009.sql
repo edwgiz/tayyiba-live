@@ -21,7 +21,7 @@ values ('en', 'settings.location.permission.revoke-blocking', 'please revoke blo
 
 
 update i18n_bundles
-set code='commons.ok',
+set code='commons.ok'
 where code = 'settings.ok';
 
 insert into i18n_bundles (locale, code, value)
