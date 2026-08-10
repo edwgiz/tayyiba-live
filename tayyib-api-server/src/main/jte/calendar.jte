@@ -1,32 +1,32 @@
+@import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.HijriMethod
 @import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod
 @import com.github.edwgiz.tayyib.domain.model.I18n
 
-@param Object $
 @param I18n i18n
 
 <!DOCTYPE html>
 <html lang='en'>
 <head>
     <link rel='icon' type='image/svg+xml' href='/img/icon.svg'>
-    <link rel='canonical' href='https://calendar.tayyiba.live/'/>
+    <link rel='canonical' href='https://tayyiba.live/calendar'/>
     <meta charset='UTF-8'/>
-    <meta property='og:title' content='Islamic Fasting Calendar'/>
-    <meta property='og:description' content='Track Ramadan, White Days, Monday & Thursday fasting, Ashura and more.'/>
-    <meta property='og:type' content='website'/>
-    <meta property='og:url' content='https://calendar.tayyiba.live/'/>
-    <meta property='og:image' content='https://calendar.tayyiba.live/img/logo.svg'/>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'/>
-    <meta name='description'
-          content='Interactive Islamic fasting calendar with Ramadan, White Days, Monday & Thursday fasting, Ashura, Arafah,
-    Hijri dates, and sunrise/sunset times based on your location.'/>
+    <meta name='description' content='${i18n.fasting().head().description()}'/>
+
+    <meta property='og:title' content='${i18n.fasting().head().title()}'/>
+    <meta property='og:description' content='${i18n.fasting().head().description()}'/>
+    <meta property='og:type' content='website'/>
+    <meta property='og:url' content='https://tayyiba.live/calendar'/>
+    <meta property='og:image' content='https://tayyiba.live/img/logo.svg'/>
+
     <script type='application/ld+json'>
         {
             "@context": "https://schema.org",
             "@type": "WebApplication",
-            "name": "Islamic Fasting Calendar",
+            "name": "${i18n.fasting().head().title()}",
             "applicationCategory": "LifestyleApplication",
             "operatingSystem": "Web Browser",
-            "description": "Interactive Islamic fasting calendar with Hijri dates and fasting reminders.",
+            "description": "${i18n.fasting().head().description()}",
             "url": "https://calendar.tayyiba.live/"
         }
     </script>
@@ -1047,7 +1047,7 @@
             input: {
                 millis: isTodayMonth ? today.getTime() : month.getTime(),
                 timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
-                hijriMethod: 'UAQ',
+                hijriMethod: '${HijriMethod.UAQ}',
                 fastingTimeCalculationInput: fastingTimeCalculationInput()
             }
         };

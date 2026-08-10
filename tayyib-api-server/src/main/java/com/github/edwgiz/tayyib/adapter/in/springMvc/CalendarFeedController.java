@@ -1,63 +1,124 @@
 package com.github.edwgiz.tayyib.adapter.in.springMvc;
 
-import net.fortuna.ical4j.data.CalendarOutputter;
-import net.fortuna.ical4j.model.Calendar;
-import net.fortuna.ical4j.model.Component;
-import net.fortuna.ical4j.model.ComponentFactory;
-import net.fortuna.ical4j.model.component.CalendarComponent;
-import net.fortuna.ical4j.model.component.VEvent;
-import net.fortuna.ical4j.model.component.VTimeZone;
-import net.fortuna.ical4j.model.property.ProdId;
-import net.fortuna.ical4j.model.property.Uid;
-import net.fortuna.ical4j.model.property.immutable.ImmutableCalScale;
-import net.fortuna.ical4j.model.property.immutable.ImmutableVersion;
-import net.fortuna.ical4j.validate.ValidationException;
-import net.fortuna.ical4j.validate.ValidationResult;
+import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase.FastingTimeCalculationArgs;
 import org.jspecify.annotations.Nullable;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
-import static org.springframework.http.HttpStatus.OK;
+import static com.github.edwgiz.tayyib.domain.model.HijriMethod.UAQ;
+import static java.lang.Double.parseDouble;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNullElse;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE;
+import static org.springframework.http.MediaType.TEXT_PLAIN;
+import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
+import static org.springframework.http.ResponseEntity.status;
 
 
 @RestController
 public class CalendarFeedController {
 
-    private static final MediaType CONTENT_TYPE = new MediaType("text", "calendar");
 
+    private final GetCalendarDaysUsecase getCalendarDaysUsecase;
+    private final List<Locale> supportedLocales;
+    private final CalendarFeedView calendarFeedView;
 
-    @GetMapping("/calendar/fasting.ics")
-    public ResponseEntity<StreamingResponseBody> get(
-            @RequestParam @Nullable String latitude,
-            @RequestParam @Nullable String longitude,
-            @RequestParam @Nullable String timezone,
-            @RequestParam @Nullable String prayerTimeMethod,
-            @RequestParam @Nullable String locale,
-            Locale defaultLocale) {
-
-        final var calendar = new Calendar();
-        calendar.add(new ProdId("-//Tayyiba//Fasting Calendar//" + defaultLocale));
-        calendar.add(ImmutableVersion.VERSION_2_0);
-        calendar.add(ImmutableCalScale.GREGORIAN);
-
-        final var hello = new VEvent(Instant.parse("2026-08-10T18:00:00Z"), "Hello");
-        hello.add(new Uid(UUID.randomUUID().toString()));
-        calendar.add(hello);
-
-        return ResponseEntity
-                .status(OK)
-                .contentType(CONTENT_TYPE)
-                .body(outputStream -> new CalendarOutputter().output(calendar, outputStream));
+    CalendarFeedController(
+            final GetCalendarDaysUsecase getCalendarDaysUsecase,
+            final List<Locale> supportedLocales,
+            final CalendarFeedView calendarFeedView) {
+        this.getCalendarDaysUsecase = getCalendarDaysUsecase;
+        this.supportedLocales = supportedLocales;
+        this.calendarFeedView = calendarFeedView;
     }
 
 
+    @GetMapping(value = "/calendar/fasting.ics",
+            produces = {TEXT_PLAIN_VALUE, "text/calendar"})
+    public ResponseEntity<StreamingResponseBody> get(
+            final @RequestParam String timezone,
+            final @RequestParam @Nullable String latitude,
+            final @RequestParam @Nullable String longitude,
+            final @RequestParam("prayer-time-method") @Nullable String prayerTimeMethod,
+            final @RequestParam String locale,
+            final Locale fallbackLocale) {
+
+        final ZoneId zoneId;
+        try {
+            zoneId = ZoneId.of(timezone);
+        } catch (IllegalArgumentException _) {
+            return create400Response("Invalid query parameter 'timezone'");
+        }
+
+
+        final Locale prefferedLocale;
+        try {
+            final var locales = Locale.LanguageRange.parse(locale, new HashMap<>());
+            final var matchingLocale = Locale.lookup(locales, supportedLocales);
+            prefferedLocale = requireNonNullElse(matchingLocale, fallbackLocale);
+        } catch (IllegalArgumentException _) {
+            return create400Response("Invalid query parameter 'locale'");
+        }
+
+        final FastingTimeCalculationArgs fastingTimeCalculationArgs;
+        if (latitude != null || longitude != null) {
+            if (latitude == null) {
+                return create400Response("Missed query parameter 'latitude' while 'longitude' is passed");
+            }
+            final double lat;
+            try {
+                lat = parseDouble(latitude);
+            } catch (NumberFormatException _) {
+                return create400Response("Invalid query parameter 'latitude'");
+            }
+            if (longitude == null) {
+                return create400Response("Missed query parameter 'longitude' while 'latitude' is passed");
+            }
+            final double lon;
+            try {
+                lon = parseDouble(longitude);
+            } catch (NumberFormatException _) {
+                return create400Response("Invalid query parameter 'longitude'");
+            }
+
+            final PrayerTimeMethod preferredPrayerTimeMethod;
+            if (prayerTimeMethod == null) {
+                preferredPrayerTimeMethod = null;
+            } else {
+                try {
+                    preferredPrayerTimeMethod = PrayerTimeMethod.valueOf(prayerTimeMethod);
+                } catch (IllegalArgumentException _) {
+                    return create400Response("Invalid query parameter 'prayer-time-method'");
+                }
+            }
+
+            fastingTimeCalculationArgs = new FastingTimeCalculationArgs(lat, lon, prefferedLocale.toLanguageTag(), preferredPrayerTimeMethod);
+        } else {
+            fastingTimeCalculationArgs = null;
+        }
+
+        final var today = LocalDate.now(zoneId);
+
+        return switch (getCalendarDaysUsecase.apply(today, today.plusDays(30), UAQ, zoneId, fastingTimeCalculationArgs)) {
+            case GetCalendarDaysUsecase.Result.Ok ok -> calendarFeedView.render(ok, prefferedLocale, zoneId);
+            case GetCalendarDaysUsecase.Result.ServiceUnavailable _ -> status(SERVICE_UNAVAILABLE).build();
+        };
+    }
+
+
+    private static ResponseEntity<StreamingResponseBody> create400Response(final String msg) {
+        return status(BAD_REQUEST).contentType(TEXT_PLAIN).body(out -> out.write(msg.getBytes(UTF_8)));
+    }
 }

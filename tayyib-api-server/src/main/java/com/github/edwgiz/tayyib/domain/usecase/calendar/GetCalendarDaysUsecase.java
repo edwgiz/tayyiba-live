@@ -30,14 +30,7 @@ import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEven
 import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.PROHIBITING_FASTING;
 import static com.github.edwgiz.tayyib.domain.model.CalendarDayPair.CalendarEventReasonGroup.VOLUNTARY_FASTING;
 import static java.lang.Math.min;
-import static java.time.DayOfWeek.MONDAY;
-import static java.time.DayOfWeek.SATURDAY;
-import static java.time.DayOfWeek.SUNDAY;
 import static java.time.temporal.ChronoUnit.DAYS;
-import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
-import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
-import static java.time.temporal.TemporalAdjusters.nextOrSame;
-import static java.time.temporal.TemporalAdjusters.previousOrSame;
 import static org.apache.commons.lang3.ArrayUtils.contains;
 
 
@@ -69,17 +62,12 @@ public class GetCalendarDaysUsecase {
 
 
     public Result apply(
-            final LocalDate today,
-            final boolean isSundayFirst,
+            final LocalDate firstDay,
+            final LocalDate lastDay,
             final HijriMethod hijriMethod,
             final ZoneId timezone,
             final @Nullable FastingTimeCalculationArgs fastingTimeCalculationArgs
     ) {
-        final var firstDayOfMonth = today.with(firstDayOfMonth());
-        final var firstDay = firstDayOfMonth.with(previousOrSame(isSundayFirst ? SUNDAY : MONDAY));
-        final var lastDayOfMonth = firstDayOfMonth.with(lastDayOfMonth());
-        final var lastDay = lastDayOfMonth.with(nextOrSame(isSundayFirst ? SATURDAY : SUNDAY));
-
         var locationIso3166_1_alpha2 = (String) null;
         var locationDisplayName = (String) null;
         if (fastingTimeCalculationArgs != null) {
@@ -131,8 +119,6 @@ public class GetCalendarDaysUsecase {
         }
 
         return new Result.Ok(
-                firstDayOfMonth,
-                lastDayOfMonth,
                 calendarDays,
                 locationDisplayName,
                 fastingTimesEntry == null ? null : fastingTimesEntry.getValue());
@@ -153,7 +139,8 @@ public class GetCalendarDaysUsecase {
                 fastingTimeCalculationArgs.lon(),
                 0,
                 prayerTimeMethod,
-                firstDay.minusDays(1), timezone);
+                firstDay.minusDays(1),
+                timezone);
         return Map.entry(cache, prayerTimeMethod);
     }
 
@@ -304,8 +291,6 @@ public class GetCalendarDaysUsecase {
 
     public sealed interface Result {
         record Ok(
-                LocalDate firstDayOfMonth,
-                LocalDate lastDayOfMonth,
                 ArrayList<CalendarDayPair> calendarDayPairs,
                 @Nullable String locationDisplayName,
                 @Nullable PrayerTimeMethod prayerTimeMethod

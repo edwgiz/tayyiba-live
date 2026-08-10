@@ -5,8 +5,10 @@ import com.github.edwgiz.tayyib.domain.model.CalendarDayPair;
 import com.github.edwgiz.tayyib.domain.model.HijriMethod;
 import com.github.edwgiz.tayyib.domain.model.I18n;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
+import com.github.edwgiz.tayyib.domain.usecase.calendar.CalendarUtils;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
 import com.github.edwgiz.tayyib.domain.usecase.i18n.GetBundleUsecase;
+import com.github.edwgiz.tayyib.domain.usecase.i18n.LocaleUtils;
 import com.netflix.graphql.dgs.DgsComponent;
 import com.netflix.graphql.dgs.DgsDataFetchingEnvironment;
 import com.netflix.graphql.dgs.DgsQuery;
@@ -26,8 +28,14 @@ import java.time.format.TextStyle;
 import java.util.*;
 
 import static com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod.AUTO_BY_LOCATION;
+import static java.time.DayOfWeek.MONDAY;
+import static java.time.DayOfWeek.SATURDAY;
+import static java.time.DayOfWeek.SUNDAY;
 import static java.time.format.DateTimeFormatter.ofPattern;
-import static java.util.Locale.ROOT;
+import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
+import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
+import static java.time.temporal.TemporalAdjusters.nextOrSame;
+import static java.time.temporal.TemporalAdjusters.previousOrSame;
 import static java.util.Map.entry;
 import static org.apache.commons.collections4.MapUtils.isNotEmpty;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
@@ -38,8 +46,6 @@ import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
 public class CalendarFetcher {
 
     private static final Logger log = LoggerFactory.getLogger(CalendarFetcher.class);
-    private static final Set<String> SUNDAY_FIRST_COUNTRIES = Set.of(
-            "US", "CA", "AU", "NZ", "PH", "JP", "KR", "TW", "HK", "SA", "EG", "IL");
 
     private final LocaleResolver localeResolver;
     private final GetCalendarDaysUsecase getCalendarDaysUsecase;
@@ -65,7 +71,7 @@ public class CalendarFetcher {
         final var hijriMethod = HijriMethod.valueOf(input.getHijriMethod().name());
         final var fastingTimeCalculationArgs = toUsecaseArgs(input.getFastingTimeCalculationInput(), requestData.acceptLanguage());
 
-        final var isSundayFirst = SUNDAY_FIRST_COUNTRIES.contains(requestData.iso3166_1_alpha2);
+        final var isSundayFirst = CalendarUtils.isSundayFirst(requestData.iso3166_1_alpha2);
         final var dayOfWeeks = DayOfWeek.values();
         final var dayOfWeekNames = new String[7];
         int dayOfWeekOffset = isSundayFirst ? 6 : 0;
@@ -75,7 +81,14 @@ public class CalendarFetcher {
         final var i18n = getBundleUsecase.apply(requestData.locale());
         final var timezone = ZoneId.of(input.getTimezone());
         final var today = Instant.ofEpochMilli(input.getMillis()).atZone(timezone).toLocalDate();
-        final var calendarResult = getCalendarDaysUsecase.apply(today, isSundayFirst, hijriMethod, timezone, fastingTimeCalculationArgs);
+        final var firstDayOfMonth = today.with(firstDayOfMonth());
+        final var lastDayOfMonth = today.with(lastDayOfMonth());
+        final var calendarResult = getCalendarDaysUsecase.apply(
+                firstDayOfMonth.with(previousOrSame(isSundayFirst ? SUNDAY : MONDAY)),
+                lastDayOfMonth.with(nextOrSame(isSundayFirst ? SATURDAY : SUNDAY)),
+                hijriMethod,
+                timezone,
+                fastingTimeCalculationArgs);
         final var hijriMonthNames = new HashMap<Integer, String>();
         final var calendarEventReasons = new HashMap<String, CalendarEventReason>();
         var todayIndex = (Integer) null;
@@ -85,7 +98,6 @@ public class CalendarFetcher {
         final var calendarDays = switch (calendarResult) {
             case GetCalendarDaysUsecase.Result.Ok ok -> {
                 final var result = new ArrayList<CalendarDay>();
-                final var firstDayOfMonth = ok.firstDayOfMonth();
                 final var days = ok.calendarDayPairs();
                 for (int j = 0; j < days.size(); j++) {
                     var calendarDay = days.get(j);
@@ -94,7 +106,6 @@ public class CalendarFetcher {
                         todayIndex = j;
                     }
                     final var hijriDay = calendarDay.hijri();
-                    final var lastDayOfMonth = ok.lastDayOfMonth();
                     hijriMonthNames.computeIfAbsent(hijriDay.month(), i -> i18n.calendar().monthNames()[i]);
                     final var events = new ArrayList<CalendarEvent>();
                     for (final var event : calendarDay.events()) {
@@ -219,7 +230,7 @@ public class CalendarFetcher {
         return new RequestData(
                 servletRequest.getHeader(ACCEPT_LANGUAGE),
                 localeResolver.resolveLocale(servletRequest),
-                getCountry(servletRequest));
+                LocaleUtils.getCountry(servletRequest.getLocales()));
     }
 
 
@@ -231,15 +242,4 @@ public class CalendarFetcher {
     }
 
 
-    private static @Nullable String getCountry(final HttpServletRequest servletRequest) {
-        final var acceptedLocales = servletRequest.getLocales();
-        while (acceptedLocales.hasMoreElements()) {
-            final var acceptedLocale = acceptedLocales.nextElement();
-            final var iso3166_1_alpha2 = acceptedLocale.getCountry();
-            if (isNotEmpty(iso3166_1_alpha2)) {
-                return iso3166_1_alpha2.toUpperCase(ROOT);
-            }
-        }
-        return null;
-    }
 }

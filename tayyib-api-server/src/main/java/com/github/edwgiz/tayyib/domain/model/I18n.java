@@ -18,7 +18,8 @@ public record I18n(
     public record Commons(
             String ok,
             String or
-    ) {}
+    ) {
+    }
 
     public record HadithReferencing(
             Map<String, String> collections
@@ -32,14 +33,8 @@ public record I18n(
 
         public record Head(
                 String title,
-                String description,
-                Meta meta
+                String description
         ) {
-
-            public record Meta(
-                    String keywords
-            ) {
-            }
         }
 
         public record FastingReasonGroups(
@@ -52,6 +47,7 @@ public record I18n(
 
         public record FastingReasonGroup(
                 @Nullable String title,
+                String icsTitle,
                 Reason[] reasons
         ) {
         }
