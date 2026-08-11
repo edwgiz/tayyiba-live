@@ -76,7 +76,7 @@ public class CalendarFeedView {
         return ResponseEntity
                 .status(OK)
                 .contentType(CONTENT_TYPE)
-                .body(out -> new CalendarOutputter().output(icsCalendar, out));
+                .body(out -> new CalendarOutputter(false).output(icsCalendar, out));
     }
 
 

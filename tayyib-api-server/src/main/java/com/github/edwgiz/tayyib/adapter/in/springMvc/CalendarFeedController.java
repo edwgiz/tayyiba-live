@@ -1,5 +1,6 @@
 package com.github.edwgiz.tayyib.adapter.in.springMvc;
 
+import com.github.edwgiz.tayyib.adapter.commons.dgs.dto.HijriMethod;
 import com.github.edwgiz.tayyib.domain.model.PrayerTimeMethod;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase;
 import com.github.edwgiz.tayyib.domain.usecase.calendar.GetCalendarDaysUsecase.FastingTimeCalculationArgs;
@@ -16,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
-import static com.github.edwgiz.tayyib.domain.model.HijriMethod.UAQ;
 import static java.lang.Double.parseDouble;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNullElse;
@@ -48,11 +48,13 @@ public class CalendarFeedController {
     @GetMapping(value = "/calendar/fasting.ics",
             produces = {TEXT_PLAIN_VALUE, "text/calendar"})
     public ResponseEntity<StreamingResponseBody> get(
+            final @RequestParam LocalDate start,
             final @RequestParam String timezone,
+            final @RequestParam String locale,
+            final @RequestParam("hijri-method") HijriMethod hijriMethod,
             final @RequestParam @Nullable String latitude,
             final @RequestParam @Nullable String longitude,
             final @RequestParam("prayer-time-method") @Nullable String prayerTimeMethod,
-            final @RequestParam String locale,
             final Locale fallbackLocale) {
 
         final ZoneId zoneId;
@@ -62,6 +64,12 @@ public class CalendarFeedController {
             return create400Response("Invalid query parameter 'timezone'");
         }
 
+        final com.github.edwgiz.tayyib.domain.model.HijriMethod hijriMethodModel;
+        try {
+            hijriMethodModel = com.github.edwgiz.tayyib.domain.model.HijriMethod.valueOf(hijriMethod.name());
+        } catch (IllegalArgumentException _) {
+            return create400Response("Invalid query parameter 'hijri-method'");
+        }
 
         final Locale prefferedLocale;
         try {
@@ -109,9 +117,7 @@ public class CalendarFeedController {
             fastingTimeCalculationArgs = null;
         }
 
-        final var today = LocalDate.now(zoneId);
-
-        return switch (getCalendarDaysUsecase.apply(today, today.plusDays(30), UAQ, zoneId, fastingTimeCalculationArgs)) {
+        return switch (getCalendarDaysUsecase.apply(start, start.plusDays(30), hijriMethodModel, zoneId, fastingTimeCalculationArgs)) {
             case GetCalendarDaysUsecase.Result.Ok ok -> calendarFeedView.render(ok, prefferedLocale, zoneId);
             case GetCalendarDaysUsecase.Result.ServiceUnavailable _ -> status(SERVICE_UNAVAILABLE).build();
         };

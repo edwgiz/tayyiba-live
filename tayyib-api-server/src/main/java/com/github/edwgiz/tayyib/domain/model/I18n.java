@@ -28,12 +28,20 @@ public record I18n(
 
     public record Fasting(
             Head head,
+            Ics ics,
             FastingReasonGroups reasonGroups
     ) {
 
         public record Head(
                 String title,
                 String description
+        ) {
+        }
+
+        public record Ics(
+                String label,
+                String linkLabel,
+                String copyLinkLabel
         ) {
         }
 

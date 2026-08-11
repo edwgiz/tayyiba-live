@@ -312,6 +312,33 @@
                 }
             }
 
+            section#ics {
+                div#ics-label {
+                    text-align: center;
+                }
+
+                span#ics-actions {
+                    font-size: 1rem;
+
+                    a#ics-link {
+                        margin-left: 1ch;
+                        margin-right: 1ch;
+                    }
+
+                    #ics-copy-status {
+                        display: inline-block;
+                        margin-left: 1ch;
+                        color: #00b300;
+                        opacity: 0;
+                        transition: opacity 300ms ease;
+                    }
+
+                    #ics-copy-status.visible {
+                        opacity: 1;
+                    }
+                }
+            }
+
             section#fasting-reasons,
             section#prohibiting-fasting-reasons {
                 font-size: small;
@@ -515,6 +542,15 @@
             </smart-drop-down-list>
             <span id='settings-prayer-time-method-label'></span>
         </div>
+    </section>
+    <section id='ics'>
+        <div id='ics-label'>${i18n.fasting().ics().label()}</div>
+        <span id='ics-actions'>
+            <a id='ics-link' target='_blank' rel="noopener noreferrer">${i18n.fasting().ics().linkLabel()}</a>
+            ${i18n.commons().or()}
+            <smart-button type='button' id='ics-copy-link'>${i18n.fasting().ics().copyLinkLabel()}</smart-button>
+            <span id='ics-copy-status' role='status' aria-live='polite'>✓</span>
+        </span>
     </section>
     <section id='fasting-reasons'>
         @template.calendar.fastingReasons(
@@ -931,7 +967,7 @@
 
             for (const el of this.settingsLocationDependantEls) {
                 if (el instanceof HTMLElement) {
-                    if(hasLocation) {
+                    if (hasLocation) {
                         el.classList.remove('settings-location-hidden-dependencies');
                     } else {
                         el.classList.add('settings-location-hidden-dependencies');
@@ -999,7 +1035,7 @@
          */
         apply(usedPrayerTimeMethod) {
             const chosenPrayerTimeMethod = prayerTimeMethodRepository.get();
-            if(usedPrayerTimeMethod !== chosenPrayerTimeMethod) {
+            if (usedPrayerTimeMethod !== chosenPrayerTimeMethod) {
                 this.labelEl.style.removeProperty('display');
                 const label = this.getPrayerTimeMethodLabel(usedPrayerTimeMethod);
                 this.labelEl.replaceChildren(label);
@@ -1021,6 +1057,73 @@
         }
     }
 
+    const icsLinkAdapter = {
+
+        icsLinkEl: d.getElementById('ics-link'),
+
+        acceptLanguage: navigator.languages
+            .map((language, index) => {
+                if (index === 0) {
+                    return language;
+                }
+
+                const q = Math.max(0.1, 1 - index * 0.1).toFixed(1);
+                return language + ';q=' + q;
+            })
+            .join(','),
+
+        /**
+         * @param {Date} start
+         * @param {String} timezone
+         * @param {String} hijriMethod
+         * @param {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}} locationInput
+         */
+        setHref(start, timezone, hijriMethod, locationInput) {
+            const url = new URL('/calendar/fasting.ics', window.location.origin);
+            const q = url.searchParams;
+            q.set('start', start.toISOString().substring(0, 10));
+            q.set('timezone', timezone);
+            q.set('hijri-method', hijriMethod);
+            q.set('locale', this.acceptLanguage);
+            if (locationInput) {
+                q.set('latitude', locationInput.latitude.toString());
+                q.set('longitude', locationInput.longitude.toString());
+                q.set('prayer-time-method', locationInput.prayerTimeMethod);
+            }
+            this.icsLinkEl.href = url.href;
+        },
+
+        /**
+         * @return {string}
+         */
+        getHref() {
+            return this.icsLinkEl.href;
+        }
+    }
+
+    {
+        let icsCopyStatusTimeout = null;
+        d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(icsLinkAdapter.getHref());
+                clearTimeout(icsCopyStatusTimeout);
+                const icsCopyStatusEl = document.getElementById('ics-copy-status');
+                icsCopyStatusEl.setAttribute('aria-hidden', 'false');
+                icsCopyStatusEl.classList.add('visible');
+                icsCopyStatusTimeout = setTimeout(() => {
+                    icsCopyStatusEl.classList.remove('visible');
+                    setTimeout(() => {
+                        if (!icsCopyStatusEl.classList.contains('visible')) {
+                            icsCopyStatusEl.setAttribute('aria-hidden', 'true');
+                        }
+                    }, 300);
+                }, 2000);
+            } catch (error) {
+                console.error('Failed to copy ICS link:', error);
+            }
+        });
+    }
+
     let reloadCalendarDatesRequestId = null;
 
     function reloadCalendar() {
@@ -1032,7 +1135,7 @@
         const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
 
         /**
-         * @return {null|{latitude: number, longitude: number, prayerTimeMethod}}
+         * @return {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}}
          */
         function fastingTimeCalculationInput() {
             const getGeoPosition = getGeoPositionUsecase.apply();
@@ -1111,6 +1214,11 @@
                     locationInput?.longitude,
                     dto.locationDisplayName);
                 updateSettingsPrayerTimeMethodLabelUsecase.apply(dto.prayerTimeMethod);
+                icsLinkAdapter.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
+                    latitude: locationInput.latitude,
+                    longitude: locationInput.longitude,
+                    prayerTimeMethod: dto.prayerTimeMethod
+                } : null);
                 window.scrollTo({top: pageScrollTop, behavior: 'smooth'});
             });
     }
