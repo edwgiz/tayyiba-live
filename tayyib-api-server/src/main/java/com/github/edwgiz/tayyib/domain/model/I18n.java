@@ -29,6 +29,7 @@ public record I18n(
     public record Fasting(
             Head head,
             Ics ics,
+            String reasonsTitle,
             FastingReasonGroups reasonGroups
     ) {
 

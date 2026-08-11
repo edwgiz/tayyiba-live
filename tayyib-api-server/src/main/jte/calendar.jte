@@ -60,18 +60,26 @@
 
         a {
             color: var(--smart-base-100);
+
+            &:visited {
+                color: #c58af9;
+            }
+
+            &:hover {
+                color: #ffffff;
+            }
+
+            &:focus-visible {
+                outline: 2px solid rgba(138, 180, 248, 0.6);
+            }
         }
 
-        a:visited {
-            color: #c58af9;
-        }
-
-        a:hover {
-            color: #ffffff;
-        }
-
-        a:focus-visible {
-            outline: 2px solid rgba(138, 180, 248, 0.6);
+        h2 {
+            background-image: linear-gradient(
+                    to bottom,
+                    var(--smart-base-background-color-dark) 0,
+                    var(--smart-base-400) 100%
+            );
         }
 
         hr {
@@ -110,11 +118,12 @@
             padding: 0;
             margin: 0;
             font-style: italic;
+
+            &::before {
+                content: '- ';
+            }
         }
 
-        blockquote::before {
-            content: '- ';
-        }
 
         li:has(>q) {
             color: var(--smart-base-100);
@@ -147,36 +156,51 @@
             -webkit-tap-highlight-color: transparent !important;
             background: var(--smart-background) !important;
             color: var(--smart-background-color) !important;
-        }
 
-        geolocation:hover {
-            color: var(--smart-ui-state-color-hover);
-            border-color: var(--smart-ui-state-border-hover);
-            background-color: var(--smart-ui-state-hover);
-            transition: background-color .1s linear, box-shadow 280ms ease-in-out;
-            opacity: var(--smart-button-opacity-hover)
+            &:hover {
+                color: var(--smart-ui-state-color-hover);
+                border-color: var(--smart-ui-state-border-hover);
+                background-color: var(--smart-ui-state-hover);
+                transition: background-color .1s linear, box-shadow 280ms ease-in-out;
+                opacity: var(--smart-button-opacity-hover)
+            }
         }
 
         div#page-loading-spinner {
             position: fixed;
             inset: 0;
             z-index: 9999;
+
             backdrop-filter: blur(1px);
             -webkit-backdrop-filter: blur(1px);
-            background-image: url('/img/spinner-smart-base-800.svg');
-            background-size: max(2rem, min(25vw, 25vh));
-            background-repeat: no-repeat;
-            background-position: center center;
-            opacity: 0.0;
-            transition: opacity 500ms ease;
-        }
 
-        div#page-loading-spinner.shown {
-            opacity: 1;
-        }
+            &::before {
+                content: '';
+                position: absolute;
+                inset: 0;
 
-        div#page-loading-spinner.hidden {
-            display: none;
+                background-image: url('/img/spinner-smart-base-800.svg');
+                background-size: max(2rem, min(25vw, 25vh));
+                background-repeat: no-repeat;
+                background-position: center center;
+                opacity: 0;
+            }
+
+            &.shown::before {
+                animation: page-loading-spinner-show 1s ease 1s forwards;
+            }
+            &.hidden {
+                display: none;
+            }
+        }
+        @keyframes page-loading-spinner-show {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
 
@@ -194,90 +218,110 @@
                 align-items: center;
                 margin-bottom: 1em;
                 gap: 0.5em;
-                @media (max-width: 50em) {
+                @media (max-width: 48em) {
                     flex-direction: column;
                 }
             }
 
+            --max-calendar-column-width: 6em;
+
             section#calendar-grid-cells {
                 display: grid;
-                grid-template-columns: repeat(7, 6em);
-                @media (max-width: 50em) {
+                grid-template-columns: repeat(7, var(--max-calendar-column-width));
+                @media (max-width: 48em) {
                     grid-template-columns: repeat(7, 14vw);
                 }
 
-                div {
+                > div {
                     padding: 0.3ch;
                     text-align: center;
-                }
 
-                div.calendar-grid-header {
-                    background-color: var(--smart-border);
-                }
-
-                div.calendar-grid-cell {
-                    border-top-style: solid;
-                    border-top-color: var(--smart-border);
-                    border-top-width: 1px;
-                    padding-top: 0.2em;
-                    padding-bottom: 0.2em;
-
-                    div {
-                        padding: 0;
+                    &.calendar-grid-header {
+                        background-image: linear-gradient(
+                                to bottom,
+                                var(--smart-base-background-color-dark) 0,
+                                var(--smart-base-400) 100%
+                        );
                     }
 
-                    div.calendar-grid-cell-hijri-month {
-                        color: #00b300;
-                        font-size: small;
-                        overflow-wrap: break-word;
-                        @media (max-width: 50em) {
-                            font-size: 2.6vw;
-                            overflow: visible;
-                            overflow-wrap: normal;
+                    &.calendar-grid-cell {
+                        padding-top: 0.3em;
+                        padding-bottom: 0.3em;
+
+                        --hijri-color: #00a000;
+
+                        &:has(>div.calendar-grid-cell-fasting, >div.calendar-grid-cell-fasting-undefined) {
+                            background-image: linear-gradient(
+                                    to bottom,
+                                    transparent 0,
+                                    color-mix(in srgb, var(--hijri-color) 15%, transparent) 80%,
+                                    color-mix(in srgb, var(--hijri-color) 30%, transparent) 100%
+                            );
+                        }
+
+                        > div {
+                            padding: 0;
+
+                            &.calendar-grid-cell-hijri-month,
+                            &.calendar-grid-cell-fasting,
+                            &.calendar-grid-cell-fasting-undefined {
+                                font-size: 0.833rem;
+                                @media (max-width: 48em) {
+                                    font-size: min(0.833rem, 2.4vw);
+                                    overflow: visible;
+                                    overflow-wrap: normal;
+                                }
+                            }
+
+
+                            &.calendar-grid-cell-hijri-month {
+                                color: var(--hijri-color);
+                                overflow-wrap: break-word;
+                            }
+
+                            &.calendar-grid-cell-hijri-date {
+                                color: var(--hijri-color);
+                            }
+
+                            &.calendar-grid-cell-fasting {
+                                font-variant-numeric: tabular-nums;
+                            }
+
+                            &.calendar-grid-cell-fasting-undefined {
+                                > img.calendar-grid-cell-fasting-undefined-spinner {
+                                    width: auto;
+                                    height: 1lh;
+                                    vertical-align: middle;
+                                }
+                            }
                         }
                     }
 
-                    div.calendar-grid-cell-hijri-date {
-                        color: #00ff00;
-                    }
+                    &.calendar-grid-cell-today {
+                        font-weight: 1000;
+                        text-shadow: 0 0 1px #000000,
+                        0 0 2px #000000,
+                        0 0 3px #00ff00,
+                        0 0 4px #00ff00,
+                        0 0 5px #ffffff;
 
-                    div.calendar-grid-cell-fasting-undefined {
-                        color: #b3b300;
-                        font-size: small;
-                        @media (max-width: 50em) {
-                            font-size: 2.6vw;
-                            overflow: visible;
+                        > div.calendar-grid-cell-hijri-month {
+                            text-shadow: none;
                         }
 
-                        img.calendar-grid-cell-fasting-undefined-spinner {
-                            width: auto;
-                            height: 1lh;
-                            vertical-align: middle;
+                        > div.calendar-grid-cell-hijri-date {
+                            text-shadow: 0 0 1px #000000,
+                            0 0 2px #000000,
+                            0 0 3px #000000,
+                            0 0 4px #ffffff,
+                            0 0 5px #ffffff;
                         }
+
                     }
 
-                    div.calendar-grid-cell-fasting {
-                        color: #ffff00;
-                        font-size: small;
-                        @media (max-width: 50em) {
-                            font-size: 2.6vw;
-                            overflow: visible;
-                        }
+                    &.calendar-grid-cell-adjacent-month {
+                        color: var(--smart-base-100)
                     }
-                }
-
-                div.calendar-grid-cell-today {
-                    background-image: url('/img/hand-drawn-circle.svg');
-                    background-size: auto 100%;
-                    @media (max-width: 35em) {
-                        background-size: 100% 100%;
-                    }
-                    background-position: center;
-                    background-repeat: no-repeat;
-                }
-
-                div.calendar-grid-cell-adjacent-month {
-                    color: var(--smart-base-100)
                 }
             }
 
@@ -313,9 +357,7 @@
             }
 
             section#ics {
-                div#ics-label {
-                    text-align: center;
-                }
+                text-align: center;
 
                 span#ics-actions {
                     font-size: 1rem;
@@ -331,20 +373,20 @@
                         color: #00b300;
                         opacity: 0;
                         transition: opacity 300ms ease;
-                    }
 
-                    #ics-copy-status.visible {
-                        opacity: 1;
+                        &.visible {
+                            opacity: 1;
+                        }
                     }
                 }
             }
 
             section#fasting-reasons,
             section#prohibiting-fasting-reasons {
-                font-size: small;
+                font-size: 0.833rem;
                 width: 100%;
 
-                section > h4 {
+                > section > h4 {
                     margin-top: 3ch;
                     margin-bottom: 0;
                 }
@@ -389,12 +431,9 @@
 
                     > a {
                         color: var(--smart-base-50);
-                        text-decoration: none;
 
                         &:hover {
-                            border-bottom-color: var(--smart-base-50);
-                            border-bottom-width: 1px;
-                            border-bottom-style: dashed;
+                            color: #ffffff !important;
                         }
 
                         &:visited {
@@ -406,7 +445,7 @@
         }
 
         span.smart-list-items-group-label {
-            font-size: small !important;
+            font-size: 0.833rem !important;
             text-align: right !important;
             display: inline-block;
             color: var(--smart-base-100) !important;
@@ -465,7 +504,7 @@
 
         footer {
             color: var(--smart-base-100);
-            font-size: small;
+            font-size: 0.833rem;
         }
 
         span.missed-permission {
@@ -544,7 +583,7 @@
         </div>
     </section>
     <section id='ics'>
-        <div id='ics-label'>${i18n.fasting().ics().label()}</div>
+        <h2>${i18n.fasting().ics().label()}</h2>
         <span id='ics-actions'>
             <a id='ics-link' target='_blank' rel="noopener noreferrer">${i18n.fasting().ics().linkLabel()}</a>
             ${i18n.commons().or()}
@@ -552,18 +591,21 @@
             <span id='ics-copy-status' role='status' aria-live='polite'>✓</span>
         </span>
     </section>
-    <section id='fasting-reasons'>
-        @template.calendar.fastingReasons(
-        reasonGroup = i18n.fasting().reasonGroups().obligatory(),
-        hadithCollectionReferencing = i18n.hadithReferencing().collections())
-        @template.calendar.fastingReasons(
-        reasonGroup = i18n.fasting().reasonGroups().voluntary(),
-        hadithCollectionReferencing = i18n.hadithReferencing().collections())
-    </section>
-    <section id='prohibiting-fasting-reasons'>
-        @template.calendar.fastingReasons(
-        reasonGroup = i18n.fasting().reasonGroups().prohibiting(),
-        hadithCollectionReferencing = i18n.hadithReferencing().collections())
+    <section>
+        <h2>${i18n.fasting().reasonsTitle()}</h2>
+        <section id='fasting-reasons'>
+            @template.calendar.fastingReasons(
+            reasonGroup = i18n.fasting().reasonGroups().obligatory(),
+            hadithCollectionReferencing = i18n.hadithReferencing().collections())
+            @template.calendar.fastingReasons(
+            reasonGroup = i18n.fasting().reasonGroups().voluntary(),
+            hadithCollectionReferencing = i18n.hadithReferencing().collections())
+        </section>
+        <section id='prohibiting-fasting-reasons'>
+            @template.calendar.fastingReasons(
+            reasonGroup = i18n.fasting().reasonGroups().prohibiting(),
+            hadithCollectionReferencing = i18n.hadithReferencing().collections())
+        </section>
     </section>
 </main>
 <hr/>

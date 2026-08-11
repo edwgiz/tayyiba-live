@@ -19,6 +19,7 @@ values ('en', 'fasting.reason-groups.generic.ics-title', 'Fasting'),
        ('en', 'fasting.reason-groups.prohibiting.ics-title', 'Prohibiting Fasting'),
        ('en', 'fasting.ics.label', 'Add schedule to your calendar'),
        ('en', 'fasting.ics.link-label', 'Subscribe / Download ICS'),
-       ('en', 'fasting.ics.copy-link-label', 'copy subscription link');
+       ('en', 'fasting.ics.copy-link-label', 'copy subscription link'),
+       ('en', 'fasting.reasons-title', 'Fasting reasons');
 
 

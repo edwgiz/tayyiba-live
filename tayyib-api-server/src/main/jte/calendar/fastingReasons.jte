@@ -1,4 +1,3 @@
-@import com.github.edwgiz.tayyib.domain.model.I18n.Fasting.Reason
 @import com.github.edwgiz.tayyib.domain.model.I18n.Fasting.FastingReasonGroup
 @import java.util.Map
 
