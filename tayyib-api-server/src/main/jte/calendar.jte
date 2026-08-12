@@ -636,7 +636,10 @@
         },
         usecase: {
             location: {},
-            settings: {}
+            settings: {
+                location: {},
+                prayerTimeMethod: {},
+            }
         }
     };
 
@@ -752,6 +755,26 @@
         },
     }
 
+    app.adapter.repository.geoPosition = {
+        /**
+         * @param {app.model.GeoPositionSource} source
+         * @return {app.model.GeoPosition|null}
+         */
+        get(source) {
+            const str = localStorage.getItem('geoPosition' + source);
+            return JSON.parse(str);
+        },
+
+        /**
+         * @param {app.model.GeoPosition} model
+         * @param {app.model.GeoPositionSource} source
+         */
+        set(model, source) {
+            const str = JSON.stringify(model);
+            localStorage.setItem('geoPosition' + source, str);
+        }
+    };
+
 
     const d = document;
 
@@ -829,7 +852,7 @@
         }
     }
 
-    app.usecase.settings.updatePrayerTimeMethodLabel = {
+    app.usecase.settings.prayerTimeMethod.updateLabel = {
         /**
          * @param {string|null} usedPrayerTimeMethod
          */
@@ -845,46 +868,24 @@
     }
 
 
-
-    const geoPositionRepository = {
-
-        /**
-         * @param {app.model.GeoPositionSource} source
-         * @return {app.model.GeoPosition|null}
-         */
-        get(source) {
-            const str = localStorage.getItem('geoPosition' + source);
-            return JSON.parse(str);
-        },
-
-        /**
-         * @param {app.model.GeoPosition} model
-         * @param {app.model.GeoPositionSource} source
-         */
-        set(model, source) {
-            const str = JSON.stringify(model);
-            localStorage.setItem('geoPosition' + source, str);
-        },
-    };
-
-    const getGeoPositionUsecase = {
+    app.usecase.location.GetGeoPosition = {
         /**
          * @return {app.model.GeoPosition|null}
          */
         apply() {
-            const custom = geoPositionRepository.get('CUSTOM')
+            const custom = app.adapter.repository.geoPosition.get('CUSTOM')
             if (custom != null) {
                 return custom;
             }
-            const device = geoPositionRepository.get('DEVICE')
+            const device = app.adapter.repository.geoPosition.get('DEVICE')
             if (device != null) {
                 return device;
             }
             return null;
         }
-    }
+    };
 
-    const setGeoPositionUsecase = {
+    app.usecase.location.SetGeoPosition = {
         /**
          * @param {Number|null} latitude
          * @param {Number|null} longitude
@@ -892,17 +893,17 @@
          */
         apply(latitude, longitude, source) {
             const clean = latitude === null || longitude === null;
-            const oldModel = geoPositionRepository.get(source);
+            const oldModel = app.adapter.repository.geoPosition.get(source);
             const newModel = clean ? null : new app.model.GeoPosition(latitude, longitude);
             if (!classes.usecase.location.GetPositionUtils.equals(oldModel, newModel)) {
-                geoPositionRepository.set(newModel, source);
-                const actualModel = getGeoPositionUsecase.apply();
+                app.adapter.repository.geoPosition.set(newModel, source);
+                const actualModel = app.usecase.location.GetGeoPosition.apply();
                 if (!classes.usecase.location.GetPositionUtils.equals(oldModel, actualModel)) {
                     reloadCalendar();
                 }
             }
         }
-    }
+    };
 
 
     let month = new Date();
@@ -1290,7 +1291,7 @@
          * @return {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}}
          */
         function fastingTimeCalculationInput() {
-            const getGeoPosition = getGeoPositionUsecase.apply();
+            const getGeoPosition = app.usecase.location.GetGeoPosition.apply();
             return !getGeoPosition ? null : {
                 latitude: getGeoPosition.latitude,
                 longitude: getGeoPosition.longitude,
@@ -1365,7 +1366,7 @@
                     locationInput?.latitude,
                     locationInput?.longitude,
                     dto.locationDisplayName);
-                app.usecase.settings.updatePrayerTimeMethodLabel.apply(dto.prayerTimeMethod);
+                app.usecase.settings.prayerTimeMethod.updateLabel.apply(dto.prayerTimeMethod);
                 icsLinkAdapter.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
                     latitude: locationInput.latitude,
                     longitude: locationInput.longitude,
@@ -1403,11 +1404,11 @@
     function updateLocationByDevice() {
         navigator.geolocation.getCurrentPosition(
             position => {
-                setGeoPositionUsecase.apply(position.coords.latitude, position.coords.longitude, 'DEVICE');
+                app.usecase.location.SetGeoPosition.apply(position.coords.latitude, position.coords.longitude, 'DEVICE');
             },
             error => {
                 if (error.code === error.PERMISSION_DENIED) {
-                    setGeoPositionUsecase.apply(null, null, 'DEVICE');
+                    app.usecase.location.SetGeoPosition.apply(null, null, 'DEVICE');
                 } else if (error.code === error.POSITION_UNAVAILABLE) {
                     console.warn('Error getting location: position unavailable');
                 } else if (error.code === error.TIMEOUT) {
@@ -1428,7 +1429,7 @@
         permission.addEventListener('change', () => {
             locationLabelAdapter.updateByPermission(permission);
             if (permission.state !== 'granted') {
-                setGeoPositionUsecase.apply(null, null, 'DEVICE');
+                app.usecase.location.SetGeoPosition.apply(null, null, 'DEVICE');
             } else {
                 updateLocationByDevice();
             }
@@ -1442,7 +1443,7 @@
     let changeLocationMapView = null;
 
     d.getElementById('pick-location-on-map-button').addEventListener('click', async _ => {
-        let geoPosition = getGeoPositionUsecase.apply();
+        let geoPosition = app.usecase.location.GetGeoPosition.apply();
         if (!geoPosition) {
             geoPosition = { // default Kaaba
                 latitude: 21.4225,
@@ -1468,7 +1469,7 @@
                 saveButtonEl.textContent = '${i18n.commons().ok()}';
                 saveButtonEl.addEventListener('click', _ => {
                     const markerPosition = changeLocationMarker.getLatLng();
-                    setGeoPositionUsecase.apply(markerPosition.lat, markerPosition.lng, 'CUSTOM');
+                    app.usecase.location.SetGeoPosition.apply(markerPosition.lat, markerPosition.lng, 'CUSTOM');
                     changeLocationWindowEl.close();
                 });
                 smartButtonsEl.prepend(saveButtonEl);
@@ -1478,7 +1479,7 @@
                 defaultButtonEl.id = 'pick-location-on-map-default-button';
                 defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
                 defaultButtonEl.addEventListener('click', _ => {
-                    setGeoPositionUsecase.apply(null, null, 'CUSTOM');
+                    app.usecase.location.SetGeoPosition.apply(null, null, 'CUSTOM');
                     changeLocationWindowEl.close();
                 });
                 smartButtonsEl.prepend(defaultButtonEl);
