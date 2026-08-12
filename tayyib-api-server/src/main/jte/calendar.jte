@@ -189,10 +189,12 @@
             &.shown::before {
                 animation: page-loading-spinner-show 1s ease 1s forwards;
             }
+
             &.hidden {
                 display: none;
             }
         }
+
         @keyframes page-loading-spinner-show {
             from {
                 opacity: 0;
@@ -529,27 +531,6 @@
         <smart-button id='next-month-button'></smart-button>
     </section>
     <section id='calendar-grid-cells'></section>
-    <script>
-        /**
-         * @param {string} query
-         * @param {string} requestId
-         * @param {object} variables
-         */
-        function graphql(query, requestId, variables = {}) {
-            return fetch('/graphql', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Request-ID': requestId
-                },
-                body: JSON.stringify({
-                    query,
-                    variables
-                })
-            });
-        }
-
-    </script>
     <section id='settings'>
         <div class='settings-label'>${i18n.settings().location().label()}:</div>
         <div><span id='location-value'></span>
@@ -637,8 +618,69 @@
 <div id='page-loading-spinner' class='hidden'></div>
 
 <script type='module'>
-    const defaultDatetimeOptions = Intl.DateTimeFormat().resolvedOptions();
-    let locale = defaultDatetimeOptions.locale;
+    const classes = {
+        adapter: {
+            L10n: class {
+                /** @type {string} */
+                defaultLocale;
+                /** @type {string} */
+                defaultTimezone;
+
+                constructor() {
+                    const dateTimeFormatOptions = new Intl.DateTimeFormat().resolvedOptions();
+                    this.defaultLocale = dateTimeFormatOptions.locale;
+                    this.defaultTimezone = dateTimeFormatOptions.timeZone;
+                }
+            }
+        }
+    };
+
+    const app = {
+        adapter: {
+            repository: {}
+        },
+        usecase: {}
+    };
+
+    /**
+     * @param {string} query
+     * @param {string} requestId
+     * @param {object} variables
+     */
+    app.adapter.graphql = function (query, requestId, variables = {}) {
+        return fetch('/graphql', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Request-ID': requestId
+            },
+            body: JSON.stringify({
+                query,
+                variables
+            })
+        });
+    };
+
+    /**
+     * Localization
+     */
+    app.adapter.l10n = new classes.adapter.L10n();
+
+    app.adapter.repository.timezone = {
+        getOrDefault(defaultValue) {
+            const value = localStorage.getItem('timezone');
+            return value ? value : defaultValue;
+        },
+        set(str) {
+            localStorage.setItem('timezone', str);
+        },
+    };
+
+    app.usecase.getTimezone = {
+        apply() {
+            return app.adapter.repository.timezone.getOrDefault(app.adapter.l10n.defaultTimezone);
+        }
+    }
 
     const d = document;
 
@@ -750,40 +792,34 @@
         }
     }
 
-    const timezoneRepository = {
-        getOrDefault(defaultValue) {
-            const value = localStorage.getItem('timezone');
-            return value ? value : defaultValue;
-        },
-        set(str) {
-            localStorage.setItem('timezone', str);
-        },
-    };
-
 
     let month = new Date();
     month.setDate(2);
 
-    const getTimezoneUsecase = {
-        apply() {
-            return timezoneRepository.getOrDefault(defaultDatetimeOptions.timeZone);
-        }
-    }
+    app.usecase.formatMonthLabel = {
+        /** @type {Intl.DateTimeFormat|null} */
+        datetimeFormat: null,
 
-    let datetimeFormats = null;
-
-    function updateDatetimeFormats() {
-        const tzValue = getTimezoneUsecase.apply();
-        datetimeFormats = {
-            monthLabel: new Intl.DateTimeFormat(locale, {
+        init() {
+            const tzValue = app.usecase.getTimezone.apply();
+            this.datetimeFormat = new Intl.DateTimeFormat(app.adapter.l10n.defaultLocale, {
                 timeZone: tzValue,
                 month: 'long',
                 year: 'numeric'
-            }),
-        }
-    }
+            })
+        },
 
-    updateDatetimeFormats();
+        /**
+         * @param {Date} date
+         * @return {String}
+         */
+        apply(date) {
+            if (this.datetimeFormat == null) {
+                this.init()
+            }
+            return this.datetimeFormat.format(date);
+        }
+    };
 
     const gridEl = d.getElementById('calendar-grid-cells');
 
@@ -1029,9 +1065,10 @@
         prevMonth.setUTCMonth(month.getUTCMonth() - 1);
         const nextMonth = new Date(month);
         nextMonth.setUTCMonth(month.getUTCMonth() + 1);
-        prevMonthEl.innerHTML = datetimeFormats.monthLabel.format(prevMonth) + '&nbsp; ◂◂';
-        currentMonthEl.textContent = datetimeFormats.monthLabel.format(month);
-        nextMonthEl.innerHTML = '▸▸ &nbsp;' + datetimeFormats.monthLabel.format(nextMonth);
+        const format = app.usecase.formatMonthLabel;
+        prevMonthEl.innerHTML = format.apply(prevMonth) + '&nbsp; ◂◂';
+        currentMonthEl.textContent = format.apply(month);
+        nextMonthEl.innerHTML = '▸▸ &nbsp;' + format.apply(nextMonth);
     }
 
     const pageLoadingSpinner = {
@@ -1191,13 +1228,13 @@
         const args = {
             input: {
                 millis: isTodayMonth ? today.getTime() : month.getTime(),
-                timezone: timezoneRepository.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
+                timezone: app.adapter.repository.timezone.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
                 hijriMethod: '${HijriMethod.UAQ}',
                 fastingTimeCalculationInput: fastingTimeCalculationInput()
             }
         };
 
-        graphql(`query
+        app.adapter.graphql(`query
         GetCalendarCells($input: GetCalendarCellsInput!) {
             getCalendarCells(input: $input) {
                 hijriMonthNames {
@@ -1387,7 +1424,7 @@
 
     {
         const dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
-        const selectedValue = getTimezoneUsecase.apply();
+        const selectedValue = app.usecase.getTimezone.apply();
         const changeTzDropdown = d.getElementById('change-tz-dropdown');
         changeTzDropdown.selectionMode = 'one';
         changeTzDropdown.filterable = true;
@@ -1399,7 +1436,7 @@
         changeTzDropdown.dataSource = dataSource;
         changeTzDropdown.selectedValues = [selectedValue];
         changeTzDropdown.addEventListener('change', (event) => {
-            timezoneRepository.set(event.detail.value);
+            app.adapter.repository.timezone.set(event.detail.value);
             updateDatetimeFormats();
             reloadCalendar();
         });
