@@ -1332,12 +1332,7 @@
         });
     });
 
-    requestIdleCallback(() => {
-        reloadCalendar();
-        if (!getGeoPositionUsecase.apply()) {
-            updateLocationByDevice();
-        }
-    });
+    requestIdleCallback(reloadCalendar);
 
     let changeLocationWindowEl = null;
     let changeLocationMarker = null;
