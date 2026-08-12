@@ -631,6 +631,7 @@
                     smartComponents: {}
                 },
                 settings: {
+                    location: {},
                     prayerTimeMethod: {}
                 },
             }
@@ -872,7 +873,7 @@
             const nodeList = d.getElementsByClassName('fasting-reason');
             for (let i = 0; i < nodeList.length; i++) {
                 const node = nodeList.item(i);
-                if(node instanceof HTMLElement && node.id) {
+                if (node instanceof HTMLElement && node.id) {
                     result.set(node.id, node.firstElementChild.textContent);
                 }
             }
@@ -887,7 +888,7 @@
         /**
          * @param {string[]} dayOfWeekNames
          */
-        updateCalendarHeader(dayOfWeekNames) {
+        renderCalendarHeader(dayOfWeekNames) {
             this.el.replaceChildren();
             for (const dayOfWeekName of dayOfWeekNames) {
                 const cellEl = d.createElement('div');
@@ -942,7 +943,7 @@
          * @param {Boolean} hasLocation
          * @param {Map<String, String>} calendarEventReasons
          */
-        updateCalendarDates(dto, hasLocation, calendarEventReasons) {
+        renderDates(dto, hasLocation, calendarEventReasons) {
             const gridEl = this.el;
             for (let i = gridEl.children.length - 1; i >= 7; i--) {
                 gridEl.children.item(i).remove();
@@ -1022,6 +1023,49 @@
                 }
                 gridEl.appendChild(cellEl);
             }
+        }
+    }
+
+    app.adapter.dom.settings.location.ValueSection = {
+        el: d.getElementById('location-value'),
+
+        addSpinner() {
+            /** @type HTMLImageElement */
+            const spinner = d.createElement('img');
+            spinner.style.height = '2em';
+            spinner.src = '/img/spinner-smart-base-800.svg';
+            this.el.replaceChildren(spinner);
+        },
+
+
+        update(denied) {
+            const orI18n = ' ${i18n.commons().or()} ';
+            const revokeBlockingI18n = ' ${i18n.settings().location().permission().revokeBlocking()} ';
+            const missingPermissionDescriptionEl = d.createElement('span');
+            missingPermissionDescriptionEl.classList.add('missed-permission');
+            missingPermissionDescriptionEl.textContent = '${i18n.settings().location().permission().grantReason()}';
+            /** @typedef HTMLGeolocationElement */
+            if (typeof HTMLGeolocationElement === 'function') {
+                this.el.replaceChildren(missingPermissionDescriptionEl, ' ', d.createElement('geolocation'), orI18n);
+            } else {
+                if (denied) {
+                    missingPermissionDescriptionEl.appendChild(d.createTextNode(', ' + revokeBlockingI18n + orI18n));
+                    this.el.replaceChildren(missingPermissionDescriptionEl);
+                } else {
+                    const geolocationEl = d.createElement('smart-button');
+                    geolocationEl.id = 'grant-geolocation-permission';
+                    geolocationEl.textContent = '${i18n.settings().location().permission().changeInBrowser()}';
+                    geolocationEl.addEventListener('click', updateLocationByDevice);
+                    this.el.replaceChildren(missingPermissionDescriptionEl, ' ', geolocationEl, orI18n);
+                }
+            }
+        },
+
+        /**
+         * @param {String} str
+         */
+        setTextContent(str) {
+            this.el.textContent = str;
         }
     }
 
@@ -1112,49 +1156,18 @@
         }
     };
 
-    const locationValueEl = d.getElementById('location-value');
-
-    function addLocationSpinner() {
-        const spinner = d.createElement('img');
-        spinner.style.height = '2em';
-        spinner.src = '/img/spinner-smart-base-800.svg';
-        locationValueEl.replaceChildren(spinner);
-    }
-
-
-    addLocationSpinner();
-
-
-    const locationLabelAdapter = {
-
+    app.usecase.settings.location.UpdateByPermissionState = {
         /**
-         * @param {PermissionStatus} permission
+         * @param {'granted'| 'denied'|'prompt'} permissionState
          */
-        updateByPermission(permission) {
-            if (permission.state === 'granted') {
-                addLocationSpinner();
+        apply(permissionState) {
+            if (permissionState === 'granted') {
+                app.adapter.dom.settings.location.ValueSection.addSpinner();
             } else {
-                const orI18n = ' ${i18n.commons().or()} ';
-                const revokeBlockingI18n = ' ${i18n.settings().location().permission().revokeBlocking()} ';
-                const missingPermissionDescriptionEl = d.createElement('span');
-                missingPermissionDescriptionEl.classList.add('missed-permission');
-                missingPermissionDescriptionEl.textContent = '${i18n.settings().location().permission().grantReason()}';
-                if (typeof HTMLGeolocationElement === 'function') {
-                    locationValueEl.replaceChildren(missingPermissionDescriptionEl, ' ', d.createElement('geolocation'), orI18n);
-                } else {
-                    if (permission.state === 'denied') {
-                        missingPermissionDescriptionEl.appendChild(d.createTextNode(', ' + revokeBlockingI18n + orI18n));
-                        locationValueEl.replaceChildren(missingPermissionDescriptionEl);
-                    } else {
-                        const geolocationEl = d.createElement('smart-button');
-                        geolocationEl.id = 'grant-geolocation-permission';
-                        geolocationEl.textContent = '${i18n.settings().location().permission().changeInBrowser()}';
-                        geolocationEl.addEventListener('click', updateLocationByDevice);
-                        locationValueEl.replaceChildren(missingPermissionDescriptionEl, ' ', geolocationEl, orI18n);
-                    }
-                }
+                app.adapter.dom.settings.location.ValueSection.update(permissionState === 'denied');
             }
-        }
+        },
+
     }
 
     const updateLocationDependenciesUsecase = {
@@ -1182,9 +1195,11 @@
         apply(latitude, longitude, displayName) {
             const hasLocation = latitude != null;
             if (hasLocation) {
-                locationValueEl.textContent = displayName != null && displayName.trim().length > 0 ? displayName : this.formatWgs84(latitude, longitude);
+                app.adapter.dom.settings.location.ValueSection.setTextContent(
+                    displayName != null && displayName.trim().length > 0 ? displayName : this.formatWgs84(latitude, longitude)
+                )
             } else {
-                navigator.permissions.query({name: 'geolocation'}).then(locationLabelAdapter.updateByPermission);
+                navigator.permissions.query({name: 'geolocation'}).then(p => app.usecase.settings.location.UpdateByPermissionState.apply(p));
             }
 
             for (const el of this.settingsLocationDependantEls) {
@@ -1392,10 +1407,10 @@
                     dto.todayIndex = -1;
                 }
                 const pageScrollTop = window.scrollY;
-                app.adapter.dom.calendar.Grid.updateCalendarHeader(dto.dayOfWeekNames);
+                app.adapter.dom.calendar.Grid.renderCalendarHeader(dto.dayOfWeekNames);
                 const locationInput = args.input.fastingTimeCalculationInput;
                 const hasLocation = locationInput != null;
-                app.adapter.dom.calendar.Grid.updateCalendarDates(dto, hasLocation, reasonNameById);
+                app.adapter.dom.calendar.Grid.renderDates(dto, hasLocation, reasonNameById);
                 updateLocationDependenciesUsecase.apply(
                     locationInput?.latitude,
                     locationInput?.longitude,
@@ -1467,8 +1482,8 @@
     navigator.permissions.query({
         name: 'geolocation'
     }).then(permission => {
-        permission.addEventListener('change', () => {
-            locationLabelAdapter.updateByPermission(permission);
+        permission.addEventListener('change', _ => {
+            app.usecase.settings.location.UpdateByPermissionState.apply(permission.state);
             if (permission.state !== 'granted') {
                 app.usecase.location.SetGeoPosition.apply(null, null, 'DEVICE');
             } else {
@@ -1477,7 +1492,11 @@
         });
     });
 
-    requestIdleCallback(reloadCalendar);
+
+    requestIdleCallback(() => {
+        reloadCalendar();
+    });
+
 
     let changeLocationWindowEl = null;
     let changeLocationMarker = null;
