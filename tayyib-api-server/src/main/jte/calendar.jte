@@ -637,9 +637,19 @@
 
     const app = {
         adapter: {
-            repository: {}
+            repository: {},
+            dom: {
+                commons: {
+                    smartComponents: {}
+                },
+                settings: {
+                    prayerTimeMethod: {}
+                },
+            }
         },
-        usecase: {}
+        usecase: {
+            settings: {}
+        }
     };
 
     /**
@@ -676,15 +686,7 @@
         },
     };
 
-    app.usecase.getTimezone = {
-        apply() {
-            return app.adapter.repository.timezone.getOrDefault(app.adapter.l10n.defaultTimezone);
-        }
-    }
-
-    const d = document;
-
-    const prayerTimeMethodRepository = {
+    app.adapter.repository.prayerTimeMethod = {
         /**
          * @param {string|null} value
          */
@@ -697,6 +699,98 @@
          */
         get() {
             return localStorage.getItem('prayerTimeMethod');
+        },
+    }
+
+
+    const d = document;
+
+     /**
+     * @typedef {HTMLElement & {
+     *   selectedValues: string[],
+     *   getItem: (value: string) => HTMLElement,
+     *   ensureVisible: (item: HTMLElement) => void
+     * }} SmartDropdownElement
+     */
+
+    app.adapter.dom.commons.smartComponents.dropdownUtils = {
+        /**
+         * @param {SmartDropdownElement} el
+         */
+        ensureSelectedItemVisible(el) {
+            el.addEventListener('open', _ => {
+                const selectedValue = el.selectedValues[0];
+                const selectedItem = el.getItem(selectedValue);
+                el.ensureVisible(selectedItem);
+            }, {once: true});
+        }
+    }
+
+
+    app.adapter.dom.settings.prayerTimeMethod.dropdown = {
+        /** @type {SmartDropdownElement} */
+        el: d.getElementById('change-prayer-time-method-dropdown'),
+
+        /**
+         * @param {string|null} key
+         * @return {string[]}
+         */
+        getLabel(key) {
+            const item = this.el.items.find(item => item.value === key);
+            if (item) {
+                return [item.label];
+            } else {
+                return [];
+            }
+        },
+
+        /**
+         * @param {String} oldVal
+         * @param {EventListener} onChange
+         */
+        init(oldVal, onChange) {
+            const el = this.el;
+            el.selectedValues = [oldVal];
+            el.addEventListener('change', onChange);
+            app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(el);
+        }
+    }
+
+    app.adapter.dom.settings.prayerTimeMethod.label = {
+        /** @type {HTMLElement} */
+        labelEl: document.getElementById('settings-prayer-time-method-label'),
+
+        /**
+         * @param {string[]} label
+         */
+        show(label) {
+            this.labelEl.replaceChildren(label);
+            this.labelEl.style.removeProperty('display');
+        },
+
+        hide() {
+            this.labelEl.style.display = 'none';
+        }
+    }
+
+    app.usecase.getTimezone = {
+        apply() {
+            return app.adapter.repository.timezone.getOrDefault(app.adapter.l10n.defaultTimezone);
+        }
+    }
+
+    app.usecase.settings.updatePrayerTimeMethodLabel = {
+        /**
+         * @param {string|null} usedPrayerTimeMethod
+         */
+        apply(usedPrayerTimeMethod) {
+            const chosenPrayerTimeMethod = app.adapter.repository.prayerTimeMethod.get();
+            if (usedPrayerTimeMethod !== chosenPrayerTimeMethod) {
+                const label = app.adapter.dom.settings.prayerTimeMethod.dropdown.getLabel(usedPrayerTimeMethod);
+                app.adapter.dom.settings.prayerTimeMethod.label.show(label);
+            } else {
+                app.adapter.dom.settings.prayerTimeMethod.label.hide();
+            }
         },
     }
 
@@ -1097,45 +1191,6 @@
         },
     }
 
-    function ensureSelectedItemVisible(smartDropDownListEl) {
-        smartDropDownListEl.addEventListener('open', _ => {
-            const selectedValue = smartDropDownListEl.selectedValues[0];
-            const selectedItem = smartDropDownListEl.getItem(selectedValue);
-            smartDropDownListEl.ensureVisible(selectedItem);
-        }, {once: true});
-    }
-
-    const changePrayerTimeMethodDropdownEl = d.getElementById('change-prayer-time-method-dropdown')
-
-    const updateSettingsPrayerTimeMethodLabelUsecase = {
-        labelEl: document.getElementById('settings-prayer-time-method-label'),
-        /**
-         * @param {string|null} usedPrayerTimeMethod
-         */
-        apply(usedPrayerTimeMethod) {
-            const chosenPrayerTimeMethod = prayerTimeMethodRepository.get();
-            if (usedPrayerTimeMethod !== chosenPrayerTimeMethod) {
-                this.labelEl.style.removeProperty('display');
-                const label = this.getPrayerTimeMethodLabel(usedPrayerTimeMethod);
-                this.labelEl.replaceChildren(label);
-            } else {
-                this.labelEl.style.display = 'none';
-            }
-        },
-        /**
-         * @param {string|null} key
-         * @return {string[]}
-         */
-        getPrayerTimeMethodLabel(key) {
-            const item = changePrayerTimeMethodDropdownEl.items.find(item => item.value === key);
-            if (item) {
-                return [item.label];
-            } else {
-                return [];
-            }
-        }
-    }
-
     const icsLinkAdapter = {
 
         icsLinkEl: d.getElementById('ics-link'),
@@ -1221,7 +1276,7 @@
             return !getGeoPosition ? null : {
                 latitude: getGeoPosition.latitude,
                 longitude: getGeoPosition.longitude,
-                prayerTimeMethod: prayerTimeMethodRepository.get() ?? 'AUTO_BY_LOCATION'
+                prayerTimeMethod: app.adapter.repository.prayerTimeMethod.get() ?? 'AUTO_BY_LOCATION'
             };
         }
 
@@ -1292,7 +1347,7 @@
                     locationInput?.latitude,
                     locationInput?.longitude,
                     dto.locationDisplayName);
-                updateSettingsPrayerTimeMethodLabelUsecase.apply(dto.prayerTimeMethod);
+                app.usecase.settings.updatePrayerTimeMethodLabel.apply(dto.prayerTimeMethod);
                 icsLinkAdapter.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
                     latitude: locationInput.latitude,
                     longitude: locationInput.longitude,
@@ -1313,21 +1368,17 @@
     });
 
 
-    {// init prayerTimeMethod
-        const el = changePrayerTimeMethodDropdownEl;
-
-        let oldVal = prayerTimeMethodRepository.get();
+    {// init prayer-time-method dropdown
+        let oldVal = app.adapter.repository.prayerTimeMethod.get();
         if (!oldVal) {
             oldVal = '${PrayerTimeMethod.AUTO_BY_LOCATION}';
-            prayerTimeMethodRepository.set(oldVal)
+            app.adapter.repository.prayerTimeMethod.set(oldVal)
         }
-        el.selectedValues = [oldVal];
-
-        el.addEventListener('change', _ => {
-            prayerTimeMethodRepository.set(el.selectedValues[0])
+        const onChange = e => {
+            app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
             reloadCalendar();
-        });
-        ensureSelectedItemVisible(el);
+        };
+        app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
     }
 
 
@@ -1437,10 +1488,10 @@
         changeTzDropdown.selectedValues = [selectedValue];
         changeTzDropdown.addEventListener('change', (event) => {
             app.adapter.repository.timezone.set(event.detail.value);
-            updateDatetimeFormats();
+            app.usecase.formatMonthLabel.init();
             reloadCalendar();
         });
-        ensureSelectedItemVisible(changeTzDropdown);
+        app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(changeTzDropdown);
         changeTzDropdown.disabled = false;
     }
 </script>
