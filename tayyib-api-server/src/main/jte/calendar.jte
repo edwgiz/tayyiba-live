@@ -1266,9 +1266,6 @@
     }
 
 
-    reloadCalendar();
-
-
     prevMonthEl.addEventListener('click', _ => {
         month.setUTCMonth(month.getUTCMonth() - 1);
         reloadCalendar();

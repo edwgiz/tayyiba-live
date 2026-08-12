@@ -42,8 +42,18 @@ public record I18n(
         public record Ics(
                 String label,
                 String linkLabel,
-                String copyLinkLabel
+                String copyLinkLabel,
+                IcsCalendar calendar
         ) {
+            public record IcsCalendar(
+                    String name,
+                    IcsEvent event
+            ) {
+                public record IcsEvent(
+                        String summary,
+                        String hijriDateLabel
+                ) {}
+            }
         }
 
         public record FastingReasonGroups(

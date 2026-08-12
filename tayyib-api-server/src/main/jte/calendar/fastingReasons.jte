@@ -1,3 +1,4 @@
+@import com.github.edwgiz.tayyib.adapter.in.commons.rendering.I18nRenderingUtils
 @import com.github.edwgiz.tayyib.domain.model.I18n.Fasting.FastingReasonGroup
 @import java.util.Map
 
@@ -26,7 +27,7 @@
                             <a
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    href="https://sunnah.com/${reference.collection()}:${reference.hadith()}">
+                                    href="${I18nRenderingUtils.renderHadithHref(reference)}">
 
                                 ${hadithCollectionReferencing.get(reference.collection())}
                                 ${reference.hadith()}
