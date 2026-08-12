@@ -626,6 +626,7 @@
         adapter: {
             repository: {},
             dom: {
+                calendar: {},
                 commons: {
                     smartComponents: {}
                 },
@@ -635,6 +636,7 @@
             }
         },
         usecase: {
+            calendar: {},
             location: {},
             time: {},
             settings: {
@@ -667,10 +669,11 @@
      */
     const classes = {
         adapter: {
+            dom: {},
             L10n: class {
-                /** @type {string} */
+                /** @type {String} */
                 defaultLocale;
-                /** @type {string} */
+                /** @type {String} */
                 defaultTimezone;
 
                 constructor() {
@@ -680,7 +683,7 @@
                 }
             },
             repository: {
-                Month: class extends Date{
+                Month: class extends Date {
                     constructor() {
                         super();
                         this.setDate(2);
@@ -715,8 +718,8 @@
      */
 
     /**
-     * @param {string} query
-     * @param {string} requestId
+     * @param {String} query
+     * @param {String} requestId
      * @param {object} variables
      */
     app.adapter.graphql = function (query, requestId, variables = {}) {
@@ -792,7 +795,7 @@
 
     const d = document;
 
-     /**
+    /**
      * @typedef {HTMLElement & {
      *   selectedValues: string[],
      *   getItem: (value: string) => HTMLElement,
@@ -860,6 +863,171 @@
         }
     }
 
+    app.adapter.dom.CalendarEventReasons = {
+        /**
+         * @return {Map<String, String>} map  of reason name by id
+         */
+        getAll() {
+            const result = new Map();
+            const nodeList = d.getElementsByClassName('fasting-reason');
+            for (let i = 0; i < nodeList.length; i++) {
+                const node = nodeList.item(i);
+                if(node instanceof HTMLElement && node.id) {
+                    result.set(node.id, node.firstElementChild.textContent);
+                }
+            }
+            return result;
+        }
+    }
+
+    app.adapter.dom.calendar.Grid = {
+        /** @type HTMLElement */
+        el: d.getElementById('calendar-grid-cells'),
+
+        /**
+         * @param {string[]} dayOfWeekNames
+         */
+        updateCalendarHeader(dayOfWeekNames) {
+            this.el.replaceChildren();
+            for (const dayOfWeekName of dayOfWeekNames) {
+                const cellEl = d.createElement('div');
+                cellEl.classList.add('calendar-grid-header');
+                cellEl.textContent = dayOfWeekName;
+                this.el.appendChild(cellEl);
+            }
+        },
+
+        getFastingEvents(dto, day) {
+            const result = [];
+            if (day.events && day.events.length > 0) {
+                for (const calendarEvent of day.events) {
+                    REASONS:
+                        for (const reasonView of calendarEvent.reasonViews) {
+                            for (const reason of dto.calendarEventReasons) {
+                                if (reason.id === reasonView.id) {
+                                    if (reason.reasonGroup === 'VOLUNTARY_FASTING'
+                                        || reason.reasonGroup === 'OBLIGATORY_FASTING') {
+                                        result.push(calendarEvent);
+                                        break REASONS;
+                                    }
+                                }
+                            }
+                        }
+                }
+            }
+            return result;
+        },
+
+        /**
+         * @param minutes {Number}
+         * @param defaultResult {String}
+         * @return {String}
+         */
+        formatMinutes(minutes, defaultResult) {
+            if (!minutes) {
+                return defaultResult;
+            }
+            if (0 <= minutes && minutes <= 1440) {
+                const minutesOnly = minutes % 60;
+                return ((minutes - minutesOnly) / 60).toString().padStart(2, '0')
+                    + ':'
+                    + minutesOnly.toString().padStart(2, '0');
+            } else {
+                return '';
+            }
+        },
+
+        /**
+         * @param {Object} dto
+         * @param {Boolean} hasLocation
+         * @param {Map<String, String>} calendarEventReasons
+         */
+        updateCalendarDates(dto, hasLocation, calendarEventReasons) {
+            const gridEl = this.el;
+            for (let i = gridEl.children.length - 1; i >= 7; i--) {
+                gridEl.children.item(i).remove();
+            }
+            for (let i = 0; i < dto.days.length; i++) {
+                const day = dto.days[i];
+                const cellElId = 'calendar-grid-cell-' + i;
+                const cellEl = d.createElement('div');
+                cellEl.id = cellElId;
+                cellEl.classList.add('calendar-grid-cell');
+                if (i === dto.todayIndex) {
+                    cellEl.classList.add('calendar-grid-cell-today')
+                }
+                if (day.gregorian.isAdjacentMonth) {
+                    cellEl.classList.add('calendar-grid-cell-adjacent-month');
+                }
+                cellEl.appendChild(d.createTextNode(day.gregorian.dayOfMonth));
+
+                {
+                    const hijriMonthEl = d.createElement('div');
+                    hijriMonthEl.classList.add('calendar-grid-cell-hijri-month');
+                    const hijriMonthKey = day.hijri.month.toString();
+                    hijriMonthEl.textContent = dto.hijriMonthNames.find(e => e.key === hijriMonthKey).value;
+                    cellEl.appendChild(hijriMonthEl);
+                }
+                {
+                    const hijriDateEl = d.createElement('div');
+                    hijriDateEl.classList.add('calendar-grid-cell-hijri-date')
+                    hijriDateEl.textContent = day.hijri.dayOfMonth;
+                    cellEl.appendChild(hijriDateEl);
+                }
+                const fastingEvents = this.getFastingEvents(dto, day);
+                for (const fastingEvent of fastingEvents) {
+                    const fastingEl = d.createElement('div');
+                    if (fastingEvent.startMinute || fastingEvent.endMinute) {
+                        fastingEl.classList.add('calendar-grid-cell-fasting');
+                        fastingEl.textContent = this.formatMinutes(fastingEvent.startMinute, '${i18n.calendar().event().fajr()}')
+                            + '…'
+                            + this.formatMinutes(fastingEvent.endMinute, '${i18n.calendar().event().sunset()}');
+                    } else {
+                        fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
+                        fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
+                        if (!hasLocation) {
+                            fastingEl.appendChild(d.createTextNode('…'));
+                        } else {
+                            const spinnerEl = d.createElement('img');
+                            spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
+                            spinnerEl.src = '/img/spinner.svg';
+                            fastingEl.appendChild(spinnerEl);
+                        }
+                        fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
+                    }
+                    cellEl.appendChild(fastingEl);
+                    const tooltip = d.createElement('smart-tooltip');
+                    tooltip.selector = cellElId;
+                    tooltip.position = 'bottom';
+                    tooltip.arrow = true;
+                    const tooltipContent = d.createElement('ul');
+                    const reasonIds = new Set();
+                    for (const calendarEvent of day.events) {
+                        for (const reasonView of calendarEvent.reasonViews) {
+                            if (!reasonIds.has(reasonView.id)) {
+                                reasonIds.add(reasonView.id)
+                                const calendarEventReasonEl = d.createElement('li');
+                                const anchorEl = d.createElement('a');
+                                anchorEl.href = '#' + reasonView.id;
+                                anchorEl.textContent = reasonView.headline
+                                    ? reasonView.headline
+                                    : calendarEventReasons.get(reasonView.id);
+                                calendarEventReasonEl.appendChild(anchorEl);
+                                tooltipContent.appendChild(calendarEventReasonEl);
+                            }
+                        }
+                    }
+                    tooltip.appendChild(tooltipContent);
+                    cellEl.appendChild(tooltip);
+                }
+                gridEl.appendChild(cellEl);
+            }
+        }
+    }
+
+    /*
+     * Usecases
+     */
     app.usecase.getTimezone = {
         apply() {
             return app.adapter.repository.timezone.getOrDefault(app.adapter.l10n.defaultTimezone);
@@ -944,154 +1112,7 @@
         }
     };
 
-    const gridEl = d.getElementById('calendar-grid-cells');
-
-    function updateCalendarHeader(dayOfWeekNames) {
-        gridEl.innerHTML = '';
-        for (const dayOfWeekName of dayOfWeekNames) {
-            const cellEl = d.createElement('div');
-            cellEl.classList.add('calendar-grid-header');
-            cellEl.textContent = dayOfWeekName;
-            gridEl.appendChild(cellEl);
-        }
-    }
-
-
-    function getCalendarEventReasonHeadline(elId) {
-        const fastingReasonEl = d.getElementById(elId);
-        return fastingReasonEl.firstElementChild.textContent;
-    }
-
-
-    function getFastingEvents(dto, day) {
-        const result = [];
-        if (day.events && day.events.length > 0) {
-            for (const calendarEvent of day.events) {
-                REASONS:
-                    for (const reasonView of calendarEvent.reasonViews) {
-                        for (const reason of dto.calendarEventReasons) {
-                            if (reason.id === reasonView.id) {
-                                if (reason.reasonGroup === 'VOLUNTARY_FASTING'
-                                    || reason.reasonGroup === 'OBLIGATORY_FASTING') {
-                                    result.push(calendarEvent);
-                                    break REASONS;
-                                }
-                            }
-                        }
-                    }
-            }
-        }
-        return result;
-    }
-
-    /**
-     * @param minutes {Number}
-     * @param defaultResult {String}
-     * @return {string}
-     */
-    function formatMinutes(minutes, defaultResult) {
-        if (!minutes) {
-            return defaultResult;
-        }
-        if (0 <= minutes && minutes <= 1440) {
-            const minutesOnly = minutes % 60;
-            return ((minutes - minutesOnly) / 60).toString().padStart(2, '0')
-                + ':'
-                + minutesOnly.toString().padStart(2, '0');
-        } else {
-            return '';
-        }
-    }
-
-
-    /**
-     * @param {object} dto
-     * @param {boolean} hasLocation
-     */
-    function updateCalendarDates(dto, hasLocation) {
-        for (let i = gridEl.children.length - 1; i >= 7; i--) {
-            gridEl.children.item(i).remove();
-        }
-        for (let i = 0; i < dto.days.length; i++) {
-            const day = dto.days[i];
-            const cellElId = 'calendar-grid-cell-' + i;
-            const cellEl = d.createElement('div');
-            cellEl.id = cellElId;
-            cellEl.classList.add('calendar-grid-cell');
-            if (i === dto.todayIndex) {
-                cellEl.classList.add('calendar-grid-cell-today')
-            }
-            if (day.gregorian.isAdjacentMonth) {
-                cellEl.classList.add('calendar-grid-cell-adjacent-month');
-            }
-            cellEl.appendChild(d.createTextNode(day.gregorian.dayOfMonth));
-
-            {
-                const hijriMonthEl = d.createElement('div');
-                hijriMonthEl.classList.add('calendar-grid-cell-hijri-month');
-                const hijriMonthKey = day.hijri.month.toString();
-                hijriMonthEl.textContent = dto.hijriMonthNames.find(e => e.key === hijriMonthKey).value;
-                cellEl.appendChild(hijriMonthEl);
-            }
-            {
-                const hijriDateEl = d.createElement('div');
-                hijriDateEl.classList.add('calendar-grid-cell-hijri-date')
-                hijriDateEl.textContent = day.hijri.dayOfMonth;
-                cellEl.appendChild(hijriDateEl);
-            }
-            const fastingEvents = getFastingEvents(dto, day);
-            for (const fastingEvent of fastingEvents) {
-                const fastingEl = d.createElement('div');
-                if (fastingEvent.startMinute || fastingEvent.endMinute) {
-                    fastingEl.classList.add('calendar-grid-cell-fasting');
-                    fastingEl.textContent = formatMinutes(fastingEvent.startMinute, '${i18n.calendar().event().fajr()}')
-                        + '…'
-                        + formatMinutes(fastingEvent.endMinute, '${i18n.calendar().event().sunset()}');
-                } else {
-                    fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-                    fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
-                    if (!hasLocation) {
-                        fastingEl.appendChild(d.createTextNode('…'));
-                    } else {
-                        const spinnerEl = d.createElement('img');
-                        spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-                        spinnerEl.src = '/img/spinner.svg';
-                        fastingEl.appendChild(spinnerEl);
-                    }
-                    fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
-                }
-                cellEl.appendChild(fastingEl);
-                const tooltip = d.createElement('smart-tooltip');
-                tooltip.selector = cellElId;
-                tooltip.position = 'bottom';
-                tooltip.arrow = true;
-                const tooltipContent = d.createElement('ul');
-                const reasonIds = new Set();
-                for (const calendarEvent of day.events) {
-                    for (const reasonView of calendarEvent.reasonViews) {
-                        if (!reasonIds.has(reasonView.id)) {
-                            reasonIds.add(reasonView.id)
-                            const calendarEventReasonEl = d.createElement('li');
-                            const anchorEl = d.createElement('a');
-                            anchorEl.href = '#' + reasonView.id;
-                            anchorEl.textContent = reasonView.headline
-                                ? reasonView.headline
-                                : getCalendarEventReasonHeadline(reasonView.id);
-                            calendarEventReasonEl.appendChild(anchorEl);
-                            tooltipContent.appendChild(calendarEventReasonEl);
-                        }
-                    }
-                }
-                tooltip.appendChild(tooltipContent);
-                cellEl.appendChild(tooltip);
-            }
-            gridEl.appendChild(cellEl);
-        }
-    }
-
-
     const locationValueEl = d.getElementById('location-value');
-
 
     function addLocationSpinner() {
         const spinner = d.createElement('img');
@@ -1147,7 +1168,7 @@
         /**
          * @param {Number} latitude
          * @param {Number} longitude
-         * @return {string}
+         * @return {String}
          */
         formatWgs84(latitude, longitude) {
             return this.wgs84Formatter.format(latitude) + ',' + this.wgs84Formatter.format(longitude);
@@ -1258,7 +1279,7 @@
         },
 
         /**
-         * @return {string}
+         * @return {String}
          */
         getHref() {
             return this.icsLinkEl.href;
@@ -1289,6 +1310,7 @@
     }
 
     let reloadCalendarDatesRequestId = null;
+    const reasonNameById = app.adapter.dom.CalendarEventReasons.getAll();
 
     function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
@@ -1370,10 +1392,10 @@
                     dto.todayIndex = -1;
                 }
                 const pageScrollTop = window.scrollY;
-                updateCalendarHeader(dto.dayOfWeekNames);
+                app.adapter.dom.calendar.Grid.updateCalendarHeader(dto.dayOfWeekNames);
                 const locationInput = args.input.fastingTimeCalculationInput;
                 const hasLocation = locationInput != null;
-                updateCalendarDates(dto, hasLocation);
+                app.adapter.dom.calendar.Grid.updateCalendarDates(dto, hasLocation, reasonNameById);
                 updateLocationDependenciesUsecase.apply(
                     locationInput?.latitude,
                     locationInput?.longitude,
