@@ -618,6 +618,49 @@
 <div id='page-loading-spinner' class='hidden'></div>
 
 <script type='module'>
+    /*
+     * App structure
+     */
+    const app = {
+        model: {},
+        adapter: {
+            repository: {},
+            dom: {
+                commons: {
+                    smartComponents: {}
+                },
+                settings: {
+                    prayerTimeMethod: {}
+                },
+            }
+        },
+        usecase: {
+            location: {},
+            settings: {}
+        }
+    };
+
+
+    /*
+     * Model
+     */
+    /**
+     * @typedef {'CUSTOM' | 'DEVICE'} app.model.GeoPositionSource
+     */
+    app.model.GeoPosition = class {
+        /**
+         * @param {Number} latitude
+         * @param {Number} longitude
+         */
+        constructor(latitude, longitude) {
+            this.latitude = latitude;
+            this.longitude = longitude;
+        }
+    }
+
+    /**
+     * Classes for utils, usecases and adapters
+     */
     const classes = {
         adapter: {
             L10n: class {
@@ -632,25 +675,32 @@
                     this.defaultTimezone = dateTimeFormatOptions.timeZone;
                 }
             }
+        },
+        usecase: {
+            location: {
+                GetPositionUtils: class {
+                    /**
+                     * @param {app.model.GeoPosition|null} o1
+                     * @param {app.model.GeoPosition|null} o2
+                     * @return {boolean}
+                     */
+                    static equals(o1, o2) {
+                        if (o1 === o2) {
+                            return true;
+                        }
+                        if (o1 !== null && o2 !== null) {
+                            return o1.latitude === o2.latitude && o1.longitude === o2.longitude
+                        }
+                        return false;
+                    }
+                }
+            }
         }
     };
 
-    const app = {
-        adapter: {
-            repository: {},
-            dom: {
-                commons: {
-                    smartComponents: {}
-                },
-                settings: {
-                    prayerTimeMethod: {}
-                },
-            }
-        },
-        usecase: {
-            settings: {}
-        }
-    };
+    /*
+     * Adapters
+     */
 
     /**
      * @param {string} query
@@ -795,44 +845,12 @@
     }
 
 
-    class GeoPositionModel {
-        /**
-         * @param {number} latitude
-         * @param {number} longitude
-         */
-        constructor(latitude, longitude) {
-            this.latitude = latitude;
-            this.longitude = longitude;
-        }
-    }
-
-
-    /**
-     * @typedef {'CUSTOM' | 'DEVICE'} GeoPositionSourceModel
-     */
-
-    class GetPositionUtils {
-        /**
-         * @param {GeoPositionModel|null} o1
-         * @param {GeoPositionModel|null} o2
-         * @return {boolean}
-         */
-        static equals(o1, o2) {
-            if (o1 === o2) {
-                return true;
-            }
-            if (o1 !== null && o2 !== null) {
-                return o1.latitude === o2.latitude && o1.longitude === o2.longitude
-            }
-            return false;
-        }
-    }
 
     const geoPositionRepository = {
 
         /**
-         * @param {GeoPositionSourceModel} source
-         * @return {GeoPositionModel|null}
+         * @param {app.model.GeoPositionSource} source
+         * @return {app.model.GeoPosition|null}
          */
         get(source) {
             const str = localStorage.getItem('geoPosition' + source);
@@ -840,8 +858,8 @@
         },
 
         /**
-         * @param {GeoPositionModel} model
-         * @param {GeoPositionSourceModel} source
+         * @param {app.model.GeoPosition} model
+         * @param {app.model.GeoPositionSource} source
          */
         set(model, source) {
             const str = JSON.stringify(model);
@@ -851,7 +869,7 @@
 
     const getGeoPositionUsecase = {
         /**
-         * @return {GeoPositionModel|null}
+         * @return {app.model.GeoPosition|null}
          */
         apply() {
             const custom = geoPositionRepository.get('CUSTOM')
@@ -868,18 +886,18 @@
 
     const setGeoPositionUsecase = {
         /**
-         * @param {number|null} latitude
-         * @param {number|null} longitude
-         * @param {GeoPositionSourceModel} source
+         * @param {Number|null} latitude
+         * @param {Number|null} longitude
+         * @param {app.model.GeoPositionSource} source
          */
         apply(latitude, longitude, source) {
             const clean = latitude === null || longitude === null;
             const oldModel = geoPositionRepository.get(source);
-            const newModel = clean ? null : new GeoPositionModel(latitude, longitude);
-            if (!GetPositionUtils.equals(oldModel, newModel)) {
+            const newModel = clean ? null : new app.model.GeoPosition(latitude, longitude);
+            if (!classes.usecase.location.GetPositionUtils.equals(oldModel, newModel)) {
                 geoPositionRepository.set(newModel, source);
                 const actualModel = getGeoPositionUsecase.apply();
-                if (!GetPositionUtils.equals(oldModel, actualModel)) {
+                if (!classes.usecase.location.GetPositionUtils.equals(oldModel, actualModel)) {
                     reloadCalendar();
                 }
             }
@@ -1116,8 +1134,8 @@
 
 
         /**
-         * @param {number} latitude
-         * @param {number} longitude
+         * @param {Number} latitude
+         * @param {Number} longitude
          * @return {string}
          */
         formatWgs84(latitude, longitude) {
@@ -1125,8 +1143,8 @@
         },
 
         /**
-         * @param {number|null} latitude
-         * @param {number|null} longitude
+         * @param {Number|null} latitude
+         * @param {Number|null} longitude
          * @param {string|null} displayName
          */
         apply(latitude, longitude, displayName) {
