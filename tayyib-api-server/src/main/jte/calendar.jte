@@ -636,6 +636,7 @@
         },
         usecase: {
             location: {},
+            time: {},
             settings: {
                 location: {},
                 prayerTimeMethod: {},
@@ -676,6 +677,14 @@
                     const dateTimeFormatOptions = new Intl.DateTimeFormat().resolvedOptions();
                     this.defaultLocale = dateTimeFormatOptions.locale;
                     this.defaultTimezone = dateTimeFormatOptions.timeZone;
+                }
+            },
+            repository: {
+                Month: class extends Date{
+                    constructor() {
+                        super();
+                        this.setDate(2);
+                    }
                 }
             }
         },
@@ -774,6 +783,11 @@
             localStorage.setItem('geoPosition' + source, str);
         }
     };
+
+    /**
+     * @type {Date}
+     */
+    app.adapter.repository.Month = new classes.adapter.repository.Month();
 
 
     const d = document;
@@ -904,10 +918,6 @@
             }
         }
     };
-
-
-    let month = new Date();
-    month.setDate(2);
 
     app.usecase.formatMonthLabel = {
         /** @type {Intl.DateTimeFormat|null} */
@@ -1174,6 +1184,7 @@
     const nextMonthEl = d.getElementById('next-month-button');
 
     function updateMonthLabels() {
+        const month = app.adapter.repository.Month;
         const prevMonth = new Date(month);
         prevMonth.setUTCMonth(month.getUTCMonth() - 1);
         const nextMonth = new Date(month);
@@ -1285,6 +1296,7 @@
         pageLoadingSpinner.show()
 
         const today = new Date();
+        const month = app.adapter.repository.Month;
         const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
 
         /**
@@ -1376,16 +1388,23 @@
             });
     }
 
+    app.usecase.time.DecrementMonth = {
+        apply() {
+            const repository = app.adapter.repository.Month;
+            repository.setUTCMonth(repository.getUTCMonth() - 1);
+            reloadCalendar();
+        }
+    };
+    prevMonthEl.addEventListener('click', app.usecase.time.DecrementMonth.apply);
 
-    prevMonthEl.addEventListener('click', _ => {
-        month.setUTCMonth(month.getUTCMonth() - 1);
-        reloadCalendar();
-    });
-    nextMonthEl.addEventListener('click', _ => {
-        month.setUTCMonth(month.getUTCMonth() + 1);
-        reloadCalendar();
-    });
-
+    app.usecase.time.IncrementMonth = {
+        apply() {
+            const repository = app.adapter.repository.Month;
+            repository.setUTCMonth(repository.getUTCMonth() + 1);
+            reloadCalendar();
+        }
+    };
+    nextMonthEl.addEventListener('click', app.usecase.time.IncrementMonth.apply);
 
     {// init prayer-time-method dropdown
         let oldVal = app.adapter.repository.prayerTimeMethod.get();
