@@ -117,7 +117,7 @@ public class CalendarFeedController {
             fastingTimeCalculationArgs = null;
         }
 
-        return switch (getCalendarDaysUsecase.apply(start, start.plusDays(30), hijriMethodModel, zoneId, fastingTimeCalculationArgs)) {
+        return switch (getCalendarDaysUsecase.apply(start, start.plusDays(100), hijriMethodModel, zoneId, fastingTimeCalculationArgs)) {
             case GetCalendarDaysUsecase.Result.Ok ok -> calendarFeedView.render(ok, prefferedLocale, zoneId);
             case GetCalendarDaysUsecase.Result.ServiceUnavailable _ -> status(SERVICE_UNAVAILABLE).build();
         };
