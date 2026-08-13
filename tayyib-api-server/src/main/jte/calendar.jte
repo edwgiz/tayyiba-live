@@ -231,7 +231,7 @@
                 display: grid;
                 grid-template-columns: repeat(7, var(--max-calendar-column-width));
                 @media (max-width: 48em) {
-                    grid-template-columns: repeat(7, 14vw);
+                    grid-template-columns: repeat(7, calc(100%/7));
                 }
 
                 > div {
@@ -247,9 +247,12 @@
                     }
 
                     &.calendar-grid-cell {
+                        display: grid;
+                        grid-row: span 4;
+                        grid-template-rows: subgrid;
                         padding-top: 0.3em;
-                        padding-bottom: 0.3em;
 
+                        padding-bottom: 0.3em;
                         --hijri-color: #00a000;
 
                         &:has(>div.calendar-grid-cell-fasting, >div.calendar-grid-cell-fasting-undefined) {
@@ -279,6 +282,7 @@
                             &.calendar-grid-cell-hijri-month {
                                 color: var(--hijri-color);
                                 overflow-wrap: break-word;
+                                align-self: center;
                             }
 
                             &.calendar-grid-cell-hijri-date {
@@ -960,8 +964,11 @@
                 if (day.gregorian.isAdjacentMonth) {
                     cellEl.classList.add('calendar-grid-cell-adjacent-month');
                 }
-                cellEl.appendChild(d.createTextNode(day.gregorian.dayOfMonth));
-
+                {
+                    const gregorianDateEl = d.createElement('div');
+                    gregorianDateEl.textContent = day.gregorian.dayOfMonth;
+                    cellEl.appendChild(gregorianDateEl);
+                }
                 {
                     const hijriMonthEl = d.createElement('div');
                     hijriMonthEl.classList.add('calendar-grid-cell-hijri-month');
