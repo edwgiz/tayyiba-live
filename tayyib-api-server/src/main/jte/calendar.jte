@@ -344,7 +344,7 @@
 
                 smart-drop-down-list#change-prayer-time-method-dropdown {
                     div.smart-drop-down-container {
-                        width: 50ch !important;
+                        width: min(100vw, 50ch) !important;
                     }
                 }
 
