@@ -218,14 +218,41 @@
             margin-bottom: 1em;
 
             section#months {
-                display: flex;
-                flex-direction: row;
+                display: grid;
+                grid-template-columns: 1fr min-content 1fr;
+                grid-column-gap: 1ch;
                 justify-content: center;
                 align-items: center;
-                margin-bottom: 1em;
-                gap: 0.5em;
-                @media (max-width: 42em) {
-                    flex-direction: column;
+
+                margin-bottom: 1lh;
+
+                #prev-month-button, #next-month-button {
+                    align-items: center;
+                    --smart-ui-state-border-active: var(--smart-base-200) !important;
+                    --smart-ui-state-active: var(--smart-base-200) !important;
+
+                    >button {
+                        vertical-align: top;
+                        >span {
+                            display: inline-block;
+                            transition: width 2s ease, opacity 1s ease;
+                            @media (max-width: 32em) {
+                                width: 0 !important;
+                                opacity: 0;
+                            }
+                        }
+                    }
+                }
+
+                >* {
+                    margin: 0;
+                    align-self: center;
+                    justify-self: center;
+                }
+
+                #current-month-label {
+                    display: inline-block;
+                    white-space: nowrap;
                 }
             }
 
@@ -337,7 +364,6 @@
                 margin-bottom: 3em;
                 max-width: 50em;
 
-
                 > div {
                     display: grid;
                     grid-column: 1 / -1;
@@ -378,7 +404,7 @@
                     > div:nth-child(2) {
                         smart-drop-down-list#change-prayer-time-method-dropdown {
                             div.smart-drop-down-container {
-                                width: min(100vw, 50ch) !important;
+                                width: min(100%, 50ch) !important;
                             }
                         }
                     }
@@ -420,25 +446,6 @@
                     margin-bottom: 0;
                 }
             }
-        }
-
-        #prev-month-button, #next-month-button {
-            width: 13em;
-            align-items: center;
-            --smart-ui-state-border-active: var(--smart-base-200) !important;
-            --smart-ui-state-active: var(--smart-base-200) !important;
-
-            button {
-                vertical-align: top;
-            }
-        }
-
-        #current-month-label {
-            display: inline-block;
-            width: 13em;
-            text-align: center;
-            vertical-align: center;
-            white-space: nowrap;
         }
 
         smart-tooltip div.smart-tooltip-content {
@@ -553,9 +560,9 @@
 </header>
 <main>
     <section id='months'>
-        <smart-button id='prev-month-button'></smart-button>
+        <smart-button id='prev-month-button'><span></span>◂◂</smart-button>
         <span id='current-month-label'></span>
-        <smart-button id='next-month-button'></smart-button>
+        <smart-button id='next-month-button'>▸▸<span></span></smart-button>
     </section>
     <section id='calendar-grid-cells'></section>
     <section id='settings'>
@@ -1280,9 +1287,9 @@
         const nextMonth = new Date(month);
         nextMonth.setUTCMonth(month.getUTCMonth() + 1);
         const format = app.usecase.formatMonthLabel;
-        prevMonthEl.innerHTML = format.apply(prevMonth) + '&nbsp; ◂◂';
+        prevMonthEl.querySelector('span').textContent = format.apply(prevMonth) + '\u202F';
         currentMonthEl.textContent = format.apply(month);
-        nextMonthEl.innerHTML = '▸▸ &nbsp;' + format.apply(nextMonth);
+        nextMonthEl.querySelector('span').textContent = '\u202F' + format.apply(nextMonth);
     }
 
     const pageLoadingSpinner = {
