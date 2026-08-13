@@ -674,7 +674,29 @@
      */
     const classes = {
         adapter: {
-            dom: {},
+            dom: {
+                settings: {
+                    LocationDependencies: class {
+                        #className = 'settings-location-hidden-dependencies';
+                        #settingsLocationDependantEls = Array.from(
+                            document.getElementsByClassName(this.#className)
+                        );
+
+                        /**
+                         * @param {Boolean} show
+                         */
+                        show(show = true) {
+                            for (const el of this.#settingsLocationDependantEls) {
+                                if (show) {
+                                    el.classList.remove(this.#className);
+                                } else {
+                                    el.classList.add(this.#className);
+                                }
+                            }
+                        }
+                    }
+                },
+            },
             L10n: class {
                 /** @type {String} */
                 defaultLocale;
@@ -1076,6 +1098,9 @@
         }
     }
 
+    app.adapter.dom.settings.locationDependencies = new classes.adapter.dom.settings.LocationDependencies();
+
+
     /*
      * Usecases
      */
@@ -1174,15 +1199,13 @@
                 app.adapter.dom.settings.location.ValueSection.update(permissionState === 'denied');
             }
         },
-
     }
 
-    const updateLocationDependenciesUsecase = {
+    app.usecase.settings.updateLocationDependencies = {
         wgs84Formatter: new Intl.NumberFormat(undefined, {
             minimumFractionDigits: 0,
             maximumFractionDigits: 5,
         }),
-        settingsLocationDependantEls: Array.from(document.getElementsByClassName('settings-location-hidden-dependencies')),
 
 
         /**
@@ -1208,16 +1231,7 @@
             } else {
                 navigator.permissions.query({name: 'geolocation'}).then(p => app.usecase.settings.location.UpdateByPermissionState.apply(p));
             }
-
-            for (const el of this.settingsLocationDependantEls) {
-                if (el instanceof HTMLElement) {
-                    if (hasLocation) {
-                        el.classList.remove('settings-location-hidden-dependencies');
-                    } else {
-                        el.classList.add('settings-location-hidden-dependencies');
-                    }
-                }
-            }
+            app.adapter.dom.settings.locationDependencies.show(hasLocation);
         }
     }
 
@@ -1418,7 +1432,7 @@
                 const locationInput = args.input.fastingTimeCalculationInput;
                 const hasLocation = locationInput != null;
                 app.adapter.dom.calendar.Grid.renderDates(dto, hasLocation, reasonNameById);
-                updateLocationDependenciesUsecase.apply(
+                app.usecase.settings.updateLocationDependencies.apply(
                     locationInput?.latitude,
                     locationInput?.longitude,
                     dto.locationDisplayName);
