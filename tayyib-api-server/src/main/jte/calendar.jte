@@ -49,7 +49,10 @@
     <style>
         :root {
             interpolate-size: allow-keywords;
-            font-family: sans-serif;
+            --smart-font-family: sans-serif !important;
+            font-family: var(--smart-font-family);
+            --smart-font-weight: 300 !important;
+            font-weight: var(--smart-font-weight);
         }
 
         body {
@@ -206,7 +209,6 @@
             }
         }
 
-
         main {
             display: flex;
             flex-direction: column;
@@ -228,9 +230,10 @@
                     --smart-ui-state-border-active: var(--smart-base-200) !important;
                     --smart-ui-state-active: var(--smart-base-200) !important;
 
-                    >button {
+                    > button {
                         vertical-align: top;
-                        >span {
+
+                        > span {
                             display: inline-block;
                             transition: width 2s ease, opacity 1s ease;
                             @media (max-width: 32em) {
@@ -241,7 +244,7 @@
                     }
                 }
 
-                >* {
+                > * {
                     margin: 0;
                     align-self: center;
                     justify-self: center;
@@ -310,6 +313,10 @@
                                 color: var(--hijri-color);
                             }
 
+                            &.calendar-grid-cell-fasting, &.calendar-grid-cell-fasting-undefined {
+                                color: var(--smart-primary-color) !important;
+                            }
+
                             &.calendar-grid-cell-fasting {
                                 font-variant-numeric: tabular-nums;
                             }
@@ -325,25 +332,25 @@
                     }
 
                     &.calendar-grid-cell-today {
-                        font-weight: 1000;
-                        text-shadow: 0 0 1px #000000,
-                        0 0 2px #000000,
-                        0 0 3px #00ff00,
-                        0 0 4px #00ff00,
-                        0 0 5px #ffffff;
-
-                        > div.calendar-grid-cell-hijri-month {
-                            text-shadow: none;
+                        position: relative;
+                        isolation: isolate;
+                        ::before {
+                            content: "";
+                            position: absolute;
+                            inset: 0;
+                            z-index: -1;
+                            pointer-events: none;
+                            background-image: linear-gradient(
+                                    to top,
+                                    transparent 0,
+                                    color-mix(in srgb, var(--smart-base-200) 15%, transparent) 80%,
+                                    color-mix(in srgb, var(--smart-base-200) 30%, transparent) 100%
+                            );
                         }
 
-                        > div.calendar-grid-cell-hijri-date {
-                            text-shadow: 0 0 1px #000000,
-                            0 0 2px #000000,
-                            0 0 3px #000000,
-                            0 0 4px #ffffff,
-                            0 0 5px #ffffff;
+                        :first-child, > div.calendar-grid-cell-hijri-date {
+                            font-weight: 1000;
                         }
-
                     }
 
                     &.calendar-grid-cell-adjacent-month {
