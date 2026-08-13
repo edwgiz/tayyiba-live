@@ -78,12 +78,9 @@
             }
         }
 
-        h2 {
-            background-image: linear-gradient(
-                    to bottom,
-                    var(--smart-base-background-color-dark) 0,
-                    var(--smart-base-400) 100%
-            );
+        h1, h2, h3, h4, h5 {
+            margin-bottom: 0.2lh;
+            padding-bottom: 0;
         }
 
         hr {
@@ -361,7 +358,6 @@
                 grid-column-gap: 0.5em;
                 font-size: var(--smart-font-size);
                 margin-top: 3em;
-                margin-bottom: 3em;
                 max-width: 50em;
 
                 > div {
