@@ -334,6 +334,7 @@
                     &.calendar-grid-cell-today {
                         position: relative;
                         isolation: isolate;
+
                         ::before {
                             content: "";
                             position: absolute;
@@ -667,9 +668,10 @@
     const app = {
         model: {},
         adapter: {
-            repository: {},
             dom: {
-                calendar: {},
+                calendar: {
+                    monthFolding: {}
+                },
                 commons: {
                     smartComponents: {}
                 },
@@ -677,10 +679,13 @@
                     location: {},
                     prayerTimeMethod: {}
                 },
-            }
+            },
+            repository: {}
         },
         usecase: {
-            calendar: {},
+            calendar: {
+                monthFolding: {}
+            },
             location: {},
             time: {},
             settings: {
@@ -929,7 +934,7 @@
         }
     }
 
-    app.adapter.dom.CalendarEventReasons = {
+    app.adapter.dom.calendarEventReasons = {
         /**
          * @return {Map<String, String>} map  of reason name by id
          */
@@ -945,6 +950,33 @@
             return result;
         }
     }
+
+    app.adapter.dom.calendar.monthFolding = {
+        /** @type HTMLElement */
+        prevMonthEl: d.getElementById('prev-month-button'),
+        /** @type HTMLElement */
+        prevMonthLabelEl: d.getElementById('prev-month-button').querySelector('span'),
+        /** @type HTMLElement */
+        currentMonthLabelEl: d.getElementById('current-month-label'),
+        /** @type HTMLElement */
+        nextMonthEl: d.getElementById('next-month-button'),
+        /** @type HTMLElement */
+        nextMonthLabelEl: d.getElementById('next-month-button').querySelector('span'),
+
+        /**
+         * @param month {Date}
+         * @param format {(date: Date) => String}
+         */
+        updateMonthLabels(month, format) {
+            const prevMonth = new Date(month);
+            prevMonth.setUTCMonth(month.getUTCMonth() - 1);
+            const nextMonth = new Date(month);
+            nextMonth.setUTCMonth(month.getUTCMonth() + 1);
+            this.prevMonthLabelEl.textContent = format.apply(prevMonth) + '\u202F';
+            this.currentMonthLabelEl.textContent = format.apply(month);
+            this.nextMonthLabelEl.textContent = '\u202F' + format.apply(nextMonth);
+        }
+    };
 
     app.adapter.dom.calendar.Grid = {
         /** @type HTMLElement */
@@ -1108,7 +1140,11 @@
         },
 
 
-        update(denied) {
+        /**
+         * @param {Boolean} denied
+         * @param {EventListener} updateLocationByDeviceCallback
+         */
+        update(denied, updateLocationByDeviceCallback) {
             const pickLocationButtonEl = this.el.lastElementChild;
             const orI18n = ' ${i18n.commons().or()} ';
             const revokeBlockingI18n = ' ${i18n.settings().location().permission().revokeBlocking()} ';
@@ -1126,7 +1162,7 @@
                     const geolocationEl = d.createElement('smart-button');
                     geolocationEl.id = 'grant-geolocation-permission';
                     geolocationEl.textContent = '${i18n.settings().location().permission().changeInBrowser()}';
-                    geolocationEl.addEventListener('click', updateLocationByDevice);
+                    geolocationEl.addEventListener('click', updateLocationByDeviceCallback);
                     this.el.replaceChildren(missingPermissionDescriptionEl, ' ', geolocationEl, orI18n, pickLocationButtonEl);
                 }
             }
@@ -1153,7 +1189,7 @@
         }
     }
 
-    app.usecase.settings.prayerTimeMethod.updateLabel = {
+    app.usecase.settings.prayerTimeMethod.UpdateLabel = {
         /**
          * @param {string|null} usedPrayerTimeMethod
          */
@@ -1239,7 +1275,9 @@
             if (permissionState === 'granted') {
                 app.adapter.dom.settings.location.ValueSection.addSpinner();
             } else {
-                app.adapter.dom.settings.location.ValueSection.update(permissionState === 'denied');
+                app.adapter.dom.settings.location.ValueSection.update(
+                    permissionState === 'denied',
+                    app.usecase.settings.location.updateLocationByDevice);
             }
         },
     }
@@ -1278,22 +1316,6 @@
         }
     }
 
-
-    const prevMonthEl = d.getElementById('prev-month-button');
-    const currentMonthEl = d.getElementById('current-month-label');
-    const nextMonthEl = d.getElementById('next-month-button');
-
-    function updateMonthLabels() {
-        const month = app.adapter.repository.Month;
-        const prevMonth = new Date(month);
-        prevMonth.setUTCMonth(month.getUTCMonth() - 1);
-        const nextMonth = new Date(month);
-        nextMonth.setUTCMonth(month.getUTCMonth() + 1);
-        const format = app.usecase.formatMonthLabel;
-        prevMonthEl.querySelector('span').textContent = format.apply(prevMonth) + '\u202F';
-        currentMonthEl.textContent = format.apply(month);
-        nextMonthEl.querySelector('span').textContent = '\u202F' + format.apply(nextMonth);
-    }
 
     const pageLoadingSpinner = {
         el: d.getElementById('page-loading-spinner'),
@@ -1389,7 +1411,7 @@
     }
 
     let reloadCalendarDatesRequestId = null;
-    const reasonNameById = app.adapter.dom.CalendarEventReasons.getAll();
+    const reasonNameById = app.adapter.dom.calendarEventReasons.getAll();
 
     function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
@@ -1461,7 +1483,10 @@
                 const requestId = httpResp.headers.get('X-Request-ID');
                 if (requestId === reloadCalendarDatesRequestId) {
                     pageLoadingSpinner.hide();
-                    updateMonthLabels();
+                    app.adapter.dom.calendar.monthFolding.updateMonthLabels(
+                        app.adapter.repository.Month,
+                        app.usecase.formatMonthLabel
+                    );
                 }
                 return httpResp.json();
             })
@@ -1479,7 +1504,7 @@
                     locationInput?.latitude,
                     locationInput?.longitude,
                     dto.locationDisplayName);
-                app.usecase.settings.prayerTimeMethod.updateLabel.apply(dto.prayerTimeMethod);
+                app.usecase.settings.prayerTimeMethod.UpdateLabel.apply(dto.prayerTimeMethod);
                 icsLinkAdapter.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
                     latitude: locationInput.latitude,
                     longitude: locationInput.longitude,
@@ -1489,39 +1514,19 @@
             });
     }
 
-    app.usecase.time.DecrementMonth = {
-        apply() {
-            const repository = app.adapter.repository.Month;
-            repository.setUTCMonth(repository.getUTCMonth() - 1);
-            reloadCalendar();
-        }
+    app.usecase.calendar.monthFolding.decrementMonth = () => {
+        const repository = app.adapter.repository.Month;
+        repository.setUTCMonth(repository.getUTCMonth() - 1);
+        reloadCalendar();
     };
-    prevMonthEl.addEventListener('click', app.usecase.time.DecrementMonth.apply);
 
-    app.usecase.time.IncrementMonth = {
-        apply() {
-            const repository = app.adapter.repository.Month;
-            repository.setUTCMonth(repository.getUTCMonth() + 1);
-            reloadCalendar();
-        }
+    app.usecase.calendar.monthFolding.incrementMonth = () => {
+        const repository = app.adapter.repository.Month;
+        repository.setUTCMonth(repository.getUTCMonth() + 1);
+        reloadCalendar();
     };
-    nextMonthEl.addEventListener('click', app.usecase.time.IncrementMonth.apply);
 
-    {// init prayer-time-method dropdown
-        let oldVal = app.adapter.repository.prayerTimeMethod.get();
-        if (!oldVal) {
-            oldVal = '${PrayerTimeMethod.AUTO_BY_LOCATION}';
-            app.adapter.repository.prayerTimeMethod.set(oldVal)
-        }
-        const onChange = e => {
-            app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
-            reloadCalendar();
-        };
-        app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
-    }
-
-
-    function updateLocationByDevice() {
+    app.usecase.settings.location.updateLocationByDevice = () => {
         navigator.geolocation.getCurrentPosition(
             position => {
                 app.usecase.location.SetGeoPosition.apply(position.coords.latitude, position.coords.longitude, 'DEVICE');
@@ -1543,6 +1548,23 @@
         );
     }
 
+    {// init calendar month folding
+        app.adapter.dom.calendar.monthFolding.prevMonthEl.addEventListener('click', app.usecase.calendar.monthFolding.decrementMonth)
+        app.adapter.dom.calendar.monthFolding.nextMonthEl.addEventListener('click', app.usecase.calendar.monthFolding.incrementMonth);
+    }
+    {// init prayer-time-method dropdown
+        let oldVal = app.adapter.repository.prayerTimeMethod.get();
+        if (!oldVal) {
+            oldVal = '${PrayerTimeMethod.AUTO_BY_LOCATION}';
+            app.adapter.repository.prayerTimeMethod.set(oldVal)
+        }
+        const onChange = e => {
+            app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
+            reloadCalendar();
+        };
+        app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
+    }
+    // init calendar location
     navigator.permissions.query({
         name: 'geolocation'
     }).then(permission => {
@@ -1551,7 +1573,7 @@
             if (permission.state !== 'granted') {
                 app.usecase.location.SetGeoPosition.apply(null, null, 'DEVICE');
             } else {
-                updateLocationByDevice();
+                app.usecase.settings.location.updateLocationByDevice();
             }
         });
     });
