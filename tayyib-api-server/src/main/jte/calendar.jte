@@ -669,12 +669,13 @@
         model: {},
         adapter: {
             dom: {
-                calendar: {
-                    monthFolding: {}
-                },
                 commons: {
                     smartComponents: {}
                 },
+                calendar: {
+                    monthFolding: {}
+                },
+                ics: {},
                 settings: {
                     location: {},
                     prayerTimeMethod: {}
@@ -1342,8 +1343,7 @@
         }
     }
 
-    const icsLinkAdapter = {
-
+    app.adapter.dom.ics.link = {
         icsLinkEl: d.getElementById('ics-link'),
 
         acceptLanguage: navigator.languages
@@ -1390,7 +1390,7 @@
         let icsCopyStatusTimeout = null;
         d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
             try {
-                await navigator.clipboard.writeText(icsLinkAdapter.getHref());
+                await navigator.clipboard.writeText(app.adapter.dom.ics.link.getHref());
                 clearTimeout(icsCopyStatusTimeout);
                 const icsCopyStatusEl = document.getElementById('ics-copy-status');
                 icsCopyStatusEl.setAttribute('aria-hidden', 'false');
@@ -1504,7 +1504,7 @@
                     locationInput?.longitude,
                     dto.locationDisplayName);
                 app.usecase.settings.prayerTimeMethod.UpdateLabel.apply(dto.prayerTimeMethod);
-                icsLinkAdapter.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
+                app.adapter.dom.ics.link.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
                     latitude: locationInput.latitude,
                     longitude: locationInput.longitude,
                     prayerTimeMethod: dto.prayerTimeMethod
