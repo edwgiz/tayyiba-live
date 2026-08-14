@@ -1274,6 +1274,67 @@
         }
     }
 
+    app.adapter.dom.settings.location.changeLocationWindow = {
+        /** @type HTMLElement */
+        windowEl: null,
+        leafletMarker: null,
+        leafletMapView: null,
+
+        /**
+         * @param {app.model.GeoPosition} geoPosition
+         * @param {(latitude: Number|null, longitude: Number|null) => void} setGeoPosition
+         */
+        async init(geoPosition, setGeoPosition) {
+            this.windowEl = d.getElementById('pick-location-on-map-window');
+            this.windowEl.label = '${i18n.settings().location().pickOnMap()}';
+            await import('https://unpkg.com/leaflet/dist/leaflet.js');
+            this.leafletMapView = L.map('pick-location-on-map-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(this.leafletMapView);
+            this.leafletMarker = L.marker([geoPosition.latitude, geoPosition.longitude], {
+                draggable: true
+            }).addTo(this.leafletMapView);
+            const smartButtonsEl = this.windowEl.querySelector('.smart-buttons-container');
+            {
+                const saveButtonEl = d.createElement('smart-button');
+                saveButtonEl.id = 'pick-location-on-map-save-button';
+                saveButtonEl.textContent = '${i18n.commons().ok()}';
+                saveButtonEl.addEventListener('click', _ => {
+                    const markerPosition = this.leafletMarker.getLatLng();
+                    setGeoPosition(markerPosition.lat, markerPosition.lng);
+                    this.windowEl.close();
+                });
+                smartButtonsEl.prepend(saveButtonEl);
+            }
+            {
+                const defaultButtonEl = document.createElement('smart-button');
+                defaultButtonEl.id = 'pick-location-on-map-default-button';
+                defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
+                defaultButtonEl.addEventListener('click', _ => {
+                    setGeoPosition(null, null);
+                    this.windowEl.close();
+                });
+                smartButtonsEl.prepend(defaultButtonEl);
+            }
+        },
+
+        /**
+         * @param {app.model.GeoPosition} geoPosition
+         * @param {(latitude: Number|null, longitude: Number|null) => void} setGeoPosition
+         */
+        async open(geoPosition, setGeoPosition) {
+            if (this.windowEl == null) {
+                await this.init(geoPosition, setGeoPosition);
+            } else {
+                this.leafletMarker.setLatLng([geoPosition.latitude, geoPosition.longitude]);
+                this.leafletMapView.panTo([geoPosition.latitude, geoPosition.longitude]);
+            }
+            this.windowEl.open();
+        }
+    }
+
     app.adapter.dom.settings.locationDependencies = new classes.adapter.dom.settings.LocationDependencies();
 
 
@@ -1591,58 +1652,22 @@
         app.usecase.calendar.reload.apply();
     });
 
-
-    let changeLocationWindowEl = null;
-    let changeLocationMarker = null;
-    let changeLocationMapView = null;
-
+    app.usecase.settings.location.pickOnMap = {
+        async apply() {
+            let geoPosition = app.usecase.location.GetGeoPosition.apply();
+            if (!geoPosition) {
+                geoPosition = { // default Kaaba
+                    latitude: 21.4225,
+                    longitude: 39.8262,
+                };
+            }
+            await app.adapter.dom.settings.location.changeLocationWindow.open(geoPosition, (latitude, longitude) => {
+                app.usecase.location.SetGeoPosition.apply(latitude, longitude, 'CUSTOM');
+            });
+        }
+    }
     d.getElementById('pick-location-on-map-button').addEventListener('click', async _ => {
-        let geoPosition = app.usecase.location.GetGeoPosition.apply();
-        if (!geoPosition) {
-            geoPosition = { // default Kaaba
-                latitude: 21.4225,
-                longitude: 39.8262,
-            };
-        }
-        if (changeLocationWindowEl == null) {
-            changeLocationWindowEl = d.getElementById('pick-location-on-map-window');
-            changeLocationWindowEl.label = '${i18n.settings().location().pickOnMap()}';
-            await import('https://unpkg.com/leaflet/dist/leaflet.js');
-            changeLocationMapView = L.map('pick-location-on-map-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            }).addTo(changeLocationMapView);
-            changeLocationMarker = L.marker([geoPosition.latitude, geoPosition.longitude], {
-                draggable: true
-            }).addTo(changeLocationMapView);
-            const smartButtonsEl = changeLocationWindowEl.querySelector('.smart-buttons-container');
-            {
-                const saveButtonEl = d.createElement('smart-button');
-                saveButtonEl.id = 'pick-location-on-map-save-button';
-                saveButtonEl.textContent = '${i18n.commons().ok()}';
-                saveButtonEl.addEventListener('click', _ => {
-                    const markerPosition = changeLocationMarker.getLatLng();
-                    app.usecase.location.SetGeoPosition.apply(markerPosition.lat, markerPosition.lng, 'CUSTOM');
-                    changeLocationWindowEl.close();
-                });
-                smartButtonsEl.prepend(saveButtonEl);
-            }
-            {
-                const defaultButtonEl = document.createElement('smart-button');
-                defaultButtonEl.id = 'pick-location-on-map-default-button';
-                defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
-                defaultButtonEl.addEventListener('click', _ => {
-                    app.usecase.location.SetGeoPosition.apply(null, null, 'CUSTOM');
-                    changeLocationWindowEl.close();
-                });
-                smartButtonsEl.prepend(defaultButtonEl);
-            }
-        } else {
-            changeLocationMarker.setLatLng([geoPosition.latitude, geoPosition.longitude]);
-            changeLocationMapView.panTo([geoPosition.latitude, geoPosition.longitude]);
-        }
-        changeLocationWindowEl.open();
+        await app.usecase.settings.location.pickOnMap.apply();
     });
 
 
