@@ -866,6 +866,32 @@
 
     const d = document;
 
+    app.adapter.dom.pageLoadingSpinner = {
+        el: d.getElementById('page-loading-spinner'),
+        timeoutId: null,
+
+        hideTransitionHandler() {
+            this.el.classList.add('hidden');
+            this.timeoutId = null;
+        },
+
+        hide() {
+            const el = this.el;
+            el.classList.remove('shown');
+            this.timeoutId = setTimeout(_ => {this.hideTransitionHandler()}, 500);
+        },
+
+        show() {
+            if (this.timeoutId != null) {
+                clearTimeout(this.timeoutId);
+                this.timeoutId = null;
+            }
+            const el = this.el;
+            el.classList.remove('hidden');
+            requestAnimationFrame(_ => el.classList.add('shown'));
+        },
+    }
+
     /**
      * @typedef {HTMLElement & {
      *   selectedValues: string[],
@@ -1316,33 +1342,6 @@
         }
     }
 
-
-    const pageLoadingSpinner = {
-        el: d.getElementById('page-loading-spinner'),
-        timeoutId: null,
-
-        hideTransitionHandler() {
-            pageLoadingSpinner.el.classList.add('hidden');
-            pageLoadingSpinner.timeoutId = null;
-        },
-
-        hide() {
-            const el = this.el;
-            el.classList.remove('shown');
-            this.timeoutId = setTimeout(this.hideTransitionHandler, 500);
-        },
-
-        show() {
-            if (this.timeoutId != null) {
-                clearTimeout(this.timeoutId);
-                this.timeoutId = null;
-            }
-            const el = this.el;
-            el.classList.remove('hidden');
-            requestAnimationFrame(_ => el.classList.add('shown'));
-        },
-    }
-
     const icsLinkAdapter = {
 
         icsLinkEl: d.getElementById('ics-link'),
@@ -1416,7 +1415,7 @@
     function reloadCalendar() {
         reloadCalendarDatesRequestId = crypto.randomUUID();
 
-        pageLoadingSpinner.show()
+        app.adapter.dom.pageLoadingSpinner.show()
 
         const today = new Date();
         const month = app.adapter.repository.Month;
@@ -1482,7 +1481,7 @@
             .then(httpResp => {
                 const requestId = httpResp.headers.get('X-Request-ID');
                 if (requestId === reloadCalendarDatesRequestId) {
-                    pageLoadingSpinner.hide();
+                    app.adapter.dom.pageLoadingSpinner.hide();
                     app.adapter.dom.calendar.monthFolding.updateMonthLabels(
                         app.adapter.repository.Month,
                         app.usecase.formatMonthLabel
