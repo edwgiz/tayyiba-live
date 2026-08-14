@@ -879,7 +879,9 @@
         hide() {
             const el = this.el;
             el.classList.remove('shown');
-            this.timeoutId = setTimeout(_ => {this.hideTransitionHandler()}, 500);
+            this.timeoutId = setTimeout(_ => {
+                this.hideTransitionHandler()
+            }, 500);
         },
 
         show() {
@@ -914,6 +916,74 @@
         }
     }
 
+
+    app.adapter.dom.ics.link = {
+        icsLinkEl: d.getElementById('ics-link'),
+
+        acceptLanguage: navigator.languages
+            .map((language, index) => {
+                if (index === 0) {
+                    return language;
+                }
+
+                const q = Math.max(0.1, 1 - index * 0.1).toFixed(1);
+                return language + ';q=' + q;
+            })
+            .join(','),
+
+        /**
+         * @param {Date} start
+         * @param {String} timezone
+         * @param {String} hijriMethod
+         * @param {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}} locationInput
+         */
+        setHref(start, timezone, hijriMethod, locationInput) {
+            const url = new URL('/calendar/fasting.ics', window.location.origin);
+            const q = url.searchParams;
+            q.set('start', start.toISOString().substring(0, 10));
+            q.set('timezone', timezone);
+            q.set('hijri-method', hijriMethod);
+            q.set('locale', this.acceptLanguage);
+            if (locationInput) {
+                q.set('latitude', locationInput.latitude.toString());
+                q.set('longitude', locationInput.longitude.toString());
+                q.set('prayer-time-method', locationInput.prayerTimeMethod);
+            }
+            this.icsLinkEl.href = url.href;
+        },
+
+        /**
+         * @return {String}
+         */
+        getHref() {
+            return this.icsLinkEl.href;
+        }
+    }
+
+    app.adapter.dom.ics.copyLink = {
+        init() {
+            let icsCopyStatusTimeout = null;
+            d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(app.adapter.dom.ics.link.getHref());
+                    clearTimeout(icsCopyStatusTimeout);
+                    const icsCopyStatusEl = document.getElementById('ics-copy-status');
+                    icsCopyStatusEl.setAttribute('aria-hidden', 'false');
+                    icsCopyStatusEl.classList.add('visible');
+                    icsCopyStatusTimeout = setTimeout(() => {
+                        icsCopyStatusEl.classList.remove('visible');
+                        setTimeout(() => {
+                            if (!icsCopyStatusEl.classList.contains('visible')) {
+                                icsCopyStatusEl.setAttribute('aria-hidden', 'true');
+                            }
+                        }, 300);
+                    }, 2000);
+                } catch (error) {
+                    console.error('Failed to copy ICS link:', error);
+                }
+            });
+        }
+    }
 
     app.adapter.dom.settings.prayerTimeMethod.dropdown = {
         /** @type {SmartDropdownElement} */
@@ -1263,7 +1333,7 @@
                 app.adapter.repository.geoPosition.set(newModel, source);
                 const actualModel = app.usecase.location.GetGeoPosition.apply();
                 if (!classes.usecase.location.GetPositionUtils.equals(oldModel, actualModel)) {
-                    reloadCalendar();
+                    app.usecase.calendar.reload.apply();
                 }
             }
         }
@@ -1343,186 +1413,125 @@
         }
     }
 
-    app.adapter.dom.ics.link = {
-        icsLinkEl: d.getElementById('ics-link'),
+    app.adapter.dom.ics.copyLink.init();
 
-        acceptLanguage: navigator.languages
-            .map((language, index) => {
-                if (index === 0) {
-                    return language;
-                }
 
-                const q = Math.max(0.1, 1 - index * 0.1).toFixed(1);
-                return language + ';q=' + q;
-            })
-            .join(','),
-
-        /**
-         * @param {Date} start
-         * @param {String} timezone
-         * @param {String} hijriMethod
-         * @param {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}} locationInput
-         */
-        setHref(start, timezone, hijriMethod, locationInput) {
-            const url = new URL('/calendar/fasting.ics', window.location.origin);
-            const q = url.searchParams;
-            q.set('start', start.toISOString().substring(0, 10));
-            q.set('timezone', timezone);
-            q.set('hijri-method', hijriMethod);
-            q.set('locale', this.acceptLanguage);
-            if (locationInput) {
-                q.set('latitude', locationInput.latitude.toString());
-                q.set('longitude', locationInput.longitude.toString());
-                q.set('prayer-time-method', locationInput.prayerTimeMethod);
-            }
-            this.icsLinkEl.href = url.href;
-        },
-
-        /**
-         * @return {String}
-         */
-        getHref() {
-            return this.icsLinkEl.href;
-        }
-    }
-
-    {
-        let icsCopyStatusTimeout = null;
-        d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(app.adapter.dom.ics.link.getHref());
-                clearTimeout(icsCopyStatusTimeout);
-                const icsCopyStatusEl = document.getElementById('ics-copy-status');
-                icsCopyStatusEl.setAttribute('aria-hidden', 'false');
-                icsCopyStatusEl.classList.add('visible');
-                icsCopyStatusTimeout = setTimeout(() => {
-                    icsCopyStatusEl.classList.remove('visible');
-                    setTimeout(() => {
-                        if (!icsCopyStatusEl.classList.contains('visible')) {
-                            icsCopyStatusEl.setAttribute('aria-hidden', 'true');
-                        }
-                    }, 300);
-                }, 2000);
-            } catch (error) {
-                console.error('Failed to copy ICS link:', error);
-            }
-        });
-    }
-
-    let reloadCalendarDatesRequestId = null;
-    const reasonNameById = app.adapter.dom.calendarEventReasons.getAll();
-
-    function reloadCalendar() {
-        reloadCalendarDatesRequestId = crypto.randomUUID();
-
-        app.adapter.dom.pageLoadingSpinner.show()
-
-        const today = new Date();
-        const month = app.adapter.repository.Month;
-        const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
+    app.usecase.calendar.reload = {
+        reloadCalendarDatesRequestId: null,
+        reasonNameById: app.adapter.dom.calendarEventReasons.getAll(),
 
         /**
          * @return {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}}
          */
-        function fastingTimeCalculationInput() {
+        fastingTimeCalculationInput() {
             const getGeoPosition = app.usecase.location.GetGeoPosition.apply();
             return !getGeoPosition ? null : {
                 latitude: getGeoPosition.latitude,
                 longitude: getGeoPosition.longitude,
                 prayerTimeMethod: app.adapter.repository.prayerTimeMethod.get() ?? 'AUTO_BY_LOCATION'
             };
-        }
+        },
 
-        const args = {
-            input: {
-                millis: isTodayMonth ? today.getTime() : month.getTime(),
-                timezone: app.adapter.repository.timezone.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
-                hijriMethod: '${HijriMethod.UAQ}',
-                fastingTimeCalculationInput: fastingTimeCalculationInput()
-            }
-        };
+        apply() {
+            this.reloadCalendarDatesRequestId = crypto.randomUUID();
 
-        app.adapter.graphql(`query
-        GetCalendarCells($input: GetCalendarCellsInput!) {
-            getCalendarCells(input: $input) {
-                hijriMonthNames {
-                    key
-                    value
+            app.adapter.dom.pageLoadingSpinner.show()
+
+            const today = new Date();
+            const month = app.adapter.repository.Month;
+            const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
+
+            const args = {
+                input: {
+                    millis: isTodayMonth ? today.getTime() : month.getTime(),
+                    timezone: app.adapter.repository.timezone.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
+                    hijriMethod: '${HijriMethod.UAQ}',
+                    fastingTimeCalculationInput: this.fastingTimeCalculationInput()
                 }
-                calendarEventReasons {
-                    id
-                    reasonGroup
-                }
-                currentMonthLabel
-                dayOfWeekNames
-                days {
-                    gregorian {
-                        isAdjacentMonth
-                        dayOfMonth
+            };
+
+            app.adapter.graphql(`query
+            GetCalendarCells($input: GetCalendarCellsInput!) {
+                getCalendarCells(input: $input) {
+                    hijriMonthNames {
+                        key
+                        value
                     }
-                    hijri {
-                        dayOfMonth
-                        month
+                    calendarEventReasons {
+                        id
+                        reasonGroup
                     }
-                    events {
-                        reasonViews {
-                            id,
-                            headline
+                    currentMonthLabel
+                    dayOfWeekNames
+                    days {
+                        gregorian {
+                            isAdjacentMonth
+                            dayOfMonth
                         }
-                        startMinute
-                        endMinute
+                        hijri {
+                            dayOfMonth
+                            month
+                        }
+                        events {
+                            reasonViews {
+                                id,
+                                headline
+                            }
+                            startMinute
+                            endMinute
+                        }
                     }
+                    todayIndex,
+                    locationDisplayName,
+                    prayerTimeMethod
                 }
-                todayIndex,
-                locationDisplayName,
-                prayerTimeMethod
-            }
-        }`, reloadCalendarDatesRequestId, args)
-            .then(httpResp => {
-                const requestId = httpResp.headers.get('X-Request-ID');
-                if (requestId === reloadCalendarDatesRequestId) {
-                    app.adapter.dom.pageLoadingSpinner.hide();
-                    app.adapter.dom.calendar.monthFolding.updateMonthLabels(
-                        app.adapter.repository.Month,
-                        app.usecase.formatMonthLabel
-                    );
-                }
-                return httpResp.json();
-            })
-            .then(jsonResp => {
-                const dto = jsonResp.data.getCalendarCells;
-                if (!isTodayMonth) {
-                    dto.todayIndex = -1;
-                }
-                const pageScrollTop = window.scrollY;
-                app.adapter.dom.calendar.Grid.renderCalendarHeader(dto.dayOfWeekNames);
-                const locationInput = args.input.fastingTimeCalculationInput;
-                const hasLocation = locationInput != null;
-                app.adapter.dom.calendar.Grid.renderDates(dto, hasLocation, reasonNameById);
-                app.usecase.settings.updateLocationDependencies.apply(
-                    locationInput?.latitude,
-                    locationInput?.longitude,
-                    dto.locationDisplayName);
-                app.usecase.settings.prayerTimeMethod.UpdateLabel.apply(dto.prayerTimeMethod);
-                app.adapter.dom.ics.link.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
-                    latitude: locationInput.latitude,
-                    longitude: locationInput.longitude,
-                    prayerTimeMethod: dto.prayerTimeMethod
-                } : null);
-                window.scrollTo({top: pageScrollTop, behavior: 'smooth'});
-            });
-    }
+            }`, this.reloadCalendarDatesRequestId, args)
+                .then(httpResp => {
+                    const requestId = httpResp.headers.get('X-Request-ID');
+                    if (requestId === this.reloadCalendarDatesRequestId) {
+                        app.adapter.dom.pageLoadingSpinner.hide();
+                        app.adapter.dom.calendar.monthFolding.updateMonthLabels(
+                            app.adapter.repository.Month,
+                            app.usecase.formatMonthLabel
+                        );
+                    }
+                    return httpResp.json();
+                })
+                .then(jsonResp => {
+                    const dto = jsonResp.data.getCalendarCells;
+                    if (!isTodayMonth) {
+                        dto.todayIndex = -1;
+                    }
+                    const pageScrollTop = window.scrollY;
+                    app.adapter.dom.calendar.Grid.renderCalendarHeader(dto.dayOfWeekNames);
+                    const locationInput = args.input.fastingTimeCalculationInput;
+                    const hasLocation = locationInput != null;
+                    app.adapter.dom.calendar.Grid.renderDates(dto, hasLocation, this.reasonNameById);
+                    app.usecase.settings.updateLocationDependencies.apply(
+                        locationInput?.latitude,
+                        locationInput?.longitude,
+                        dto.locationDisplayName);
+                    app.usecase.settings.prayerTimeMethod.UpdateLabel.apply(dto.prayerTimeMethod);
+                    app.adapter.dom.ics.link.setHref(today, args.input.timezone, args.input.hijriMethod, hasLocation ? {
+                        latitude: locationInput.latitude,
+                        longitude: locationInput.longitude,
+                        prayerTimeMethod: dto.prayerTimeMethod
+                    } : null);
+                    window.scrollTo({top: pageScrollTop, behavior: 'smooth'});
+                });
+        }
+    };
 
     app.usecase.calendar.monthFolding.decrementMonth = () => {
         const repository = app.adapter.repository.Month;
         repository.setUTCMonth(repository.getUTCMonth() - 1);
-        reloadCalendar();
+        app.usecase.calendar.reload.apply();
     };
 
     app.usecase.calendar.monthFolding.incrementMonth = () => {
         const repository = app.adapter.repository.Month;
         repository.setUTCMonth(repository.getUTCMonth() + 1);
-        reloadCalendar();
+        app.usecase.calendar.reload.apply();
     };
 
     app.usecase.settings.location.updateLocationByDevice = () => {
@@ -1559,7 +1568,7 @@
         }
         const onChange = e => {
             app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
-            reloadCalendar();
+            app.usecase.calendar.reload.apply();
         };
         app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
     }
@@ -1579,7 +1588,7 @@
 
 
     requestIdleCallback(() => {
-        reloadCalendar();
+        app.usecase.calendar.reload.apply();
     });
 
 
@@ -1653,7 +1662,7 @@
         changeTzDropdown.addEventListener('change', (event) => {
             app.adapter.repository.timezone.set(event.detail.value);
             app.usecase.formatMonthLabel.init();
-            reloadCalendar();
+            app.usecase.calendar.reload.apply();
         });
         app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(changeTzDropdown);
         changeTzDropdown.disabled = false;
