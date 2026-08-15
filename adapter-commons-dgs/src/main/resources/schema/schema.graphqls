@@ -3,131 +3,131 @@ scalar Long
 scalar Upload
 
 type Query {
-    findNutrientsByParentId(parentId: ID): [Nutrient!]
-    getCalendarCells(input: GetCalendarCellsInput!): GetCalendarCellsResult!
+  findNutrientsByParentId(parentId: ID): [Nutrient!]
+  getCalendarCells(input: GetCalendarCellsInput!): GetCalendarCellsResult!
 }
 
 type Mutation {
-    uploadFdcNutrients(file: Upload!): UploadNutrientResult!
+  uploadFdcNutrients(file: Upload!): UploadNutrientResult!
 }
 
 type UploadNutrientResult {
-    created: Int!,
-    skipped: Int!
+  created: Int!,
+  skipped: Int!
 }
 
 type Nutrient {
-    id: ID!
-    parent_id: ID!
-    name: String!
-    description: String!
-    links: [NutrientLink!]!
+  id: ID!
+  parent_id: ID!
+  name: String!
+  description: String!
+  links: [NutrientLink!]!
 }
 
 type NutrientLink {
-    id: ID!
-    url: String!
-    title: String!
+  id: ID!
+  url: String!
+  title: String!
 }
 
 
 input GetCalendarCellsInput {
-    millis: Long!,
-    timezone: String!,
-    hijriMethod: HijriMethod!,
-    fastingTimeCalculationInput: FastingTimeCalculationInput
+  millis: Long!,
+  timezone: String!,
+  hijriMethod: HijriMethod!,
+  fastingTimeCalculationInput: FastingTimeCalculationInput
 }
 
 
 input FastingTimeCalculationInput {
-    latitude: Float!,
-    longitude: Float!,
-    prayerTimeMethod: PrayerTimeMethod!,
+  latitude: Float!,
+  longitude: Float!,
+  prayerTimeMethod: PrayerTimeMethod!,
 }
 
 enum HijriMethod {
-    HJCoSA,
-    UAQ,
-    Diyanet
+  HJCoSA,
+  UAQ,
+  Diyanet
 }
 
 enum PrayerTimeMethod {
-    AUTO_BY_LOCATION,
-    MWL,
-    ISNA,
-    EGAS,
-    UMM_AL_QURA,
-    KARACHI,
-    TEHRAN,
-    SHIA_QUM,
-    GULF,
-    KUWAIT,
-    QATAR,
-    MUIS,
-    UOIF,
-    DIYANET,
-    SAMR,
-    MSC,
-    DUBAI,
-    JAKIM,
-    TUNISIA,
-    ALGERIA,
-    KEMENAG,
-    MOROCCO,
-    CIL
+  AUTO_BY_LOCATION,
+  MWL,
+  ISNA,
+  EGAS,
+  UMM_AL_QURA,
+  KARACHI,
+  TEHRAN,
+  SHIA_QUM,
+  GULF,
+  KUWAIT,
+  QATAR,
+  MUIS,
+  UOIF,
+  DIYANET,
+  SAMR,
+  MSC,
+  DUBAI,
+  JAKIM,
+  TUNISIA,
+  ALGERIA,
+  KEMENAG,
+  MOROCCO,
+  CIL
 }
 
 type GetCalendarCellsResult {
-    hijriMonthNames: [StringToStringEntry!]!
-    calendarEventReasons: [CalendarEventReason!]!
-    currentMonthLabel: String!
-    dayOfWeekNames: [String!]!
-    days: [CalendarDay!]!
-    todayIndex: Int,
-    locationDisplayName: String,
-    prayerTimeMethod: PrayerTimeMethod,
+  hijriMonthNames: [StringToStringEntry!]!
+  calendarEventReasons: [CalendarEventReason!]!
+  currentMonthLabel: String!
+  dayOfWeekNames: [String!]!
+  days: [CalendarDay!]!
+  todayIndex: Int,
+  locationDisplayName: String,
+  prayerTimeMethod: PrayerTimeMethod,
 }
 
 type StringToStringEntry {
-    key: String!
-    value: String!
+  key: String!
+  value: String!
 }
 
 type CalendarDay {
-    gregorian: GregorianCalendarDay!
-    hijri: HijriCalendarDay!
-    events: [CalendarEvent!]
+  gregorian: GregorianCalendarDay!
+  hijri: HijriCalendarDay!
+  events: [CalendarEvent!]
 }
 
 type GregorianCalendarDay {
-    isAdjacentMonth: Boolean!,
-    dayOfMonth: Int!
+  isAdjacentMonth: Boolean!,
+  dayOfMonth: Int!
 }
 
 type HijriCalendarDay {
-    dayOfMonth: Int!
-    month: Int!
+  dayOfMonth: Int!
+  month: Int!
 }
 
 type CalendarEvent {
-    "The reason title by reason identifier"
-    reasonViews: [CalendarEventReasonView!]!
-    startMinute: Int
-    endMinute: Int
+  "The reason title by reason identifier"
+  reasonViews: [CalendarEventReasonView!]!
+  startMinute: Int
+  endMinute: Int
 }
 
 type CalendarEventReason {
-    id: String!
-    reasonGroup: CalendarEventReasonGroup!
+  id: String!
+  reasonGroup: CalendarEventReasonGroup!
 }
 
 type CalendarEventReasonView {
-    id: String!
-    headline: String
+  id: String!
+  headline: String
 }
 
 enum CalendarEventReasonGroup {
-    OBLIGATORY_FASTING,
-    VOLUNTARY_FASTING,
-    PROHIBITING_FASTING,
+  OBLIGATORY_FASTING,
+  VOLUNTARY_FASTING,
+  PROHIBITING_FASTING,
 }
