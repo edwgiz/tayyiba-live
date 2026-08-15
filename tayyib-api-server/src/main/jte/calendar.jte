@@ -790,6 +790,7 @@
   /*
    * Adapters
    */
+  app.adapter.l10n = new classes.adapter.L10n();
 
   /**
    * @param {String} query
@@ -811,9 +812,29 @@
   };
 
   /**
-   * Localization
+   * @type {Date}
    */
-  app.adapter.l10n = new classes.adapter.L10n();
+  app.adapter.repository.Month = new classes.adapter.repository.Month();
+
+  app.adapter.repository.geoPosition = {
+    /**
+     * @param {app.model.GeoPositionSource} source
+     * @return {app.model.GeoPosition|null}
+     */
+    get(source) {
+      const str = localStorage.getItem('geoPosition' + source);
+      return JSON.parse(str);
+    },
+
+    /**
+     * @param {app.model.GeoPosition} model
+     * @param {app.model.GeoPositionSource} source
+     */
+    set(model, source) {
+      const str = JSON.stringify(model);
+      localStorage.setItem('geoPosition' + source, str);
+    }
+  };
 
   app.adapter.repository.timezone = {
     getOrDefault(defaultValue) {
@@ -840,32 +861,6 @@
       return localStorage.getItem('prayerTimeMethod');
     },
   }
-
-  app.adapter.repository.geoPosition = {
-    /**
-     * @param {app.model.GeoPositionSource} source
-     * @return {app.model.GeoPosition|null}
-     */
-    get(source) {
-      const str = localStorage.getItem('geoPosition' + source);
-      return JSON.parse(str);
-    },
-
-    /**
-     * @param {app.model.GeoPosition} model
-     * @param {app.model.GeoPositionSource} source
-     */
-    set(model, source) {
-      const str = JSON.stringify(model);
-      localStorage.setItem('geoPosition' + source, str);
-    }
-  };
-
-  /**
-   * @type {Date}
-   */
-  app.adapter.repository.Month = new classes.adapter.repository.Month();
-
 
   const d = document;
 
@@ -897,187 +892,6 @@
     },
   }
 
-  /**
-   * @typedef {HTMLElement & {
-   *   selectedValues: string[],
-   *   getItem: (value: string) => HTMLElement,
-   *   ensureVisible: (item: HTMLElement) => void
-   * }} SmartDropdownElement
-   */
-
-  app.adapter.dom.commons.smartComponents.dropdownUtils = {
-    /**
-     * @param {SmartDropdownElement} el
-     */
-    ensureSelectedItemVisible(el) {
-      el.addEventListener('open', _ => {
-        const selectedValue = el.selectedValues[0];
-        const selectedItem = el.getItem(selectedValue);
-        el.ensureVisible(selectedItem);
-      }, {once: true});
-    }
-  }
-
-  app.adapter.dom.settings.timezoneDropdown = {
-    /**
-     * @param {String} selectedValue
-     */
-    init(selectedValue) {
-      const dropdownEl = d.getElementById('change-tz-dropdown');
-      dropdownEl.disabled = false;
-      dropdownEl.selectionMode = 'one';
-      dropdownEl.filterable = true;
-      dropdownEl.filterMode = 'containsIgnoreCase';
-      dropdownEl.horizontalScrollBarVisibility = 'hidden';
-      dropdownEl.virtualization = true;
-      dropdownEl.displayMember = 'l';
-      dropdownEl.valueMember = 'v';
-      dropdownEl.dataSource = [{l: selectedValue, v: selectedValue}];
-      dropdownEl.selectedValues = [selectedValue];
-      dropdownEl.addEventListener('open', () => {
-        const selectedValues = dropdownEl.selectedValues;
-        dropdownEl.dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
-        dropdownEl.selectedValues = selectedValues;
-        app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(dropdownEl);
-        dropdownEl.addEventListener('change', (event) => {
-          app.adapter.repository.timezone.set(event.detail.value);
-          app.usecase.formatMonthLabel.init();
-          app.usecase.calendar.reload.apply();
-        });
-      }, {once: true});
-    }
-  }
-
-  app.adapter.dom.ics.link = {
-    icsLinkEl: d.getElementById('ics-link'),
-
-    acceptLanguage: navigator.languages
-      .map((language, index) => {
-        if (index === 0) {
-          return language;
-        }
-
-        const q = Math.max(0.1, 1 - index * 0.1).toFixed(1);
-        return language + ';q=' + q;
-      })
-      .join(','),
-
-    /**
-     * @param {Date} start
-     * @param {String} timezone
-     * @param {String} hijriMethod
-     * @param {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}} locationInput
-     */
-    setHref(start, timezone, hijriMethod, locationInput) {
-      const url = new URL('/calendar/fasting.ics', window.location.origin);
-      const q = url.searchParams;
-      q.set('start', start.toISOString().substring(0, 10));
-      q.set('timezone', timezone);
-      q.set('hijri-method', hijriMethod);
-      q.set('locale', this.acceptLanguage);
-      if (locationInput) {
-        q.set('latitude', locationInput.latitude.toString());
-        q.set('longitude', locationInput.longitude.toString());
-        q.set('prayer-time-method', locationInput.prayerTimeMethod);
-      }
-      this.icsLinkEl.href = url.href;
-    },
-
-    /**
-     * @return {String}
-     */
-    getHref() {
-      return this.icsLinkEl.href;
-    }
-  }
-
-  app.adapter.dom.ics.copyLink = {
-    init() {
-      let icsCopyStatusTimeout = null;
-      d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
-        try {
-          await navigator.clipboard.writeText(app.adapter.dom.ics.link.getHref());
-          clearTimeout(icsCopyStatusTimeout);
-          const icsCopyStatusEl = document.getElementById('ics-copy-status');
-          icsCopyStatusEl.setAttribute('aria-hidden', 'false');
-          icsCopyStatusEl.classList.add('visible');
-          icsCopyStatusTimeout = setTimeout(() => {
-            icsCopyStatusEl.classList.remove('visible');
-            setTimeout(() => {
-              if (!icsCopyStatusEl.classList.contains('visible')) {
-                icsCopyStatusEl.setAttribute('aria-hidden', 'true');
-              }
-            }, 300);
-          }, 2000);
-        } catch (error) {
-          console.error('Failed to copy ICS link:', error);
-        }
-      });
-    }
-  }
-
-  app.adapter.dom.settings.prayerTimeMethod.dropdown = {
-    /** @type {SmartDropdownElement} */
-    el: d.getElementById('change-prayer-time-method-dropdown'),
-
-    /**
-     * @param {string|null} key
-     * @return {string[]}
-     */
-    getLabel(key) {
-      const item = this.el.items.find(item => item.value === key);
-      if (item) {
-        return [item.label];
-      } else {
-        return [];
-      }
-    },
-
-    /**
-     * @param {String} oldVal
-     * @param {EventListener} onChange
-     */
-    init(oldVal, onChange) {
-      const el = this.el;
-      el.selectedValues = [oldVal];
-      el.addEventListener('change', onChange);
-      app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(el);
-    }
-  }
-
-  app.adapter.dom.settings.prayerTimeMethod.label = {
-    /** @type {HTMLElement} */
-    labelEl: document.getElementById('settings-prayer-time-method-label'),
-
-    /**
-     * @param {string[]} label
-     */
-    show(label) {
-      this.labelEl.replaceChildren(label);
-      this.labelEl.style.removeProperty('display');
-    },
-
-    hide() {
-      this.labelEl.style.display = 'none';
-    }
-  }
-
-  app.adapter.dom.calendarEventReasons = {
-    /**
-     * @return {Map<String, String>} map  of reason name by id
-     */
-    getAll() {
-      const result = new Map();
-      const nodeList = d.getElementsByClassName('fasting-reason');
-      for (let i = 0; i < nodeList.length; i++) {
-        const node = nodeList.item(i);
-        if (node instanceof HTMLElement && node.id) {
-          result.set(node.id, node.firstElementChild.textContent);
-        }
-      }
-      return result;
-    }
-  }
 
   app.adapter.dom.calendar.monthFolding = {
     /** @type HTMLElement */
@@ -1106,7 +920,7 @@
     }
   };
 
-  app.adapter.dom.calendar.Grid = {
+  app.adapter.dom.calendar.grid = {
     /** @type HTMLElement */
     el: d.getElementById('calendar-grid-cells'),
 
@@ -1254,6 +1068,174 @@
     }
   }
 
+  /**
+   * @typedef {HTMLElement & {
+   *   selectedValues: string[],
+   *   getItem: (value: string) => HTMLElement,
+   *   ensureVisible: (item: HTMLElement) => void
+   * }} SmartDropdownElement
+   */
+
+  app.adapter.dom.commons.smartComponents.dropdownUtils = {
+    /**
+     * @param {SmartDropdownElement} el
+     */
+    ensureSelectedItemVisible(el) {
+      el.addEventListener('open', _ => {
+        const selectedValue = el.selectedValues[0];
+        const selectedItem = el.getItem(selectedValue);
+        el.ensureVisible(selectedItem);
+      }, {once: true});
+    }
+  }
+
+  app.adapter.dom.settings.timezoneDropdown = {
+    /**
+     * @param {String} selectedValue
+     */
+    init(selectedValue) {
+      const dropdownEl = d.getElementById('change-tz-dropdown');
+      dropdownEl.disabled = false;
+      dropdownEl.selectionMode = 'one';
+      dropdownEl.filterable = true;
+      dropdownEl.filterMode = 'containsIgnoreCase';
+      dropdownEl.horizontalScrollBarVisibility = 'hidden';
+      dropdownEl.virtualization = true;
+      dropdownEl.displayMember = 'l';
+      dropdownEl.valueMember = 'v';
+      dropdownEl.dataSource = [{l: selectedValue, v: selectedValue}];
+      dropdownEl.selectedValues = [selectedValue];
+      dropdownEl.addEventListener('open', () => {
+        const selectedValues = dropdownEl.selectedValues;
+        dropdownEl.dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
+        dropdownEl.selectedValues = selectedValues;
+        app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(dropdownEl);
+        dropdownEl.addEventListener('change', (event) => {
+          app.adapter.repository.timezone.set(event.detail.value);
+          app.usecase.formatMonthLabel.init();
+          app.usecase.calendar.reload.apply();
+        });
+      }, {once: true});
+    }
+  }
+
+  app.adapter.dom.settings.prayerTimeMethod.dropdown = {
+    /** @type {SmartDropdownElement} */
+    el: d.getElementById('change-prayer-time-method-dropdown'),
+
+    /**
+     * @param {string|null} key
+     * @return {string[]}
+     */
+    getLabel(key) {
+      const item = this.el.items.find(item => item.value === key);
+      if (item) {
+        return [item.label];
+      } else {
+        return [];
+      }
+    },
+
+    /**
+     * @param {String} oldVal
+     * @param {EventListener} onChange
+     */
+    init(oldVal, onChange) {
+      const el = this.el;
+      el.selectedValues = [oldVal];
+      el.addEventListener('change', onChange);
+      app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(el);
+    }
+  }
+
+  app.adapter.dom.settings.prayerTimeMethod.label = {
+    /** @type {HTMLElement} */
+    labelEl: document.getElementById('settings-prayer-time-method-label'),
+
+    /**
+     * @param {string[]} label
+     */
+    show(label) {
+      this.labelEl.replaceChildren(label);
+      this.labelEl.style.removeProperty('display');
+    },
+
+    hide() {
+      this.labelEl.style.display = 'none';
+    }
+  }
+
+  app.adapter.dom.ics.link = {
+    /**
+     * @type HTMLAnchorElement
+     */
+    icsLinkEl: d.getElementById('ics-link'),
+
+    acceptLanguage: navigator.languages
+      .map((language, index) => {
+        if (index === 0) {
+          return language;
+        }
+
+        const q = Math.max(0.1, 1 - index * 0.1).toFixed(1);
+        return language + ';q=' + q;
+      })
+      .join(','),
+
+    /**
+     * @param {Date} start
+     * @param {String} timezone
+     * @param {String} hijriMethod
+     * @param {null|{latitude:Number, longitude:Number, prayerTimeMethod:String}} locationInput
+     */
+    setHref(start, timezone, hijriMethod, locationInput) {
+      const url = new URL('/calendar/fasting.ics', window.location.origin);
+      const q = url.searchParams;
+      q.set('start', start.toISOString().substring(0, 10));
+      q.set('timezone', timezone);
+      q.set('hijri-method', hijriMethod);
+      q.set('locale', this.acceptLanguage);
+      if (locationInput) {
+        q.set('latitude', locationInput.latitude.toString());
+        q.set('longitude', locationInput.longitude.toString());
+        q.set('prayer-time-method', locationInput.prayerTimeMethod);
+      }
+      this.icsLinkEl.href = url.href;
+    },
+
+    /**
+     * @return {String}
+     */
+    getHref() {
+      return this.icsLinkEl.href;
+    }
+  }
+
+  app.adapter.dom.ics.copyLink = {
+    init() {
+      let icsCopyStatusTimeout = null;
+      d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(app.adapter.dom.ics.link.getHref());
+          clearTimeout(icsCopyStatusTimeout);
+          const icsCopyStatusEl = document.getElementById('ics-copy-status');
+          icsCopyStatusEl.setAttribute('aria-hidden', 'false');
+          icsCopyStatusEl.classList.add('visible');
+          icsCopyStatusTimeout = setTimeout(() => {
+            icsCopyStatusEl.classList.remove('visible');
+            setTimeout(() => {
+              if (!icsCopyStatusEl.classList.contains('visible')) {
+                icsCopyStatusEl.setAttribute('aria-hidden', 'true');
+              }
+            }, 300);
+          }, 2000);
+        } catch (error) {
+          console.error('Failed to copy ICS link:', error);
+        }
+      });
+    }
+  }
+
   app.adapter.dom.settings.location.ValueSection = {
     /** @type HTMLElement */
     el: d.getElementById('location-value'),
@@ -1368,6 +1350,22 @@
 
   app.adapter.dom.settings.locationDependencies = new classes.adapter.dom.settings.LocationDependencies();
 
+  app.adapter.dom.calendarEventReasons = {
+    /**
+     * @return {Map<String, String>} map  of reason name by id
+     */
+    getAll() {
+      const result = new Map();
+      const nodeList = d.getElementsByClassName('fasting-reason');
+      for (let i = 0; i < nodeList.length; i++) {
+        const node = nodeList.item(i);
+        if (node instanceof HTMLElement && node.id) {
+          result.set(node.id, node.firstElementChild.textContent);
+        }
+      }
+      return result;
+    }
+  }
 
   /*
    * Usecases
@@ -1598,10 +1596,10 @@
             dto.todayIndex = -1;
           }
           const pageScrollTop = window.scrollY;
-          app.adapter.dom.calendar.Grid.renderCalendarHeader(dto.dayOfWeekNames);
+          app.adapter.dom.calendar.grid.renderCalendarHeader(dto.dayOfWeekNames);
           const locationInput = args.input.fastingTimeCalculationInput;
           const hasLocation = locationInput != null;
-          app.adapter.dom.calendar.Grid.renderDates(dto, hasLocation, this.reasonNameById);
+          app.adapter.dom.calendar.grid.renderDates(dto, hasLocation, this.reasonNameById);
           app.usecase.settings.updateLocationDependencies.apply(
             locationInput?.latitude,
             locationInput?.longitude,
