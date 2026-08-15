@@ -565,7 +565,9 @@
 <main>
     <section id='months'>
         <smart-button id='prev-month-button'><span></span>◂◂</smart-button>
-        <span id='current-month-label'></span>
+        <span id='current-month-label'>
+            <img src='/img/spinner-smart-base-800.svg'/>
+        </span>
         <smart-button id='next-month-button'>▸▸<span></span></smart-button>
     </section>
     <section id='calendar-grid-cells'></section>
@@ -916,6 +918,35 @@
         }
     }
 
+    app.adapter.dom.settings.timezoneDropdown = {
+        /**
+         * @param {String} selectedValue
+         */
+        init(selectedValue) {
+            const dropdownEl = d.getElementById('change-tz-dropdown');
+            dropdownEl.disabled = false;
+            dropdownEl.selectionMode = 'one';
+            dropdownEl.filterable = true;
+            dropdownEl.filterMode = 'containsIgnoreCase';
+            dropdownEl.horizontalScrollBarVisibility = 'hidden';
+            dropdownEl.virtualization = true;
+            dropdownEl.displayMember = 'l';
+            dropdownEl.valueMember = 'v';
+            dropdownEl.dataSource = [{l: selectedValue, v: selectedValue}];
+            dropdownEl.selectedValues = [selectedValue];
+            dropdownEl.addEventListener('open', () => {
+                    const selectedValues = dropdownEl.selectedValues;
+                    dropdownEl.dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
+                    dropdownEl.selectedValues = selectedValues;
+                    app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(dropdownEl);
+                    dropdownEl.addEventListener('change', (event) => {
+                        app.adapter.repository.timezone.set(event.detail.value);
+                        app.usecase.formatMonthLabel.init();
+                        app.usecase.calendar.reload.apply();
+                    });
+            }, {once: true});
+        }
+    }
 
     app.adapter.dom.ics.link = {
         icsLinkEl: d.getElementById('ics-link'),
@@ -1620,41 +1651,6 @@
         );
     }
 
-    {// init calendar month folding
-        app.adapter.dom.calendar.monthFolding.prevMonthEl.addEventListener('click', app.usecase.calendar.monthFolding.decrementMonth)
-        app.adapter.dom.calendar.monthFolding.nextMonthEl.addEventListener('click', app.usecase.calendar.monthFolding.incrementMonth);
-    }
-    {// init prayer-time-method dropdown
-        let oldVal = app.adapter.repository.prayerTimeMethod.get();
-        if (!oldVal) {
-            oldVal = '${PrayerTimeMethod.AUTO_BY_LOCATION}';
-            app.adapter.repository.prayerTimeMethod.set(oldVal)
-        }
-        const onChange = e => {
-            app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
-            app.usecase.calendar.reload.apply();
-        };
-        app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
-    }
-    // init calendar location
-    navigator.permissions.query({
-        name: 'geolocation'
-    }).then(permission => {
-        permission.addEventListener('change', _ => {
-            app.usecase.settings.location.UpdateByPermissionState.apply(permission.state);
-            if (permission.state !== 'granted') {
-                app.usecase.location.SetGeoPosition.apply(null, null, 'DEVICE');
-            } else {
-                app.usecase.settings.location.updateLocationByDevice();
-            }
-        });
-    });
-
-
-    requestIdleCallback(() => {
-        app.usecase.calendar.reload.apply();
-    });
-
     app.usecase.settings.location.pickOnMap = {
         async apply() {
             let geoPosition = app.usecase.location.GetGeoPosition.apply();
@@ -1669,37 +1665,53 @@
             });
         }
     }
+
+    /**
+     * App initialization
+     */
+    requestIdleCallback(() => {
+        app.usecase.calendar.reload.apply();
+    });
+
+    {// init calendar month folding
+        app.adapter.dom.calendar.monthFolding.prevMonthEl.addEventListener('click', app.usecase.calendar.monthFolding.decrementMonth)
+        app.adapter.dom.calendar.monthFolding.nextMonthEl.addEventListener('click', app.usecase.calendar.monthFolding.incrementMonth);
+    }
+
+    // init calendar location
+    navigator.permissions.query({
+        name: 'geolocation'
+    }).then(permission => {
+        permission.addEventListener('change', _ => {
+            app.usecase.settings.location.UpdateByPermissionState.apply(permission.state);
+            if (permission.state !== 'granted') {
+                app.usecase.location.SetGeoPosition.apply(null, null, 'DEVICE');
+            } else {
+                app.usecase.settings.location.updateLocationByDevice();
+            }
+        });
+    });
     d.getElementById('pick-location-on-map-button').addEventListener('click', async _ => {
         await app.usecase.settings.location.pickOnMap.apply();
     });
 
-    app.adapter.dom.settings.timezoneDropdown = {
-        /**
-         * @param {String} selectedValue
-         */
-        init(selectedValue) {
-            const dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
-            const dropdownEl = d.getElementById('change-tz-dropdown');
-            dropdownEl.selectionMode = 'one';
-            dropdownEl.filterable = true;
-            dropdownEl.filterMode = 'containsIgnoreCase';
-            dropdownEl.horizontalScrollBarVisibility = 'hidden';
-            dropdownEl.virtualization = true;
-            dropdownEl.displayMember = 'l';
-            dropdownEl.valueMember = 'v';
-            dropdownEl.dataSource = dataSource;
-            dropdownEl.selectedValues = [selectedValue];
-            dropdownEl.addEventListener('change', (event) => {
-                app.adapter.repository.timezone.set(event.detail.value);
-                app.usecase.formatMonthLabel.init();
-                app.usecase.calendar.reload.apply();
-            });
-            app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(dropdownEl);
-            dropdownEl.disabled = false;
-        }
+    {// init settings timezone dropdown
+        app.adapter.dom.settings.timezoneDropdown.init(
+            app.usecase.getTimezone.apply());
     }
-    app.adapter.dom.settings.timezoneDropdown.init(
-        app.usecase.getTimezone.apply());
+
+    {// init prayer-time-method dropdown
+        let oldVal = app.adapter.repository.prayerTimeMethod.get();
+        if (!oldVal) {
+            oldVal = '${PrayerTimeMethod.AUTO_BY_LOCATION}';
+            app.adapter.repository.prayerTimeMethod.set(oldVal)
+        }
+        const onChange = e => {
+            app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
+            app.usecase.calendar.reload.apply();
+        };
+        app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
+    }
 
 </script>
 </body>
