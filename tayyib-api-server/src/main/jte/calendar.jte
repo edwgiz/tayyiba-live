@@ -5,7 +5,7 @@
 @param I18n i18n
 
 <!DOCTYPE html>
-<html lang='en'>
+<html lang='en' data-fa-kit-code="tayyiba" class="wa-theme-default wa-palette-default wa-dark wa-brand-green">
 <head>
   <link rel='icon' type='image/svg+xml' href='/img/icon.svg'>
   <link rel='canonical' href='https://tayyiba.live/calendar'/>
@@ -37,11 +37,16 @@
   <link rel='stylesheet' href='https://unpkg.com/smart-webcomponents@26.0.0/source/styles/smart.ui.default.css'
         type='text/css'/>
   <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' type='text/css'/>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/themes/default.css"/>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/color/palettes/default.css"/>
+  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/color/variants/brand.css"/>
   <script type='module'>
     import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.button.js';
-    import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.tooltip.js';
     import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.window.js';
     import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.dropdownlist.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/tooltip/tooltip.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/spinner/spinner.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/button/button.js';
   </script>
 
   <title>${i18n.fasting().head().title()}</title>
@@ -49,46 +54,97 @@
   <style>
     :root {
       interpolate-size: allow-keywords;
-      --smart-font-family: sans-serif !important;
-      font-family: var(--smart-font-family);
-      --smart-font-weight: 300 !important;
-      font-weight: var(--smart-font-weight);
+
+      --wa-font-weight-light: 200;
+      --wa-font-weight-normal: 300;
+      --wa-font-weight-semibold: 400;
+      --wa-font-weight-bold: 500;
+
+      --wa-font-family-body: sans-serif;
+      --wa-font-family-longform: var(--wa-font-family-body);
+      --wa-color-text-link: var(--wa-color-text-quiet);
+
+      --wa-form-control-padding-block: 0.4lh;
+
+      --wa-color-brand-border-quiet: var(--wa-color-brand-30);
+      --wa-color-brand-border-normal: var(--wa-color-brand-60);
+      --wa-color-brand-border-loud: var(--wa-color-brand-80);
+      --wa-color-surface-hover: var(--wa-color-brand-30);
+    }
+
+
+    @keyframes page-loading-spinner-show {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes form-control-hover-animation {
+      from {
+        background-color: var(--wa-color-surface-hover);
+      }
+
+      to {
+        background-color: transparent;
+      }
+    }
+
+    html {
+      scrollbar-gutter: stable both-edges;
     }
 
     body {
-      background-color: var(--smart-base-background-color-dark);
-      color: var(--smart-primary-color);
-      font-size: larger;
+      margin: 0;
     }
 
-    body > * {
+    wa-button::part(button) {
+      color: var(--wa-color-text-normal);
+      border-color: var(--wa-color-border-loud);
       background: none;
+      padding: 0 1.5ch 0 1.5ch;
+    }
+
+    wa-button::part(button):hover, wa-button::part(button):focus, a:hover, a:focus {
+        animation: form-control-hover-animation 1s ease;
+        @starting-style {
+          background-color: var(--wa-color-surface-hover);
+        }
     }
 
     a {
-      color: var(--smart-base-100);
+      color: var(--wa-color-text-link);
 
       &:visited {
-        color: #c58af9;
+        color: color-mix(currentColor 33%, var(--wa-color-pink));
       }
 
       &:hover {
-        color: #ffffff;
+        color: color-mix(currentColor 33%, var(--wa-color-text-normal));
+        background-color: var(--wa-color-surface-hover);
+
+        &:visited {
+          color: color-mix(var(--wa-color-text-normal), color-mix(currentColor 33%, var(--wa-color-pink)));
+        }
       }
 
       &:focus-visible {
-        outline: 2px solid rgba(138, 180, 248, 0.6);
+        outline: 2px solid var(--wa-color-brand-border-loud);
       }
     }
 
     h1, h2, h3, h4, h5 {
+      color: var(--wa-color-text-normal) !important;
       margin-bottom: 0.2lh;
       padding-bottom: 0;
     }
 
     hr {
-      color: var(--smart-border);
-      border-color: var(--smart-border);
+      color: var(--wa-color-neutral-border-normal);
+      border-color: var(--wa-color-neutral-border-normal);
     }
 
     header {
@@ -130,43 +186,38 @@
 
 
     li:has(>q) {
-      color: var(--smart-base-100);
+      color: var(--wa-color-text-quiet);
     }
 
     li > q {
       display: block;
       padding: 0;
       margin: 0;
-      color: var(--smart-primary-color);
+      color: var(--wa-color-text-normal);
     }
 
     geolocation {
-      --smart-button-flat-color: var(--smart-background-color) !important;
       text-align: center !important;
       vertical-align: middle !important;
       cursor: pointer !important;
-      text-transform: var(--smart-button-text-transform) !important;
-      letter-spacing: .08929em !important;
+      letter-spacing: inherit !important;
       overflow: hidden !important;
-      border-color: var(--smart-border) !important;
-      border-radius: var(--smart-border-top-left-radius) var(--smart-border-top-right-radius) var(--smart-border-bottom-right-radius) var(--smart-border-bottom-left-radius) !important;
-      border-width: var(--smart-border-width) !important;
-      border-style: solid !important;
+      border-color: var(--wa-color-neutral-border-loud) !important;
+      border-radius: var(--wa-form-control-border-radius) !important;
+      border-width: var(--wa-form-control-border-width) !important;
+      border-style: var(--wa-form-control-border-style) !important;
 
       box-sizing: border-box !important;
-      font-family: var(--smart-font-family), sans-serif !important;
-      font-size: var(--smart-font-size) !important;
-      font-weight: var(--smart-font-weight) !important;
+      font-family: var(--wa-font-family-body), sans-serif !important;
+      font-size: var(--wa-font-size-m) !important;
+      font-weight: var(--wa-font-weight-normal) !important;
       -webkit-tap-highlight-color: transparent !important;
-      background: var(--smart-background) !important;
-      color: var(--smart-background-color) !important;
+      background: none !important;
+      color: var(--wa-color-text-normal) !important;
+      height: var(--wa-form-control-height) !important;
 
       &:hover {
-        color: var(--smart-ui-state-color-hover);
-        border-color: var(--smart-ui-state-border-hover);
-        background-color: var(--smart-ui-state-hover);
-        transition: background-color .1s linear, box-shadow 280ms ease-in-out;
-        opacity: var(--smart-button-opacity-hover)
+        background: var(--wa-color-surface-hover) !important;
       }
     }
 
@@ -174,38 +225,27 @@
       position: fixed;
       inset: 0;
       z-index: 9999;
-
       backdrop-filter: blur(1px);
       -webkit-backdrop-filter: blur(1px);
 
-      &::before {
-        content: '';
-        position: absolute;
-        inset: 0;
+      display: grid;
+      place-items: center;
 
-        background-image: url('/img/spinner-smart-base-800.svg');
-        background-size: max(2rem, min(25vw, 25vh));
-        background-repeat: no-repeat;
-        background-position: center center;
+      wa-spinner {
+        --size: min(20vw, 20vh);
+        font-size: var(--size);
+        --track-width: calc(1lh / 20);
+        color: var(--wa-color-brand);
+        --track-color: color-mix(var(--wa-color-brand) 20%, transparent);
         opacity: 0;
       }
 
-      &.shown::before {
+      &.shown > wa-spinner {
         animation: page-loading-spinner-show 1s ease 1s forwards;
       }
 
       &.hidden {
         display: none;
-      }
-    }
-
-    @keyframes page-loading-spinner-show {
-      from {
-        opacity: 0;
-      }
-
-      to {
-        opacity: 1;
       }
     }
 
@@ -219,35 +259,35 @@
       section#months {
         display: grid;
         grid-template-columns: 1fr min-content 1fr;
-        grid-column-gap: 1ch;
-        justify-content: center;
-        align-items: center;
+        grid-column-gap: 2ch;
 
         margin-bottom: 1lh;
 
-        #prev-month-button, #next-month-button {
-          align-items: center;
-          --smart-ui-state-border-active: var(--smart-base-200) !important;
-          --smart-ui-state-active: var(--smart-base-200) !important;
-
-          > button {
-            vertical-align: top;
-
-            > span {
-              display: inline-block;
-              transition: width 2s ease, opacity 1s ease;
-              @media (max-width: 32em) {
-                width: 0 !important;
-                opacity: 0;
-              }
-            }
+        #prev-month-label, #next-month-label {
+          display: inline-block;
+          transition: width 1s ease, opacity 1s ease, display 1s allow-discrete;
+          @media (max-width: 32em) {
+            width: 0 !important;
+            opacity: 0;
+            display: none;
           }
+          @starting-style {
+            width: 0 !important;
+            opacity: 0;
+          }
+        }
+
+        #prev-month-button {
+          align-self: end;
+        }
+
+        #next-month-button {
+          align-self: start;
         }
 
         > * {
           margin: 0;
           align-self: center;
-          justify-self: center;
         }
 
         #current-month-label {
@@ -256,11 +296,9 @@
         }
       }
 
-      --max-calendar-column-width: 6em;
-
       section#calendar-grid-cells {
         display: grid;
-        grid-template-columns: repeat(7, min(var(--max-calendar-column-width), 100vw / 7));
+        grid-template-columns: repeat(7, min(calc(100vw / 7), 12ch));
 
         > div {
           padding: 0.3ch;
@@ -269,8 +307,8 @@
           &.calendar-grid-header {
             background-image: linear-gradient(
               to bottom,
-              var(--smart-base-background-color-dark) 0,
-              var(--smart-base-400) 100%
+              var(--wa-color-surface-default) 0,
+              var(--wa-color-neutral-fill-normal) 100%
             );
           }
 
@@ -281,14 +319,14 @@
             padding-top: 0.3em;
 
             padding-bottom: 0.3em;
-            --hijri-color: #00a000;
+            --hijri-color: var(--wa-color-brand);
 
             &:has(>div.calendar-grid-cell-fasting, >div.calendar-grid-cell-fasting-undefined) {
               background-image: linear-gradient(
                 to bottom,
                 transparent 0,
-                color-mix(in srgb, var(--hijri-color) 15%, transparent) 80%,
-                color-mix(in srgb, var(--hijri-color) 30%, transparent) 100%
+                var(--wa-color-brand-20) 80%,
+                var(--wa-color-surface-hover) 100%
               );
             }
 
@@ -298,7 +336,7 @@
               &.calendar-grid-cell-hijri-month,
               &.calendar-grid-cell-fasting,
               &.calendar-grid-cell-fasting-undefined {
-                font-size: min(0.833rem, 2.4vw);
+                font-size: min(var(--wa-font-size-s), 2.7vw);
                 overflow: visible;
               }
 
@@ -314,18 +352,33 @@
               }
 
               &.calendar-grid-cell-fasting, &.calendar-grid-cell-fasting-undefined {
-                color: var(--smart-primary-color) !important;
-              }
-
-              &.calendar-grid-cell-fasting {
+                color: var(--wa-color-text-normal);
                 font-variant-numeric: tabular-nums;
               }
+            }
 
-              &.calendar-grid-cell-fasting-undefined {
-                > img.calendar-grid-cell-fasting-undefined-spinner {
-                  width: auto;
-                  height: 1lh;
-                  vertical-align: middle;
+            > wa-tooltip {
+              --wa-tooltip-background-color: var(--wa-color-surface-hover);
+              --wa-tooltip-border-color: var(--wa-color-brand-50);
+
+              > ul {
+                margin: 0;
+                padding-left: 0;
+                list-style-type: none;
+                list-style-position: inside;
+
+                > li {
+                  margin: 0.4em;
+
+                  > a {
+                    &:hover {
+                      color: #ffffff !important;
+                    }
+
+                    &:visited {
+                      color: var(--wa-color-text-link);
+                    }
+                  }
                 }
               }
             }
@@ -343,9 +396,9 @@
               pointer-events: none;
               background-image: linear-gradient(
                 to top,
-                transparent 0,
-                color-mix(in srgb, var(--smart-base-200) 15%, transparent) 80%,
-                color-mix(in srgb, var(--smart-base-200) 30%, transparent) 100%
+                var(--wa-color-surface-default) 0,
+                color-mix(var(--wa-color-neutral-fill-normal), var(--wa-color-surface-default)) 80%,
+                var(--wa-color-neutral-fill-normal) 100%
               );
             }
 
@@ -355,7 +408,7 @@
           }
 
           &.calendar-grid-cell-adjacent-month {
-            color: var(--smart-base-100)
+            color: var(--wa-color-text-quiet)
           }
         }
       }
@@ -364,7 +417,6 @@
         display: grid;
         grid-template-columns: min-content auto;
         grid-column-gap: 0.5em;
-        font-size: var(--smart-font-size);
         margin-top: 3em;
         max-width: 50em;
 
@@ -393,7 +445,7 @@
           }
 
           > div:first-child {
-            color: var(--smart-base-100);
+            color: var(--wa-color-text-quiet);
           }
 
           > div {
@@ -410,6 +462,10 @@
               div.smart-drop-down-container {
                 width: min(100%, 50ch) !important;
               }
+            }
+
+            span.missed-permission {
+              color: var(--wa-color-text-quiet);
             }
           }
         }
@@ -452,43 +508,11 @@
       }
     }
 
-    smart-tooltip div.smart-tooltip-content {
-      background-color: var(--smart-secondary-lighter) !important;
-      border-color: var(--smart-secondary-lighter) !important;
-
-      &::after {
-        --smart-tooltip-arrow-color: var(--smart-secondary-lighter);
-      }
-
-      > ul {
-        margin: 0;
-        padding-left: 0;
-        list-style-type: none;
-        list-style-position: inside;
-
-        > li {
-          margin: 0.4em;
-
-          > a {
-            color: var(--smart-base-50);
-
-            &:hover {
-              color: #ffffff !important;
-            }
-
-            &:visited {
-              color: var(--smart-base-50);
-            }
-          }
-        }
-      }
-    }
-
     span.smart-list-items-group-label {
       font-size: 0.833rem !important;
       text-align: right !important;
       display: inline-block;
-      color: var(--smart-base-100) !important;
+      color: var(--wa-color-text-quiet) !important;
       margin: 0 !important;
       padding: 0 !important;
       cursor: default;
@@ -500,11 +524,11 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      border-color: var(--smart-base-100) !important;
+      border-color: var(--wa-color-text-quiet) !important;
     }
 
     div.smart-header-section {
-      background-color: var(--smart-base-100) !important;
+      background-color: var(--wa-color-text-quiet) !important;
 
       div.smart-header {
         font-size: larger;
@@ -515,16 +539,16 @@
       overflow: hidden;
     }
 
-    smart-button#pick-location-on-map-save-button,
-    smart-button#pick-location-on-map-default-button {
+    wa-button#pick-location-on-map-save-button,
+    wa-button#pick-location-on-map-default-button {
       margin-right: 1em;
       padding: 0.2em 1em;
       --smart-window-header-button-size: max-content !important;
       width: max-content !important;
     }
 
-    smart-button#pick-location-on-map-default-button {
-      background-color: var(--smart-base-200)
+    wa-button#pick-location-on-map-default-button {
+      background-color: var(--wa-color-neutral-fill-normal)
     }
 
     .leaflet-container {
@@ -539,16 +563,12 @@
     .leaflet-control-zoom-out,
     .leaflet-control-attribution {
       filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-      background: var(--smart-base-background-color-dark);
+      background: var(--wa-color-surface-default);
     }
 
     footer {
-      color: var(--smart-base-100);
+      color: var(--wa-color-text-quiet);
       font-size: 0.833rem;
-    }
-
-    span.missed-permission {
-      color: var(--smart-base-100);
     }
   </style>
 </head>
@@ -564,11 +584,11 @@
 </header>
 <main>
   <section id='months'>
-    <smart-button id='prev-month-button'><span></span>◂◂</smart-button>
+    <wa-button id='prev-month-button'><span id='prev-month-label'></span>◂◂</wa-button>
     <span id='current-month-label'>
             <img src='/img/spinner-smart-base-800.svg'/>
         </span>
-    <smart-button id='next-month-button'>▸▸<span></span></smart-button>
+    <wa-button id='next-month-button'>▸▸<span id='next-month-label' span></span></wa-button>
   </section>
   <section id='calendar-grid-cells'></section>
   <section id='settings'>
@@ -576,7 +596,7 @@
       <div class='settings-label'>${i18n.settings().location().label()}:</div>
       <div id='location-value'>
         <img src='/img/spinner-smart-base-800.svg' height='2em'/>
-        <smart-button id='pick-location-on-map-button'>${i18n.settings().location().pickOnMap()}</smart-button>
+        <wa-button id='pick-location-on-map-button'>${i18n.settings().location().pickOnMap()}</wa-button>
       </div>
     </div>
     <div class='settings-location-hidden-dependencies'>
@@ -614,7 +634,7 @@
     <span id='ics-actions'>
             <a id='ics-link' target='_blank' rel="noopener noreferrer">${i18n.fasting().ics().linkLabel()}</a>
             ${i18n.commons().or()}
-            <smart-button type='button' id='ics-copy-link'>${i18n.fasting().ics().copyLinkLabel()}</smart-button>
+            <wa-button type='button' id='ics-copy-link'>${i18n.fasting().ics().copyLinkLabel()}</wa-button>
             <span id='ics-copy-status' role='status' aria-live='polite'>✓</span>
         </span>
   </section>
@@ -661,7 +681,9 @@
   modal
 ></smart-window>
 
-<div id='page-loading-spinner' class='hidden'></div>
+<div id='page-loading-spinner' class='hidden'>
+  <wa-spinner></wa-spinner>
+</div>
 
 <script type='module'>
   /*
@@ -897,13 +919,13 @@
     /** @type HTMLElement */
     prevMonthEl: d.getElementById('prev-month-button'),
     /** @type HTMLElement */
-    prevMonthLabelEl: d.getElementById('prev-month-button').querySelector('span'),
+    prevMonthLabelEl: d.getElementById('prev-month-label'),
     /** @type HTMLElement */
     currentMonthLabelEl: d.getElementById('current-month-label'),
     /** @type HTMLElement */
     nextMonthEl: d.getElementById('next-month-button'),
     /** @type HTMLElement */
-    nextMonthLabelEl: d.getElementById('next-month-button').querySelector('span'),
+    nextMonthLabelEl: d.getElementById('next-month-label'),
 
     /**
      * @param month {Date}
@@ -1031,18 +1053,15 @@
             if (!hasLocation) {
               fastingEl.appendChild(d.createTextNode('…'));
             } else {
-              const spinnerEl = d.createElement('img');
-              spinnerEl.classList.add('calendar-grid-cell-fasting-undefined-spinner')
-              spinnerEl.src = '/img/spinner.svg';
-              fastingEl.appendChild(spinnerEl);
+              fastingEl.appendChild(d.createElement('wa-spinner'));
             }
             fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
           }
           cellEl.appendChild(fastingEl);
-          const tooltip = d.createElement('smart-tooltip');
-          tooltip.selector = cellElId;
-          tooltip.position = 'bottom';
-          tooltip.arrow = true;
+          const tooltip = d.createElement('wa-tooltip');
+          tooltip.for = cellElId;
+          tooltip.placement = 'bottom';
+          tooltip.distance = 0;
           const tooltipContent = d.createElement('ul');
           const reasonIds = new Set();
           for (const calendarEvent of day.events) {
@@ -1243,9 +1262,7 @@
     addSpinner() {
       const pickLocationButtonEl = this.el.lastElementChild;
       /** @type HTMLImageElement */
-      const spinner = d.createElement('img');
-      spinner.style.height = '2em';
-      spinner.src = '/img/spinner-smart-base-800.svg';
+      const spinner = d.createElement('wa-spinner');
       this.el.replaceChildren(spinner, pickLocationButtonEl);
     },
 
@@ -1269,7 +1286,7 @@
           missingPermissionDescriptionEl.appendChild(d.createTextNode(', ' + revokeBlockingI18n + orI18n, pickLocationButtonEl));
           this.el.replaceChildren(missingPermissionDescriptionEl);
         } else {
-          const geolocationEl = d.createElement('smart-button');
+          const geolocationEl = d.createElement('wa-button');
           geolocationEl.id = 'grant-geolocation-permission';
           geolocationEl.textContent = '${i18n.settings().location().permission().changeInBrowser()}';
           geolocationEl.addEventListener('click', updateLocationByDeviceCallback);
@@ -1311,7 +1328,7 @@
       }).addTo(this.leafletMapView);
       const smartButtonsEl = this.windowEl.querySelector('.smart-buttons-container');
       {
-        const saveButtonEl = d.createElement('smart-button');
+        const saveButtonEl = d.createElement('wa-button');
         saveButtonEl.id = 'pick-location-on-map-save-button';
         saveButtonEl.textContent = '${i18n.commons().ok()}';
         saveButtonEl.addEventListener('click', _ => {
@@ -1322,7 +1339,7 @@
         smartButtonsEl.prepend(saveButtonEl);
       }
       {
-        const defaultButtonEl = document.createElement('smart-button');
+        const defaultButtonEl = document.createElement('wa-button');
         defaultButtonEl.id = 'pick-location-on-map-default-button';
         defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
         defaultButtonEl.addEventListener('click', _ => {
