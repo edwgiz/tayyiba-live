@@ -1342,6 +1342,9 @@
      * Usecases
      */
     app.usecase.getTimezone = {
+        /**
+         * @return {string}
+         */
         apply() {
             return app.adapter.repository.timezone.getOrDefault(app.adapter.l10n.defaultTimezone);
         }
@@ -1670,28 +1673,34 @@
         await app.usecase.settings.location.pickOnMap.apply();
     });
 
-
-    {
-        const dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
-        const selectedValue = app.usecase.getTimezone.apply();
-        const changeTzDropdown = d.getElementById('change-tz-dropdown');
-        changeTzDropdown.selectionMode = 'one';
-        changeTzDropdown.filterable = true;
-        changeTzDropdown.filterMode = 'containsIgnoreCase';
-        changeTzDropdown.horizontalScrollBarVisibility = 'hidden';
-        changeTzDropdown.virtualization = true;
-        changeTzDropdown.displayMember = 'l';
-        changeTzDropdown.valueMember = 'v';
-        changeTzDropdown.dataSource = dataSource;
-        changeTzDropdown.selectedValues = [selectedValue];
-        changeTzDropdown.addEventListener('change', (event) => {
-            app.adapter.repository.timezone.set(event.detail.value);
-            app.usecase.formatMonthLabel.init();
-            app.usecase.calendar.reload.apply();
-        });
-        app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(changeTzDropdown);
-        changeTzDropdown.disabled = false;
+    app.adapter.dom.settings.timezoneDropdown = {
+        /**
+         * @param {String} selectedValue
+         */
+        init(selectedValue) {
+            const dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
+            const dropdownEl = d.getElementById('change-tz-dropdown');
+            dropdownEl.selectionMode = 'one';
+            dropdownEl.filterable = true;
+            dropdownEl.filterMode = 'containsIgnoreCase';
+            dropdownEl.horizontalScrollBarVisibility = 'hidden';
+            dropdownEl.virtualization = true;
+            dropdownEl.displayMember = 'l';
+            dropdownEl.valueMember = 'v';
+            dropdownEl.dataSource = dataSource;
+            dropdownEl.selectedValues = [selectedValue];
+            dropdownEl.addEventListener('change', (event) => {
+                app.adapter.repository.timezone.set(event.detail.value);
+                app.usecase.formatMonthLabel.init();
+                app.usecase.calendar.reload.apply();
+            });
+            app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(dropdownEl);
+            dropdownEl.disabled = false;
+        }
     }
+    app.adapter.dom.settings.timezoneDropdown.init(
+        app.usecase.getTimezone.apply());
+
 </script>
 </body>
 </html>
