@@ -47,509 +47,509 @@
   <title>${i18n.fasting().head().title()}</title>
 
   <style>
-      :root {
-          interpolate-size: allow-keywords;
-          --smart-font-family: sans-serif !important;
-          font-family: var(--smart-font-family);
-          --smart-font-weight: 300 !important;
-          font-weight: var(--smart-font-weight);
+    :root {
+      interpolate-size: allow-keywords;
+      --smart-font-family: sans-serif !important;
+      font-family: var(--smart-font-family);
+      --smart-font-weight: 300 !important;
+      font-weight: var(--smart-font-weight);
+    }
+
+    body {
+      background-color: var(--smart-base-background-color-dark);
+      color: var(--smart-primary-color);
+      font-size: larger;
+    }
+
+    body > * {
+      background: none;
+    }
+
+    a {
+      color: var(--smart-base-100);
+
+      &:visited {
+        color: #c58af9;
       }
 
-      body {
-          background-color: var(--smart-base-background-color-dark);
-          color: var(--smart-primary-color);
-          font-size: larger;
+      &:hover {
+        color: #ffffff;
       }
 
-      body > * {
-          background: none;
+      &:focus-visible {
+        outline: 2px solid rgba(138, 180, 248, 0.6);
+      }
+    }
+
+    h1, h2, h3, h4, h5 {
+      margin-bottom: 0.2lh;
+      padding-bottom: 0;
+    }
+
+    hr {
+      color: var(--smart-border);
+      border-color: var(--smart-border);
+    }
+
+    header {
+
+      h1 {
+        font-size: clamp(1.38em, 4vw, 2.5rem);
+        text-align: center;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5em 0;
+
+        img {
+          margin-right: 0.4em;
+        }
+      }
+    }
+
+    section.fasting-reason > h4 {
+      margin: 0;
+    }
+
+    section.fasting-reason > ul > li {
+      margin-top: 0.75em;
+    }
+
+    blockquote {
+      display: block;
+      padding: 0;
+      margin: 0;
+      font-style: italic;
+
+      &::before {
+        content: '- ';
+      }
+    }
+
+
+    li:has(>q) {
+      color: var(--smart-base-100);
+    }
+
+    li > q {
+      display: block;
+      padding: 0;
+      margin: 0;
+      color: var(--smart-primary-color);
+    }
+
+    geolocation {
+      --smart-button-flat-color: var(--smart-background-color) !important;
+      text-align: center !important;
+      vertical-align: middle !important;
+      cursor: pointer !important;
+      text-transform: var(--smart-button-text-transform) !important;
+      letter-spacing: .08929em !important;
+      overflow: hidden !important;
+      border-color: var(--smart-border) !important;
+      border-radius: var(--smart-border-top-left-radius) var(--smart-border-top-right-radius) var(--smart-border-bottom-right-radius) var(--smart-border-bottom-left-radius) !important;
+      border-width: var(--smart-border-width) !important;
+      border-style: solid !important;
+
+      box-sizing: border-box !important;
+      font-family: var(--smart-font-family), sans-serif !important;
+      font-size: var(--smart-font-size) !important;
+      font-weight: var(--smart-font-weight) !important;
+      -webkit-tap-highlight-color: transparent !important;
+      background: var(--smart-background) !important;
+      color: var(--smart-background-color) !important;
+
+      &:hover {
+        color: var(--smart-ui-state-color-hover);
+        border-color: var(--smart-ui-state-border-hover);
+        background-color: var(--smart-ui-state-hover);
+        transition: background-color .1s linear, box-shadow 280ms ease-in-out;
+        opacity: var(--smart-button-opacity-hover)
+      }
+    }
+
+    div#page-loading-spinner {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+
+      backdrop-filter: blur(1px);
+      -webkit-backdrop-filter: blur(1px);
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+
+        background-image: url('/img/spinner-smart-base-800.svg');
+        background-size: max(2rem, min(25vw, 25vh));
+        background-repeat: no-repeat;
+        background-position: center center;
+        opacity: 0;
       }
 
-      a {
-          color: var(--smart-base-100);
-
-          &:visited {
-              color: #c58af9;
-          }
-
-          &:hover {
-              color: #ffffff;
-          }
-
-          &:focus-visible {
-              outline: 2px solid rgba(138, 180, 248, 0.6);
-          }
+      &.shown::before {
+        animation: page-loading-spinner-show 1s ease 1s forwards;
       }
 
-      h1, h2, h3, h4, h5 {
-          margin-bottom: 0.2lh;
-          padding-bottom: 0;
+      &.hidden {
+        display: none;
+      }
+    }
+
+    @keyframes page-loading-spinner-show {
+      from {
+        opacity: 0;
       }
 
-      hr {
-          color: var(--smart-border);
-          border-color: var(--smart-border);
+      to {
+        opacity: 1;
       }
+    }
 
-      header {
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 2em;
+      margin-bottom: 1em;
 
-          h1 {
-              font-size: clamp(1.38em, 4vw, 2.5rem);
-              text-align: center;
-              display: flex;
-              flex-direction: row;
-              flex-wrap: wrap;
-              align-items: center;
-              justify-content: center;
-              padding: 0.5em 0;
+      section#months {
+        display: grid;
+        grid-template-columns: 1fr min-content 1fr;
+        grid-column-gap: 1ch;
+        justify-content: center;
+        align-items: center;
 
-              img {
-                  margin-right: 0.4em;
+        margin-bottom: 1lh;
+
+        #prev-month-button, #next-month-button {
+          align-items: center;
+          --smart-ui-state-border-active: var(--smart-base-200) !important;
+          --smart-ui-state-active: var(--smart-base-200) !important;
+
+          > button {
+            vertical-align: top;
+
+            > span {
+              display: inline-block;
+              transition: width 2s ease, opacity 1s ease;
+              @media (max-width: 32em) {
+                width: 0 !important;
+                opacity: 0;
               }
+            }
           }
-      }
+        }
 
-      section.fasting-reason > h4 {
+        > * {
           margin: 0;
+          align-self: center;
+          justify-self: center;
+        }
+
+        #current-month-label {
+          display: inline-block;
+          white-space: nowrap;
+        }
       }
 
-      section.fasting-reason > ul > li {
-          margin-top: 0.75em;
-      }
+      --max-calendar-column-width: 6em;
 
-      blockquote {
-          display: block;
-          padding: 0;
-          margin: 0;
-          font-style: italic;
+      section#calendar-grid-cells {
+        display: grid;
+        grid-template-columns: repeat(7, min(var(--max-calendar-column-width), 100vw / 7));
 
-          &::before {
-              content: '- ';
+        > div {
+          padding: 0.3ch;
+          text-align: center;
+
+          &.calendar-grid-header {
+            background-image: linear-gradient(
+              to bottom,
+              var(--smart-base-background-color-dark) 0,
+              var(--smart-base-400) 100%
+            );
           }
-      }
+
+          &.calendar-grid-cell {
+            display: grid;
+            grid-row: span 4;
+            grid-template-rows: subgrid;
+            padding-top: 0.3em;
+
+            padding-bottom: 0.3em;
+            --hijri-color: #00a000;
+
+            &:has(>div.calendar-grid-cell-fasting, >div.calendar-grid-cell-fasting-undefined) {
+              background-image: linear-gradient(
+                to bottom,
+                transparent 0,
+                color-mix(in srgb, var(--hijri-color) 15%, transparent) 80%,
+                color-mix(in srgb, var(--hijri-color) 30%, transparent) 100%
+              );
+            }
+
+            > div {
+              padding: 0;
+
+              &.calendar-grid-cell-hijri-month,
+              &.calendar-grid-cell-fasting,
+              &.calendar-grid-cell-fasting-undefined {
+                font-size: min(0.833rem, 2.4vw);
+                overflow: visible;
+              }
 
 
-      li:has(>q) {
-          color: var(--smart-base-100);
-      }
+              &.calendar-grid-cell-hijri-month {
+                color: var(--hijri-color);
+                overflow-wrap: break-word;
+                align-self: center;
+              }
 
-      li > q {
-          display: block;
-          padding: 0;
-          margin: 0;
-          color: var(--smart-primary-color);
-      }
+              &.calendar-grid-cell-hijri-date {
+                color: var(--hijri-color);
+              }
 
-      geolocation {
-          --smart-button-flat-color: var(--smart-background-color) !important;
-          text-align: center !important;
-          vertical-align: middle !important;
-          cursor: pointer !important;
-          text-transform: var(--smart-button-text-transform) !important;
-          letter-spacing: .08929em !important;
-          overflow: hidden !important;
-          border-color: var(--smart-border) !important;
-          border-radius: var(--smart-border-top-left-radius) var(--smart-border-top-right-radius) var(--smart-border-bottom-right-radius) var(--smart-border-bottom-left-radius) !important;
-          border-width: var(--smart-border-width) !important;
-          border-style: solid !important;
+              &.calendar-grid-cell-fasting, &.calendar-grid-cell-fasting-undefined {
+                color: var(--smart-primary-color) !important;
+              }
 
-          box-sizing: border-box !important;
-          font-family: var(--smart-font-family), sans-serif !important;
-          font-size: var(--smart-font-size) !important;
-          font-weight: var(--smart-font-weight) !important;
-          -webkit-tap-highlight-color: transparent !important;
-          background: var(--smart-background) !important;
-          color: var(--smart-background-color) !important;
+              &.calendar-grid-cell-fasting {
+                font-variant-numeric: tabular-nums;
+              }
 
-          &:hover {
-              color: var(--smart-ui-state-color-hover);
-              border-color: var(--smart-ui-state-border-hover);
-              background-color: var(--smart-ui-state-hover);
-              transition: background-color .1s linear, box-shadow 280ms ease-in-out;
-              opacity: var(--smart-button-opacity-hover)
+              &.calendar-grid-cell-fasting-undefined {
+                > img.calendar-grid-cell-fasting-undefined-spinner {
+                  width: auto;
+                  height: 1lh;
+                  vertical-align: middle;
+                }
+              }
+            }
           }
-      }
 
-      div#page-loading-spinner {
-          position: fixed;
-          inset: 0;
-          z-index: 9999;
+          &.calendar-grid-cell-today {
+            position: relative;
+            isolation: isolate;
 
-          backdrop-filter: blur(1px);
-          -webkit-backdrop-filter: blur(1px);
-
-          &::before {
-              content: '';
+            ::before {
+              content: "";
               position: absolute;
               inset: 0;
+              z-index: -1;
+              pointer-events: none;
+              background-image: linear-gradient(
+                to top,
+                transparent 0,
+                color-mix(in srgb, var(--smart-base-200) 15%, transparent) 80%,
+                color-mix(in srgb, var(--smart-base-200) 30%, transparent) 100%
+              );
+            }
 
-              background-image: url('/img/spinner-smart-base-800.svg');
-              background-size: max(2rem, min(25vw, 25vh));
-              background-repeat: no-repeat;
-              background-position: center center;
-              opacity: 0;
+            :first-child, > div.calendar-grid-cell-hijri-date {
+              font-weight: 1000;
+            }
           }
 
-          &.shown::before {
-              animation: page-loading-spinner-show 1s ease 1s forwards;
+          &.calendar-grid-cell-adjacent-month {
+            color: var(--smart-base-100)
           }
-
-          &.hidden {
-              display: none;
-          }
+        }
       }
 
-      @keyframes page-loading-spinner-show {
-          from {
-              opacity: 0;
-          }
+      section#settings {
+        display: grid;
+        grid-template-columns: min-content auto;
+        grid-column-gap: 0.5em;
+        font-size: var(--smart-font-size);
+        margin-top: 3em;
+        max-width: 50em;
 
-          to {
-              opacity: 1;
-          }
-      }
-
-      main {
-          display: flex;
-          flex-direction: column;
+        > div {
+          display: grid;
+          grid-column: 1 / -1;
+          grid-template-columns: subgrid;
           align-items: center;
           margin-top: 2em;
-          margin-bottom: 1em;
 
-          section#months {
-              display: grid;
-              grid-template-columns: 1fr min-content 1fr;
-              grid-column-gap: 1ch;
-              justify-content: center;
-              align-items: center;
-
-              margin-bottom: 1lh;
-
-              #prev-month-button, #next-month-button {
-                  align-items: center;
-                  --smart-ui-state-border-active: var(--smart-base-200) !important;
-                  --smart-ui-state-active: var(--smart-base-200) !important;
-
-                  > button {
-                      vertical-align: top;
-
-                      > span {
-                          display: inline-block;
-                          transition: width 2s ease, opacity 1s ease;
-                          @media (max-width: 32em) {
-                              width: 0 !important;
-                              opacity: 0;
-                          }
-                      }
-                  }
-              }
-
-              > * {
-                  margin: 0;
-                  align-self: center;
-                  justify-self: center;
-              }
-
-              #current-month-label {
-                  display: inline-block;
-                  white-space: nowrap;
-              }
+          &:first-child {
+            margin-top: 0;
           }
 
-          --max-calendar-column-width: 6em;
+          transition: height 1s ease, margin-top 1s ease, display 1s allow-discrete;
+          @starting-style {
+            height: 0 !important;
+            margin-top: 0 !important;
+          }
 
-          section#calendar-grid-cells {
-              display: grid;
-              grid-template-columns: repeat(7, min(var(--max-calendar-column-width), 100vw / 7));
+          &.settings-location-hidden-dependencies {
+            overflow: hidden;
+            height: 0 !important;
+            margin-top: 0 !important;
+            display: none;
+          }
 
-              > div {
-                  padding: 0.3ch;
-                  text-align: center;
+          > div:first-child {
+            color: var(--smart-base-100);
+          }
 
-                  &.calendar-grid-header {
-                      background-image: linear-gradient(
-                              to bottom,
-                              var(--smart-base-background-color-dark) 0,
-                              var(--smart-base-400) 100%
-                      );
-                  }
+          > div {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: center;
+            row-gap: 0;
+            column-gap: 1ch;
+          }
 
-                  &.calendar-grid-cell {
-                      display: grid;
-                      grid-row: span 4;
-                      grid-template-rows: subgrid;
-                      padding-top: 0.3em;
-
-                      padding-bottom: 0.3em;
-                      --hijri-color: #00a000;
-
-                      &:has(>div.calendar-grid-cell-fasting, >div.calendar-grid-cell-fasting-undefined) {
-                          background-image: linear-gradient(
-                                  to bottom,
-                                  transparent 0,
-                                  color-mix(in srgb, var(--hijri-color) 15%, transparent) 80%,
-                                  color-mix(in srgb, var(--hijri-color) 30%, transparent) 100%
-                          );
-                      }
-
-                      > div {
-                          padding: 0;
-
-                          &.calendar-grid-cell-hijri-month,
-                          &.calendar-grid-cell-fasting,
-                          &.calendar-grid-cell-fasting-undefined {
-                              font-size: min(0.833rem, 2.4vw);
-                              overflow: visible;
-                          }
-
-
-                          &.calendar-grid-cell-hijri-month {
-                              color: var(--hijri-color);
-                              overflow-wrap: break-word;
-                              align-self: center;
-                          }
-
-                          &.calendar-grid-cell-hijri-date {
-                              color: var(--hijri-color);
-                          }
-
-                          &.calendar-grid-cell-fasting, &.calendar-grid-cell-fasting-undefined {
-                              color: var(--smart-primary-color) !important;
-                          }
-
-                          &.calendar-grid-cell-fasting {
-                              font-variant-numeric: tabular-nums;
-                          }
-
-                          &.calendar-grid-cell-fasting-undefined {
-                              > img.calendar-grid-cell-fasting-undefined-spinner {
-                                  width: auto;
-                                  height: 1lh;
-                                  vertical-align: middle;
-                              }
-                          }
-                      }
-                  }
-
-                  &.calendar-grid-cell-today {
-                      position: relative;
-                      isolation: isolate;
-
-                      ::before {
-                          content: "";
-                          position: absolute;
-                          inset: 0;
-                          z-index: -1;
-                          pointer-events: none;
-                          background-image: linear-gradient(
-                                  to top,
-                                  transparent 0,
-                                  color-mix(in srgb, var(--smart-base-200) 15%, transparent) 80%,
-                                  color-mix(in srgb, var(--smart-base-200) 30%, transparent) 100%
-                          );
-                      }
-
-                      :first-child, > div.calendar-grid-cell-hijri-date {
-                          font-weight: 1000;
-                      }
-                  }
-
-                  &.calendar-grid-cell-adjacent-month {
-                      color: var(--smart-base-100)
-                  }
+          > div:nth-child(2) {
+            smart-drop-down-list#change-prayer-time-method-dropdown {
+              div.smart-drop-down-container {
+                width: min(100%, 50ch) !important;
               }
+            }
+          }
+        }
+      }
+
+      section#ics {
+        text-align: center;
+
+        span#ics-actions {
+          font-size: 1rem;
+
+          a#ics-link {
+            margin-left: 1ch;
+            margin-right: 1ch;
           }
 
-          section#settings {
-              display: grid;
-              grid-template-columns: min-content auto;
-              grid-column-gap: 0.5em;
-              font-size: var(--smart-font-size);
-              margin-top: 3em;
-              max-width: 50em;
+          #ics-copy-status {
+            display: inline-block;
+            margin-left: 1ch;
+            color: #00b300;
+            opacity: 0;
+            transition: opacity 300ms ease;
 
-              > div {
-                  display: grid;
-                  grid-column: 1 / -1;
-                  grid-template-columns: subgrid;
-                  align-items: center;
-                  margin-top: 2em;
-
-                  &:first-child {
-                      margin-top: 0;
-                  }
-
-                  transition: height 1s ease, margin-top 1s ease, display 1s allow-discrete;
-                  @starting-style {
-                      height: 0 !important;
-                      margin-top: 0 !important;
-                  }
-
-                  &.settings-location-hidden-dependencies {
-                      overflow: hidden;
-                      height: 0 !important;
-                      margin-top: 0 !important;
-                      display: none;
-                  }
-
-                  > div:first-child {
-                      color: var(--smart-base-100);
-                  }
-
-                  > div {
-                      display: flex;
-                      flex-direction: row;
-                      flex-wrap: wrap;
-                      align-items: center;
-                      row-gap: 0;
-                      column-gap: 1ch;
-                  }
-
-                  > div:nth-child(2) {
-                      smart-drop-down-list#change-prayer-time-method-dropdown {
-                          div.smart-drop-down-container {
-                              width: min(100%, 50ch) !important;
-                          }
-                      }
-                  }
-              }
+            &.visible {
+              opacity: 1;
+            }
           }
+        }
+      }
 
-          section#ics {
-              text-align: center;
+      section#fasting-reasons,
+      section#prohibiting-fasting-reasons {
+        font-size: 0.833rem;
+        width: 100%;
 
-              span#ics-actions {
-                  font-size: 1rem;
+        > section > h4 {
+          margin-top: 3ch;
+          margin-bottom: 0;
+        }
+      }
+    }
 
-                  a#ics-link {
-                      margin-left: 1ch;
-                      margin-right: 1ch;
-                  }
+    smart-tooltip div.smart-tooltip-content {
+      background-color: var(--smart-secondary-lighter) !important;
+      border-color: var(--smart-secondary-lighter) !important;
 
-                  #ics-copy-status {
-                      display: inline-block;
-                      margin-left: 1ch;
-                      color: #00b300;
-                      opacity: 0;
-                      transition: opacity 300ms ease;
+      &::after {
+        --smart-tooltip-arrow-color: var(--smart-secondary-lighter);
+      }
 
-                      &.visible {
-                          opacity: 1;
-                      }
-                  }
-              }
+      > ul {
+        margin: 0;
+        padding-left: 0;
+        list-style-type: none;
+        list-style-position: inside;
+
+        > li {
+          margin: 0.4em;
+
+          > a {
+            color: var(--smart-base-50);
+
+            &:hover {
+              color: #ffffff !important;
+            }
+
+            &:visited {
+              color: var(--smart-base-50);
+            }
           }
-
-          section#fasting-reasons,
-          section#prohibiting-fasting-reasons {
-              font-size: 0.833rem;
-              width: 100%;
-
-              > section > h4 {
-                  margin-top: 3ch;
-                  margin-bottom: 0;
-              }
-          }
+        }
       }
+    }
 
-      smart-tooltip div.smart-tooltip-content {
-          background-color: var(--smart-secondary-lighter) !important;
-          border-color: var(--smart-secondary-lighter) !important;
+    span.smart-list-items-group-label {
+      font-size: 0.833rem !important;
+      text-align: right !important;
+      display: inline-block;
+      color: var(--smart-base-100) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      cursor: default;
+      height: min-content;
+    }
 
-          &::after {
-              --smart-tooltip-arrow-color: var(--smart-secondary-lighter);
-          }
+    smart-window#pick-location-on-map-window {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-color: var(--smart-base-100) !important;
+    }
 
-          > ul {
-              margin: 0;
-              padding-left: 0;
-              list-style-type: none;
-              list-style-position: inside;
+    div.smart-header-section {
+      background-color: var(--smart-base-100) !important;
 
-              > li {
-                  margin: 0.4em;
-
-                  > a {
-                      color: var(--smart-base-50);
-
-                      &:hover {
-                          color: #ffffff !important;
-                      }
-
-                      &:visited {
-                          color: var(--smart-base-50);
-                      }
-                  }
-              }
-          }
+      div.smart-header {
+        font-size: larger;
       }
+    }
 
-      span.smart-list-items-group-label {
-          font-size: 0.833rem !important;
-          text-align: right !important;
-          display: inline-block;
-          color: var(--smart-base-100) !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          cursor: default;
-          height: min-content;
-      }
+    div#pick-location-on-map-windowContent {
+      overflow: hidden;
+    }
 
-      smart-window#pick-location-on-map-window {
-          position: fixed;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          border-color: var(--smart-base-100) !important;
-      }
+    smart-button#pick-location-on-map-save-button,
+    smart-button#pick-location-on-map-default-button {
+      margin-right: 1em;
+      padding: 0.2em 1em;
+      --smart-window-header-button-size: max-content !important;
+      width: max-content !important;
+    }
 
-      div.smart-header-section {
-          background-color: var(--smart-base-100) !important;
+    smart-button#pick-location-on-map-default-button {
+      background-color: var(--smart-base-200)
+    }
 
-          div.smart-header {
-              font-size: larger;
-          }
-      }
+    .leaflet-container {
+      height: 400px;
+      width: 600px;
+      max-width: 100%;
+      max-height: 100%;
+    }
 
-      div#pick-location-on-map-windowContent {
-          overflow: hidden;
-      }
+    .leaflet-layer,
+    .leaflet-control-zoom-in,
+    .leaflet-control-zoom-out,
+    .leaflet-control-attribution {
+      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+      background: var(--smart-base-background-color-dark);
+    }
 
-      smart-button#pick-location-on-map-save-button,
-      smart-button#pick-location-on-map-default-button {
-          margin-right: 1em;
-          padding: 0.2em 1em;
-          --smart-window-header-button-size: max-content !important;
-          width: max-content !important;
-      }
+    footer {
+      color: var(--smart-base-100);
+      font-size: 0.833rem;
+    }
 
-      smart-button#pick-location-on-map-default-button {
-          background-color: var(--smart-base-200)
-      }
-
-      .leaflet-container {
-          height: 400px;
-          width: 600px;
-          max-width: 100%;
-          max-height: 100%;
-      }
-
-      .leaflet-layer,
-      .leaflet-control-zoom-in,
-      .leaflet-control-zoom-out,
-      .leaflet-control-attribution {
-          filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-          background: var(--smart-base-background-color-dark);
-      }
-
-      footer {
-          color: var(--smart-base-100);
-          font-size: 0.833rem;
-      }
-
-      span.missed-permission {
-          color: var(--smart-base-100);
-      }
+    span.missed-permission {
+      color: var(--smart-base-100);
+    }
   </style>
 </head>
 <body theme='dark'>
@@ -1547,39 +1547,39 @@
 
       app.adapter.graphql(`query
       GetCalendarCells($input: GetCalendarCellsInput!) {
-          getCalendarCells(input: $input) {
-              hijriMonthNames {
-                  key
-                  value
-              }
-              calendarEventReasons {
-                  id
-                  reasonGroup
-              }
-              currentMonthLabel
-              dayOfWeekNames
-              days {
-                  gregorian {
-                      isAdjacentMonth
-                      dayOfMonth
-                  }
-                  hijri {
-                      dayOfMonth
-                      month
-                  }
-                  events {
-                      reasonViews {
-                          id,
-                          headline
-                      }
-                      startMinute
-                      endMinute
-                  }
-              }
-              todayIndex,
-              locationDisplayName,
-              prayerTimeMethod
+        getCalendarCells(input: $input) {
+          hijriMonthNames {
+            key
+            value
           }
+          calendarEventReasons {
+            id
+            reasonGroup
+          }
+          currentMonthLabel
+          dayOfWeekNames
+          days {
+            gregorian {
+              isAdjacentMonth
+              dayOfMonth
+            }
+            hijri {
+              dayOfMonth
+              month
+            }
+            events {
+              reasonViews {
+                id,
+                headline
+              }
+              startMinute
+              endMinute
+            }
+          }
+          todayIndex,
+          locationDisplayName,
+          prayerTimeMethod
+        }
       }`, this.reloadCalendarDatesRequestId, args)
         .then(httpResp => {
           const requestId = httpResp.headers.get('X-Request-ID');
