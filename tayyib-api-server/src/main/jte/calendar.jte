@@ -587,9 +587,7 @@
 <main>
   <section id='months'>
     <wa-button id='prev-month-button'><span id='prev-month-label'></span>◂◂</wa-button>
-    <span id='current-month-label'>
-            <img src='/img/spinner-smart-base-800.svg'/>
-        </span>
+    <span id='current-month-label'><wa-spinner></wa-spinner></span>
     <wa-button id='next-month-button'>▸▸<span id='next-month-label' span></span></wa-button>
   </section>
   <section id='calendar-grid-cells'></section>
@@ -597,7 +595,7 @@
     <div>
       <div class='settings-label'>${i18n.settings().location().label()}:</div>
       <div id='location-value'>
-        <img src='/img/spinner-smart-base-800.svg' height='2em'/>
+        <wa-spinner></wa-spinner>
         <wa-button id='pick-location-on-map-button'>${i18n.settings().location().pickOnMap()}</wa-button>
       </div>
     </div>
@@ -1324,9 +1322,8 @@
     async init(geoPosition, setGeoPosition) {
       const windowEl = d.getElementById('pick-location-on-map-view');
       this.windowEl = windowEl;
-      await import('https://unpkg.com/leaflet/dist/leaflet.js');
+      const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm');
       this.leafletMap = L.map('pick-location-on-map-view').setView([geoPosition.latitude, geoPosition.longitude], 8);
-      windowEl.classList.add('shown');
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -1368,6 +1365,7 @@
       }
 
       new CustomMapWindowControls().addTo(this.leafletMap)
+      windowEl.classList.add('shown');
       this.leafletMap.invalidateSize({animate: false});
     },
 
@@ -1379,9 +1377,10 @@
       if (this.windowEl == null) {
         await this.init(geoPosition, setGeoPosition);
       } else {
-        this.windowEl.classList.add('shown');
         this.leafletMarker.setLatLng([geoPosition.latitude, geoPosition.longitude]);
         this.leafletMap.panTo([geoPosition.latitude, geoPosition.longitude]);
+        this.windowEl.classList.add('shown');
+        this.leafletMap.invalidateSize({animate: false});
       }
     }
   }
