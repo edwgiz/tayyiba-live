@@ -41,12 +41,10 @@
   <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/color/palettes/default.css"/>
   <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/color/variants/brand.css"/>
   <script type='module'>
-    import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.button.js';
-    import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.window.js';
     import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.dropdownlist.js';
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/tooltip/tooltip.js';
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/spinner/spinner.js';
     import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/button/button.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/spinner/spinner.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/tooltip/tooltip.js';
   </script>
 
   <title>${i18n.fasting().head().title()}</title>
@@ -109,10 +107,10 @@
     }
 
     wa-button::part(button):hover, wa-button::part(button):focus, a:hover, a:focus {
-        animation: form-control-hover-animation 1s ease;
-        @starting-style {
-          background-color: var(--wa-color-surface-hover);
-        }
+      animation: form-control-hover-animation 1s ease;
+      @starting-style {
+        background-color: var(--wa-color-surface-hover);
+      }
     }
 
     a {
@@ -327,7 +325,7 @@
                 transparent 0,
                 var(--wa-color-brand-20) 80%,
                 var(--wa-color-surface-hover) 100%
-              );
+              ) !important;
             }
 
             > div {
@@ -396,8 +394,8 @@
               pointer-events: none;
               background-image: linear-gradient(
                 to top,
-                var(--wa-color-surface-default) 0,
-                color-mix(var(--wa-color-neutral-fill-normal), var(--wa-color-surface-default)) 80%,
+                transparent 0,
+                color-mix(var(--wa-color-neutral-fill-normal) 25%, transparent) 80%,
                 var(--wa-color-neutral-fill-normal) 100%
               );
             }
@@ -519,41 +517,45 @@
       height: min-content;
     }
 
-    smart-window#pick-location-on-map-window {
+    div#pick-location-on-map-view {
       position: fixed;
       inset: 0;
+      z-index: 9999;
+      padding: 0;
+      margin: 0;
+      border: none;
+      background: var(--wa-color-surface-default) !important;
+      display: none;
       width: 100%;
       height: 100%;
-      border-color: var(--wa-color-text-quiet) !important;
-    }
+      opacity: 0;
 
-    div.smart-header-section {
-      background-color: var(--wa-color-text-quiet) !important;
+      transition: opacity 1s ease, display 1s allow-discrete;
 
-      div.smart-header {
-        font-size: larger;
+      &.shown {
+        opacity: 1;
+        display: block;
+        @starting-style {
+          opacity: 0;
+        }
+      }
+
+      div#pick-location-on-map-controls {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        font-size: var(--wa-font-size-m);
+        gap: 2ch;
+
+        wa-button {
+          background-color: var(--wa-color-surface-default) !important;
+        }
       }
     }
 
-    div#pick-location-on-map-windowContent {
-      overflow: hidden;
-    }
-
-    wa-button#pick-location-on-map-save-button,
-    wa-button#pick-location-on-map-default-button {
-      margin-right: 1em;
-      padding: 0.2em 1em;
-      --smart-window-header-button-size: max-content !important;
-      width: max-content !important;
-    }
-
-    wa-button#pick-location-on-map-default-button {
-      background-color: var(--wa-color-neutral-fill-normal)
-    }
-
     .leaflet-container {
-      height: 400px;
-      width: 600px;
+      width: 100%;
+      height: 100%;
       max-width: 100%;
       max-height: 100%;
     }
@@ -675,11 +677,7 @@
   </ul>
 </footer>
 
-<smart-window
-  id='pick-location-on-map-window'
-  header-buttons='["close"]'
-  modal
-></smart-window>
+<div id='pick-location-on-map-view'></div>
 
 <div id='page-loading-spinner' class='hidden'>
   <wa-spinner></wa-spinner>
@@ -1297,10 +1295,19 @@
 
     /**
      * @param {String} str
+     * @param {() => {} | null} forgetCustomLocationCallback
      */
-    setTextContent(str) {
+    setTextContent(str, forgetCustomLocationCallback) {
       const pickLocationButtonEl = this.el.lastElementChild;
-      this.el.replaceChildren(d.createTextNode(str), pickLocationButtonEl)
+      if (forgetCustomLocationCallback != null) {
+        const forgetCustomLocationButtonEl = d.createElement('wa-button');
+        forgetCustomLocationButtonEl.id = 'grant-geolocation-permission';
+        forgetCustomLocationButtonEl.textContent = '${i18n.settings().location().forgetCustomLocation()}';
+        forgetCustomLocationButtonEl.addEventListener('click', forgetCustomLocationCallback);
+        this.el.replaceChildren(d.createTextNode(str), ' ', forgetCustomLocationButtonEl, '${i18n.commons().or()}', pickLocationButtonEl)
+      } else {
+        this.el.replaceChildren(d.createTextNode(str), pickLocationButtonEl)
+      }
     }
   }
 
@@ -1308,46 +1315,60 @@
     /** @type HTMLElement */
     windowEl: null,
     leafletMarker: null,
-    leafletMapView: null,
+    leafletMap: null,
 
     /**
      * @param {app.model.GeoPosition} geoPosition
      * @param {(latitude: Number|null, longitude: Number|null) => void} setGeoPosition
      */
     async init(geoPosition, setGeoPosition) {
-      this.windowEl = d.getElementById('pick-location-on-map-window');
-      this.windowEl.label = '${i18n.settings().location().pickOnMap()}';
+      const windowEl = d.getElementById('pick-location-on-map-view');
+      this.windowEl = windowEl;
       await import('https://unpkg.com/leaflet/dist/leaflet.js');
-      this.leafletMapView = L.map('pick-location-on-map-windowContent').setView([geoPosition.latitude, geoPosition.longitude], 8);
+      this.leafletMap = L.map('pick-location-on-map-view').setView([geoPosition.latitude, geoPosition.longitude], 8);
+      windowEl.classList.add('shown');
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(this.leafletMapView);
-      this.leafletMarker = L.marker([geoPosition.latitude, geoPosition.longitude], {
+      }).addTo(this.leafletMap);
+      const leafletMarker = L.marker([geoPosition.latitude, geoPosition.longitude], {
         draggable: true
-      }).addTo(this.leafletMapView);
-      const smartButtonsEl = this.windowEl.querySelector('.smart-buttons-container');
-      {
-        const saveButtonEl = d.createElement('wa-button');
-        saveButtonEl.id = 'pick-location-on-map-save-button';
-        saveButtonEl.textContent = '${i18n.commons().ok()}';
-        saveButtonEl.addEventListener('click', _ => {
-          const markerPosition = this.leafletMarker.getLatLng();
-          setGeoPosition(markerPosition.lat, markerPosition.lng);
-          this.windowEl.close();
-        });
-        smartButtonsEl.prepend(saveButtonEl);
+      }).addTo(this.leafletMap);
+      this.leafletMarker = leafletMarker;
+
+      class CustomMapWindowControls extends L.Control {
+        options = {
+          position: 'topright'
+        };
+
+        onAdd(_) {
+          const container = d.createElement('div');
+          container.id = 'pick-location-on-map-controls';
+          container.classList.add('leaflet-control');
+          const okButton = d.createElement('wa-button');
+          okButton.id = 'ok-pick-location-on-map'
+          okButton.textContent = '${i18n.commons().ok()}';
+          okButton.addEventListener('click', () => {
+            const markerPosition = leafletMarker.getLatLng();
+            setGeoPosition(markerPosition.lat, markerPosition.lng);
+            windowEl.classList.remove('shown');
+          });
+          container.appendChild(okButton);
+          const cancelButton = d.createElement('wa-button');
+          cancelButton.id = 'cancel-pick-location-on-map'
+          cancelButton.textContent = '${i18n.commons().cancel()}';
+          cancelButton.addEventListener('click', () => {
+            windowEl.classList.remove('shown');
+          });
+          container.appendChild(cancelButton);
+          container.addEventListener('click', event => event.stopPropagation());
+          container.addEventListener('wheel', event => event.stopPropagation());
+          return container;
+        }
       }
-      {
-        const defaultButtonEl = document.createElement('wa-button');
-        defaultButtonEl.id = 'pick-location-on-map-default-button';
-        defaultButtonEl.textContent = '${i18n.settings().byDevice()}';
-        defaultButtonEl.addEventListener('click', _ => {
-          setGeoPosition(null, null);
-          this.windowEl.close();
-        });
-        smartButtonsEl.prepend(defaultButtonEl);
-      }
+
+      new CustomMapWindowControls().addTo(this.leafletMap)
+      this.leafletMap.invalidateSize({animate: false});
     },
 
     /**
@@ -1358,10 +1379,10 @@
       if (this.windowEl == null) {
         await this.init(geoPosition, setGeoPosition);
       } else {
+        this.windowEl.classList.add('shown');
         this.leafletMarker.setLatLng([geoPosition.latitude, geoPosition.longitude]);
-        this.leafletMapView.panTo([geoPosition.latitude, geoPosition.longitude]);
+        this.leafletMap.panTo([geoPosition.latitude, geoPosition.longitude]);
       }
-      this.windowEl.open();
     }
   }
 
@@ -1438,7 +1459,9 @@
     apply(latitude, longitude, source) {
       const clean = latitude === null || longitude === null;
       const oldModel = app.adapter.repository.geoPosition.get(source);
-      const newModel = clean ? null : new app.model.GeoPosition(latitude, longitude);
+      const newModel = clean ? null : new app.model.GeoPosition(
+        Math.round(latitude * 1e5) / 1e5,
+        Math.round(longitude * 1e5) / 1e5);
       if (!classes.usecase.location.GetPositionUtils.equals(oldModel, newModel)) {
         app.adapter.repository.geoPosition.set(newModel, source);
         const actualModel = app.usecase.location.GetGeoPosition.apply();
@@ -1513,8 +1536,13 @@
     apply(latitude, longitude, displayName) {
       const hasLocation = latitude != null;
       if (hasLocation) {
+        const text = displayName != null && displayName.trim().length > 0 ? displayName : this.formatWgs84(latitude, longitude);
+        const forgetCustomLocationCallback = app.adapter.repository.geoPosition.get('CUSTOM') == null ? null : () => {
+          app.usecase.location.SetGeoPosition.apply(null, null, 'CUSTOM');
+        };
         app.adapter.dom.settings.location.ValueSection.setTextContent(
-          displayName != null && displayName.trim().length > 0 ? displayName : this.formatWgs84(latitude, longitude)
+          text,
+          forgetCustomLocationCallback
         )
       } else {
         navigator.permissions.query({name: 'geolocation'}).then(p => app.usecase.settings.location.UpdateByPermissionState.apply(p));

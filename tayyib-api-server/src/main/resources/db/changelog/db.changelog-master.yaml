@@ -35,3 +35,6 @@ databaseChangeLog:
   - include:
       relativeToChangelogFile: true
       file: 00012.sql
+  - include:
+      relativeToChangelogFile: true
+      file: 00013.sql

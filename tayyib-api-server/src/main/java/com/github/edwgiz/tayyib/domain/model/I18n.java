@@ -16,6 +16,7 @@ public record I18n(
         Errors errors
 ) {
     public record Commons(
+            String cancel,
             String ok,
             String or
     ) {
@@ -96,14 +97,15 @@ public record I18n(
     public record Settings(
             Location location,
             String timeZone,
-            String byDevice,
             String prayerTimeMethod
     ) {
         public record Location(
                 String label,
                 String pickOnMap,
+                String forgetCustomLocation,
                 Permission permission
         ) {
+
             public record Permission(
                     String changeInBrowser,
                     String grantReason,
