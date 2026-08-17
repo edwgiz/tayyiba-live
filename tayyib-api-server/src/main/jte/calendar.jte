@@ -1364,7 +1364,7 @@
         }
       }
 
-      new CustomMapWindowControls().addTo(this.leafletMap)
+      new CustomMapWindowControls().addTo(this.leafletMap);
       windowEl.classList.add('shown');
       this.leafletMap.invalidateSize({animate: false});
     },

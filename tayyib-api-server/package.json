@@ -1,0 +1,11 @@
+{
+  "name": "@tayyiba-live/tayyib-api-server",
+  "version": "1.0.0",
+  "description": "Linter resources and frontend dependencies for the Tayyib web client.",
+  "private": true,
+  "license": "MIT",
+  "author": "edwgiz <edwgiz@zohomail.eu>",
+  "dependencies": {
+    "@awesome.me/webawesome": "^3.11.0"
+  }
+}
