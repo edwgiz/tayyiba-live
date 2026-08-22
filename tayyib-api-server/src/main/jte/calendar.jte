@@ -517,29 +517,28 @@
       height: min-content;
     }
 
-    div#pick-location-on-map-view {
+    dialog {
+      opacity: 0;
+      background: var(--wa-color-surface-default) !important;
+      transition: opacity 1s ease, display 1s allow-discrete, overlay 1s allow-discrete;
+    }
+
+    dialog:open {
+      opacity: 1;
+      @starting-style {
+        opacity: 0;
+      }
+    }
+
+    dialog.full-screen {
       position: fixed;
       inset: 0;
-      z-index: 9999;
       padding: 0;
       margin: 0;
       border: none;
-      background: var(--wa-color-surface-default) !important;
-      display: none;
-      width: 100%;
-      height: 100%;
-      opacity: 0;
+    }
 
-      transition: opacity 1s ease, display 1s allow-discrete;
-
-      &.shown {
-        opacity: 1;
-        display: block;
-        @starting-style {
-          opacity: 0;
-        }
-      }
-
+    dialog#pick-location-on-map-view {
       div#pick-location-on-map-controls {
         display: flex;
         justify-content: flex-end;
@@ -598,6 +597,7 @@
         <wa-spinner></wa-spinner>
         <wa-button id='pick-location-on-map-button'>${i18n.settings().location().pickOnMap()}</wa-button>
       </div>
+      <dialog id='pick-location-on-map-view' class="full-screen"></dialog>
     </div>
     <div class='settings-location-hidden-dependencies'>
       <div class='settings-label'>${i18n.settings().timeZone()}:</div>
@@ -674,8 +674,6 @@
     </li>
   </ul>
 </footer>
-
-<div id='pick-location-on-map-view'></div>
 
 <div id='page-loading-spinner' class='hidden'>
   <wa-spinner></wa-spinner>
@@ -1310,7 +1308,7 @@
   }
 
   app.adapter.dom.settings.location.changeLocationWindow = {
-    /** @type HTMLElement */
+    /** @type HTMLDialogElement */
     windowEl: null,
     leafletMarker: null,
     leafletMap: null,
@@ -1320,6 +1318,7 @@
      * @param {(latitude: Number|null, longitude: Number|null) => void} setGeoPosition
      */
     async init(geoPosition, setGeoPosition) {
+      /** @type HTMLDialogElement */
       const windowEl = d.getElementById('pick-location-on-map-view');
       this.windowEl = windowEl;
       const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm');
@@ -1348,14 +1347,14 @@
           okButton.addEventListener('click', () => {
             const markerPosition = leafletMarker.getLatLng();
             setGeoPosition(markerPosition.lat, markerPosition.lng);
-            windowEl.classList.remove('shown');
+            windowEl.showModal();
           });
           container.appendChild(okButton);
           const cancelButton = d.createElement('wa-button');
           cancelButton.id = 'cancel-pick-location-on-map'
           cancelButton.textContent = '${i18n.commons().cancel()}';
           cancelButton.addEventListener('click', () => {
-            windowEl.classList.remove('shown');
+            windowEl.close();
           });
           container.appendChild(cancelButton);
           container.addEventListener('click', event => event.stopPropagation());
@@ -1365,7 +1364,7 @@
       }
 
       new CustomMapWindowControls().addTo(this.leafletMap);
-      windowEl.classList.add('shown');
+      windowEl.showModal();
       this.leafletMap.invalidateSize({animate: false});
     },
 
@@ -1379,7 +1378,7 @@
       } else {
         this.leafletMarker.setLatLng([geoPosition.latitude, geoPosition.longitude]);
         this.leafletMap.panTo([geoPosition.latitude, geoPosition.longitude]);
-        this.windowEl.classList.add('shown');
+        this.windowEl.open = true;
         this.leafletMap.invalidateSize({animate: false});
       }
     }
