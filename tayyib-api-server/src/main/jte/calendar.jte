@@ -5,7 +5,7 @@
 @param I18n i18n
 
 <!DOCTYPE html>
-<html lang='en' data-fa-kit-code="tayyiba" class="wa-theme-default wa-palette-default wa-dark wa-brand-green">
+<html lang='en' class="wa-theme-default wa-palette-default wa-dark wa-brand-green">
 <head>
   <link rel='icon' type='image/svg+xml' href='/img/icon.svg'>
   <link rel='canonical' href='https://tayyiba.live/calendar'/>
@@ -43,6 +43,8 @@
   <script type='module'>
     import 'https://unpkg.com/smart-webcomponents@26.0.0/source/modules/smart.dropdownlist.js';
     import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/button/button.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/icon/icon.js';
+    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/input/input.js';
     import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/spinner/spinner.js';
     import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/tooltip/tooltip.js';
   </script>
@@ -68,6 +70,7 @@
       --wa-color-brand-border-normal: var(--wa-color-brand-60);
       --wa-color-brand-border-loud: var(--wa-color-brand-80);
       --wa-color-surface-hover: var(--wa-color-brand-30);
+      --current-backround-color: transparent;
     }
 
 
@@ -91,6 +94,16 @@
       }
     }
 
+    @keyframes form-selectable-hover-animation {
+      from {
+        background-color: var(--wa-color-surface-hover);
+      }
+
+      to {
+        background-color: var(--current-backround-color);
+      }
+    }
+
     html {
       scrollbar-gutter: stable both-edges;
     }
@@ -106,7 +119,7 @@
       padding: 0 1.5ch 0 1.5ch;
     }
 
-    wa-button::part(button):hover, wa-button::part(button):focus, a:hover, a:focus {
+    wa-button::part(button):hover, a:hover {
       animation: form-control-hover-animation 1s ease;
       @starting-style {
         background-color: var(--wa-color-surface-hover);
@@ -216,6 +229,49 @@
 
       &:hover {
         background: var(--wa-color-surface-hover) !important;
+      }
+    }
+
+    div.combobox {
+      display: flex;
+      flex-direction: column;
+      gap: 2ch;
+
+      > *:first-child.combobox-filter {
+        flex: 1 0 contain;
+      }
+
+      > div.combobox-list {
+        flex: 1 9999 stretch;
+        overflow-y: auto;
+        overscroll-behavior: none;
+
+        > div.combobox-list-item {
+          padding: 1ch;
+          margin: 0;
+          cursor: default;
+          white-space: normal !important;
+          overflow-wrap: normal !important;
+          word-break: normal !important;
+
+          &:hover {
+            @media (any-hover: hover) {
+              --current-backround-color: var(--wa-color-neutral-20);
+            }
+            background-color: var(--current-backround-color);
+            animation: form-selectable-hover-animation 1s ease;
+            @starting-style {
+              background-color: var(--wa-color-surface-hover);
+            }
+          }
+        }
+
+        > div.combobox-list-item-selected,
+        > div.combobox-list-item-selected:hover,
+        > div.combobox-list-item-selected {
+          --current-backround-color: var(--wa-color-neutral-30);
+          background-color: var(--current-backround-color);
+        }
       }
     }
 
@@ -518,6 +574,10 @@
     }
 
     dialog {
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      overflow: hidden;
+
       opacity: 0;
       background: var(--wa-color-surface-default) !important;
       transition: opacity 1s ease, display 1s allow-discrete, overlay 1s allow-discrete;
@@ -530,15 +590,65 @@
       }
     }
 
-    dialog.full-screen {
+    dialog.full-screen-dialog {
       position: fixed;
       inset: 0;
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
       padding: 0;
       margin: 0;
       border: none;
     }
 
-    dialog#pick-location-on-map-view {
+    html:has(dialog.full-screen-dialog:open) {
+      overflow: hidden;
+    }
+
+    dialog.dialog-with-actions {
+
+      &:open {
+        display: flex;
+      }
+      flex-direction: column;
+
+      > div.dialog-actions {
+        flex: 0 0 auto;
+        flex-direction: row;
+        display: flex;
+        justify-content: right;
+        gap: 2ch;
+        margin: 1ch;
+        z-index: 1;
+      }
+
+      > div.dialog-content {
+        flex: 1 1 auto;
+        min-height: 0;
+
+        width: fit-content;
+        min-width: min-content;
+        max-width: fit-content;
+        --dialog-content-margin-top: 1ch;
+        margin: var(--dialog-content-margin-top) auto 0;
+      }
+    }
+
+    body {
+      container-type: size;
+      container-name: dialog-with-actions;
+      inline-size: 100%;
+      block-size: 100%;
+    }
+
+    @container dialog-with-actions (min-width: 54ch) {
+      dialog.dialog-with-actions {
+        flex-direction: row-reverse;
+      }
+    }
+
+    dialog#pick-location-on-map-dialog {
       div#pick-location-on-map-controls {
         display: flex;
         justify-content: flex-end;
@@ -597,34 +707,49 @@
         <wa-spinner></wa-spinner>
         <wa-button id='pick-location-on-map-button'>${i18n.settings().location().pickOnMap()}</wa-button>
       </div>
-      <dialog id='pick-location-on-map-view' class="full-screen"></dialog>
+      <dialog id='pick-location-on-map-dialog' class='full-screen-dialog'></dialog>
     </div>
     <div class='settings-location-hidden-dependencies'>
       <div class='settings-label'>${i18n.settings().timeZone()}:</div>
       <div>
-        <smart-drop-down-list id='change-tz-dropdown'></smart-drop-down-list>
+        <span id="settings-timezone-display"></span>
+        <wa-button id='settings-timezone-button'>${i18n.commons().change()}</wa-button>
       </div>
+      <dialog id='settings-timezone-dialog' class='full-screen-dialog dialog-with-actions'>
+        <div class='dialog-actions'>
+          <wa-button id='settings-timezone-ok'>Ok</wa-button>
+          <wa-button id='settings-timezone-cancel'>Cancel</wa-button>
+        </div>
+        <div id='settings-timezone-combobox' class='dialog-content combobox'>
+          <wa-input class='combobox-filter' enterkeyhint='search'>
+            <wa-icon name='search' slot='end'></wa-icon>
+          </wa-input>
+          <div class='combobox-list'></div>
+        </div>
+      </dialog>
     </div>
     <div class='settings-location-hidden-dependencies'>
       <div class='settings-label'>${i18n.settings().prayerTimeMethod()}:</div>
       <div class='settings-prayer-time-method'>
-        <smart-drop-down-list
-          id='change-prayer-time-method-dropdown'
-          filterable
-          width='auto'
-          sorted='true'
-          filter-mode='containsIgnoreCase'
-          selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
-          horizontal-scroll-bar-visibility='hidden'
-          selection-mode='one'>
-          @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
-            <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
-              @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
-                <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
-              @endfor
-            </smart-list-items-group>
-          @endfor
-        </smart-drop-down-list>
+        <%--
+                <smart-drop-down-list
+                  id='change-prayer-time-method-dropdown'
+                  filterable
+                  width='auto'
+                  sorted='true'
+                  filter-mode='containsIgnoreCase'
+                  selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
+                  horizontal-scroll-bar-visibility='hidden'
+                  selection-mode='one'>
+                  @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
+                    <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
+                      @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
+                        <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
+                      @endfor
+                    </smart-list-items-group>
+                  @endfor
+                </smart-drop-down-list>
+        --%>
         <span id='settings-prayer-time-method-label'></span>
       </div>
     </div>
@@ -696,6 +821,7 @@
         ics: {},
         settings: {
           location: {},
+          timezone: {},
           prayerTimeMethod: {}
         },
       },
@@ -1102,33 +1228,121 @@
     }
   }
 
-  app.adapter.dom.settings.timezoneDropdown = {
+  app.adapter.dom.settings.timezone.display = {
+    /** @type HTMLElement */
+    el: d.getElementById('settings-timezone-display'),
+
     /**
-     * @param {String} selectedValue
+     * @param {string} value
      */
-    init(selectedValue) {
-      const dropdownEl = d.getElementById('change-tz-dropdown');
-      dropdownEl.disabled = false;
-      dropdownEl.selectionMode = 'one';
-      dropdownEl.filterable = true;
-      dropdownEl.filterMode = 'containsIgnoreCase';
-      dropdownEl.horizontalScrollBarVisibility = 'hidden';
-      dropdownEl.virtualization = true;
-      dropdownEl.displayMember = 'l';
-      dropdownEl.valueMember = 'v';
-      dropdownEl.dataSource = [{l: selectedValue, v: selectedValue}];
-      dropdownEl.selectedValues = [selectedValue];
-      dropdownEl.addEventListener('open', () => {
-        const selectedValues = dropdownEl.selectedValues;
-        dropdownEl.dataSource = Intl.supportedValuesOf('timeZone').map(v => ({l: v, v: v}));
-        dropdownEl.selectedValues = selectedValues;
-        app.adapter.dom.commons.smartComponents.dropdownUtils.ensureSelectedItemVisible(dropdownEl);
-        dropdownEl.addEventListener('change', (event) => {
-          app.adapter.repository.timezone.set(event.detail.value);
-          app.usecase.formatMonthLabel.init();
-          app.usecase.calendar.reload.apply();
+    set(value) {
+      this.el.textContent = value;
+    }
+  };
+
+  /**
+   * @typedef {HTMLElement & {
+   *   value: string,
+   *   searchKey: string,
+   * }} ComboboxListItemHTMLElement
+   */
+  app.adapter.dom.settings.timezone.dropdown = {
+    /** @type HTMLDialogElement */
+    modalEl: d.getElementById('settings-timezone-dialog'),
+
+    /**
+     * @param {string} selectedValue
+     * @param {(value: string) => void} selectedValueCallback
+     * @param {(value: string) => void} selectedLabelCallback
+     */
+    init(selectedValue, selectedValueCallback, selectedLabelCallback) {
+      const modalEl = this.modalEl;
+      const openButton = d.getElementById('settings-timezone-button');
+      /** @type {ComboboxListItemHTMLElement} */
+      let selectedListItemEl = null
+      openButton.addEventListener('click', () => {
+        /** @type HTMLElement */
+        const comboboxEl = d.getElementById('settings-timezone-combobox');
+        /** @type HTMLElement */
+        const listEl = comboboxEl.querySelector('.combobox-list');
+
+        const onListItemClick = ev => {
+          if (selectedListItemEl) {
+            selectedListItemEl.classList.remove('combobox-list-item-selected');
+          }
+          /** @type {HTMLElement} */
+          const listItemEl = ev.target;
+          listItemEl.classList.add('combobox-list-item-selected')
+          selectedListItemEl = listItemEl;
+        }
+
+
+        /** @type {Array<HTMLElement>} */
+        const listItemElCache = Intl.supportedValuesOf('timeZone').map(v => {
+          /** @type {ComboboxListItemHTMLElement} */
+          const listItemEl = d.createElement('div');
+          listItemEl.value = v;
+          listItemEl.searchKey = v.toUpperCase();
+          const label = v.replaceAll('_', ' ').split('/');
+          const count = label.length - 1;
+          for (let i = 0; i <= count; i++) {
+            const labelItem = label[i];
+            const notLast = i < count;
+            listItemEl.appendChild(d.createTextNode(notLast ? labelItem + '/' : labelItem));
+            if (notLast) {
+              listItemEl.appendChild(d.createElement('wbr'));
+            }
+          }
+          listItemEl.classList.add('combobox-list-item');
+          if(selectedValue === v) {
+            listItemEl.classList.add('combobox-list-item-selected');
+            selectedListItemEl = listItemEl;
+            selectedLabelCallback(selectedListItemEl.textContent);
+          }
+          listItemEl.addEventListener('click', onListItemClick);
+          return listItemEl;
+        });
+        listEl.replaceChildren(...listItemElCache);
+
+        /** @type HTMLElement */
+        const filterEl = comboboxEl.querySelector('.combobox-filter');
+        let oldFilterValue = null;
+        const onFilterChange = ev => {
+          const filterValue = ev.target.value.toUpperCase();
+          if (oldFilterValue !== filterValue) {
+            oldFilterValue = filterValue;
+            for (const el of listItemElCache) {
+              if (el.searchKey.includes(filterValue)) {
+                el.style.removeProperty('display');
+              } else {
+                el.style.display = 'none';
+              }
+            }
+          }
+          selectedListItemEl?.scrollIntoView({block: 'nearest'});
+        };
+        filterEl.defaultValue = '';
+        filterEl.addEventListener('input', onFilterChange);
+        modalEl.showModal();
+        listEl.style.width = listEl.offsetWidth + 'px';
+        listEl.style.maxWidth = '100%';
+        filterEl.dispatchEvent(new Event('input'));
+        selectedListItemEl?.scrollIntoView({block: 'center'});
+        openButton.addEventListener('click', () => {
+          modalEl.showModal();
+          selectedListItemEl?.scrollIntoView({block: 'nearest'});
         });
       }, {once: true});
+      d.getElementById('settings-timezone-ok').addEventListener('click', () => {
+        if(selectedListItemEl) {
+          selectedValueCallback(selectedListItemEl.value);
+          selectedLabelCallback(selectedListItemEl.textContent);
+        }
+        modalEl.close();
+      });
+      d.getElementById('settings-timezone-cancel').addEventListener('click', () => {
+        modalEl.close();
+      });
     }
   }
 
@@ -1154,6 +1368,7 @@
      * @param {EventListener} onChange
      */
     init(oldVal, onChange) {
+      return;
       const el = this.el;
       el.selectedValues = [oldVal];
       el.addEventListener('change', onChange);
@@ -1319,10 +1534,10 @@
      */
     async init(geoPosition, setGeoPosition) {
       /** @type HTMLDialogElement */
-      const windowEl = d.getElementById('pick-location-on-map-view');
+      const windowEl = d.getElementById('pick-location-on-map-dialog');
       this.windowEl = windowEl;
       const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm');
-      this.leafletMap = L.map('pick-location-on-map-view').setView([geoPosition.latitude, geoPosition.longitude], 8);
+      this.leafletMap = L.map('pick-location-on-map-dialog').setView([geoPosition.latitude, geoPosition.longitude], 8);
       L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -1737,8 +1952,13 @@
   });
 
   {// init settings timezone dropdown
-    app.adapter.dom.settings.timezoneDropdown.init(
-      app.usecase.getTimezone.apply());
+    const value = app.usecase.getTimezone.apply();
+    app.adapter.dom.settings.timezone.dropdown.init(value, selectedValue => {
+      app.adapter.repository.timezone.set(selectedValue);
+      app.usecase.formatMonthLabel.init();
+      app.usecase.calendar.reload.apply();
+    }, selectedLabel => app.adapter.dom.settings.timezone.display.set(selectedLabel));
+    app.adapter.dom.settings.timezone.display.set(value);
   }
 
   {// init prayer-time-method dropdown

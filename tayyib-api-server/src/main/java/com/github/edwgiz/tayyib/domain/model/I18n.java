@@ -17,6 +17,7 @@ public record I18n(
 ) {
     public record Commons(
             String cancel,
+            String change,
             String ok,
             String or
     ) {
