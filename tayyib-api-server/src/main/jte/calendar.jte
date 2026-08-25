@@ -90,16 +90,6 @@
       }
 
       to {
-        background-color: transparent;
-      }
-    }
-
-    @keyframes form-selectable-hover-animation {
-      from {
-        background-color: var(--wa-color-surface-hover);
-      }
-
-      to {
         background-color: var(--current-backround-color);
       }
     }
@@ -259,7 +249,7 @@
               --current-backround-color: var(--wa-color-neutral-20);
             }
             background-color: var(--current-backround-color);
-            animation: form-selectable-hover-animation 1s ease;
+            animation: form-control-hover-animation 1s ease;
             @starting-style {
               background-color: var(--wa-color-surface-hover);
             }
@@ -611,6 +601,7 @@
       &:open {
         display: flex;
       }
+
       flex-direction: column;
 
       > div.dialog-actions {
@@ -651,7 +642,7 @@
     dialog#pick-location-on-map-dialog {
       div#pick-location-on-map-controls {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-evenly;
         align-items: center;
         font-size: var(--wa-font-size-m);
         gap: 2ch;
@@ -667,15 +658,31 @@
       height: 100%;
       max-width: 100%;
       max-height: 100%;
+
+      .leaflet-layer,
+      .leaflet-attribution-flag
+      {
+        filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+      }
+
+      .leaflet-control {
+        background: transparent !important;
+        a {
+          --current-backround-color: var(--wa-color-surface-default);
+          color: var(--wa-color-text-normal);
+          background-color: var(--current-backround-color);
+        }
+      }
+      .leaflet-control-attribution {
+        color: var(--wa-color-text-quiet) !important;
+        background: transparent !important;
+      }
+
+      .leaflet-bar a {
+        border-bottom-color: transparent;
+      }
     }
 
-    .leaflet-layer,
-    .leaflet-control-zoom-in,
-    .leaflet-control-zoom-out,
-    .leaflet-control-attribution {
-      filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
-      background: var(--wa-color-surface-default);
-    }
 
     footer {
       color: var(--wa-color-text-quiet);
@@ -1258,8 +1265,10 @@
     init(selectedValue, selectedValueCallback, selectedLabelCallback) {
       const modalEl = this.modalEl;
       const openButton = d.getElementById('settings-timezone-button');
-      /** @type {ComboboxListItemHTMLElement} */
-      let selectedListItemEl = null
+      /** @type {ComboboxListItemHTMLElement|null} */
+      let initialSelectedListItemEl = null;
+      /** @type {ComboboxListItemHTMLElement|null} */
+      let selectedListItemEl = null;
       openButton.addEventListener('click', () => {
         /** @type HTMLElement */
         const comboboxEl = d.getElementById('settings-timezone-combobox');
@@ -1277,7 +1286,7 @@
         }
 
 
-        /** @type {Array<HTMLElement>} */
+        /** @type {Array<ComboboxListItemHTMLElement>} */
         const listItemElCache = Intl.supportedValuesOf('timeZone').map(v => {
           /** @type {ComboboxListItemHTMLElement} */
           const listItemEl = d.createElement('div');
@@ -1294,10 +1303,11 @@
             }
           }
           listItemEl.classList.add('combobox-list-item');
-          if(selectedValue === v) {
+          if (selectedValue === v) {
             listItemEl.classList.add('combobox-list-item-selected');
             selectedListItemEl = listItemEl;
             selectedLabelCallback(selectedListItemEl.textContent);
+            initialSelectedListItemEl = selectedListItemEl;
           }
           listItemEl.addEventListener('click', onListItemClick);
           return listItemEl;
@@ -1334,7 +1344,7 @@
         });
       }, {once: true});
       d.getElementById('settings-timezone-ok').addEventListener('click', () => {
-        if(selectedListItemEl) {
+        if (selectedListItemEl) {
           selectedValueCallback(selectedListItemEl.value);
           selectedLabelCallback(selectedListItemEl.textContent);
         }
@@ -1342,6 +1352,8 @@
       });
       d.getElementById('settings-timezone-cancel').addEventListener('click', () => {
         modalEl.close();
+        selectedListItemEl?.classList.remove('combobox-list-item-selected');
+        initialSelectedListItemEl?.classList.add('combobox-list-item-selected');
       });
     }
   }
@@ -1537,11 +1549,15 @@
       const windowEl = d.getElementById('pick-location-on-map-dialog');
       this.windowEl = windowEl;
       const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm');
-      this.leafletMap = L.map('pick-location-on-map-dialog').setView([geoPosition.latitude, geoPosition.longitude], 8);
-      L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      this.leafletMap = L.map('pick-location-on-map-dialog', {
+        attributionControl: true
+      }).setView([geoPosition.latitude, geoPosition.longitude], 8);
+      this.leafletMap.attributionControl.setPosition('topright');
+      const tileLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
-        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-      }).addTo(this.leafletMap);
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      });
+      tileLayer.addTo(this.leafletMap);
       const leafletMarker = L.marker([geoPosition.latitude, geoPosition.longitude], {
         draggable: true
       }).addTo(this.leafletMap);
@@ -1549,7 +1565,7 @@
 
       class CustomMapWindowControls extends L.Control {
         options = {
-          position: 'topright'
+          position: 'bottomright'
         };
 
         onAdd(_) {
