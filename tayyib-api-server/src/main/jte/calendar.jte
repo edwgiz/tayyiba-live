@@ -572,10 +572,10 @@
     dialog.full-screen-dialog {
       position: fixed;
       inset: 0;
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: 100vw !important;
-      max-height: 100vh !important;
+      width: min(100%, 100vw) !important;
+      height: min(100%, 100vh) !important;
+      max-width: min(100%, 100vw) !important;
+      max-height: min(100%, 100vh) !important;
       padding: 0;
       margin: 0;
       border: none;
@@ -603,7 +603,14 @@
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr min-content;
 
-        background-color: gray;
+        @media (orientation: portrait) {
+          grid-template-areas:
+          'combobox-filter-area'
+          'combobox-list-area'
+          'dialog-controls-area';
+            grid-template-columns: fit-content(100%);
+            grid-template-rows: min-content 1fr min-content;
+        }
 
         > div.combobox-list {
           grid-area: combobox-list-area;
@@ -615,7 +622,9 @@
           margin: var(--combobox-dialog-controls-margin);
 
           > wa-input {
-            width: min(32ch, calc(50vw - var(--combobox-dialog-controls-margin) * 2));
+            @media (orientation: landscape) {
+              max-width: min(32ch, calc(50vw - var(--combobox-dialog-controls-margin) * 2));
+            }
           }
         }
 
@@ -1313,9 +1322,7 @@
         /** @type HTMLElement */
         const listEl = modalEl.querySelector('div.combobox-list');
         const onListItemClick = ev => {
-          if (selectedListItemEl) {
-            selectedListItemEl.classList.remove('combobox-list-item-selected');
-          }
+          selectedListItemEl?.classList.remove('combobox-list-item-selected');
           /** @type {HTMLElement} */
           const listItemEl = ev.target;
           listItemEl.classList.add('combobox-list-item-selected')
@@ -1362,14 +1369,15 @@
         filterEl.addEventListener('input', onFilterChange);
         modalEl.showModal();
         filterEl.dispatchEvent(new Event('input'));
-        initialSelectedListItemEl?.scrollIntoView({block: 'center'});
+        selectedListItemEl?.scrollIntoView({block: 'center'});
         openButton.addEventListener('click', () => {
           modalEl.showModal();
-          initialSelectedListItemEl?.scrollIntoView({block: 'center'});
+          selectedListItemEl?.scrollIntoView({block: 'center'});
         });
       }, {once: true});
       modalEl.querySelector('.combobox-dialog-ok').addEventListener('click', () => {
         if (selectedListItemEl) {
+          initialSelectedListItemEl?.classList.remove('combobox-list-item-selected');
           selectedValueCallback(selectedListItemEl.value);
           propagateLabel(selectedListItemEl);
           initialSelectedListItemEl = selectedListItemEl;
@@ -1379,7 +1387,8 @@
       modalEl.querySelector('.combobox-dialog-cancel').addEventListener('click', () => {
         modalEl.close();
         selectedListItemEl?.classList.remove('combobox-list-item-selected');
-        initialSelectedListItemEl?.classList.add('combobox-list-item-selected');
+        selectedListItemEl = initialSelectedListItemEl;
+        selectedListItemEl?.classList.add('combobox-list-item-selected');
       });
     }
   }
@@ -1393,7 +1402,7 @@
      * @return {string[]}
      */
     getLabel(key) {
-      const item = this.el.items.find(item => item.value === key);
+      const item = this.el?.items.find(item => item.value === key);
       if (item) {
         return [item.label];
       } else {
@@ -1604,7 +1613,7 @@
           okButton.addEventListener('click', () => {
             const markerPosition = leafletMarker.getLatLng();
             setGeoPosition(markerPosition.lat, markerPosition.lng);
-            windowEl.showModal();
+            windowEl.close();
           });
           container.appendChild(okButton);
           const cancelButton = d.createElement('wa-button');
