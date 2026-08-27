@@ -585,74 +585,6 @@
       overflow: hidden;
     }
 
-    dialog.combobox-dialog {
-      > div.combobox {
-
-        height: 100%;
-        min-height: 100%;
-        max-height: 100%;
-        min-width: min-content;
-        width: fit-content;
-        max-width: 100% !important;
-        margin: 0 auto;
-
-        display: grid;
-        grid-template-areas:
-        'combobox-list-area combobox-filter-area'
-        'combobox-list-area dialog-controls-area';
-        grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr min-content;
-
-        @media (orientation: portrait) {
-          grid-template-areas:
-          'combobox-filter-area'
-          'combobox-list-area'
-          'dialog-controls-area';
-            grid-template-columns: fit-content(100%);
-            grid-template-rows: min-content 1fr min-content;
-        }
-
-        > div.combobox-list {
-          grid-area: combobox-list-area;
-        }
-
-        --combobox-dialog-controls-margin: 1ch;
-        > div.combobox-filter {
-          grid-area: combobox-filter-area;
-          margin: var(--combobox-dialog-controls-margin);
-
-          > wa-input {
-            @media (orientation: landscape) {
-              max-width: min(32ch, calc(50vw - var(--combobox-dialog-controls-margin) * 2));
-            }
-          }
-        }
-
-        > div.combobox-dialog-controls {
-          grid-area: dialog-controls-area;
-          flex-direction: row;
-          display: flex;
-          justify-content: right;
-          gap: calc(2 * var(--combobox-dialog-controls-margin));
-          margin: var(--combobox-dialog-controls-margin);
-        }
-      }
-
-    }
-
-    body {
-      container-type: size;
-      container-name: combobox-dialog;
-      inline-size: 100%;
-      block-size: 100%;
-    }
-
-    @container combobox-dialog (min-width: 54ch) {
-      dialog.combobox-dialog {
-        flex-direction: row-reverse;
-      }
-    }
-
     dialog#pick-location-on-map-dialog {
       div#pick-location-on-map-controls {
         display: flex;
@@ -737,45 +669,15 @@
         <span id="settings-timezone-display"></span>
         <wa-button id='settings-timezone-button'>${i18n.commons().change()}</wa-button>
       </div>
-      <dialog id='settings-timezone-dialog' class='full-screen-dialog combobox-dialog'>
-        <div class='combobox'>
-          <div class='combobox-list'></div>
-          <div class='combobox-filter'>
-            <wa-input class='combobox-filter' inputmode='text' enterkeyhint='search'>
-              <wa-icon name='search' slot='end'></wa-icon>
-            </wa-input>
-          </div>
-          <div class='combobox-dialog-controls'>
-            <wa-button class='combobox-dialog-ok'>Ok</wa-button>
-            <wa-button class='combobox-dialog-cancel'>Cancel</wa-button>
-          </div>
-        </div>
-      </dialog>
+      <dialog id='settings-timezone-dialog' class='full-screen-dialog'></dialog>
     </div>
     <div class='settings-location-hidden-dependencies'>
       <div class='settings-label'>${i18n.settings().prayerTimeMethod()}:</div>
       <div class='settings-prayer-time-method'>
-        <%--
-                <smart-drop-down-list
-                  id='change-prayer-time-method-dropdown'
-                  filterable
-                  width='auto'
-                  sorted='true'
-                  filter-mode='containsIgnoreCase'
-                  selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
-                  horizontal-scroll-bar-visibility='hidden'
-                  selection-mode='one'>
-                  @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
-                    <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
-                      @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
-                        <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
-                      @endfor
-                    </smart-list-items-group>
-                  @endfor
-                </smart-drop-down-list>
-        --%>
         <span id='settings-prayer-time-method-label'></span>
+        <wa-button id='settings-prayer-time-method-button'>${i18n.commons().change()}</wa-button>
       </div>
+      <dialog id='settings-prayer-time-method-dialog' class='full-screen-dialog'></dialog>
     </div>
   </section>
   <section id='ics'>
@@ -829,6 +731,8 @@
 </div>
 
 <script type='module'>
+  const d = document;
+
   /*
    * App structure
    */
@@ -888,6 +792,221 @@
   const classes = {
     adapter: {
       dom: {
+        commons: {
+          ComboboxDialog: class {
+            static #css;
+            static {
+              this.#css = new CSSStyleSheet();
+              //language=CSS
+              this.#css.replaceSync(`
+                dialog.combobox-dialog {
+                  > div.combobox {
+                    height: 100%;
+                    min-height: 100%;
+                    max-height: 100%;
+                    min-width: min-content;
+                    width: fit-content;
+                    max-width: 100% !important;
+                    margin: 0 auto;
+
+                    display: grid;
+                    grid-template-areas:
+                      'combobox-list-area combobox-filter-area'
+                      'combobox-list-area dialog-controls-area';
+                    grid-template-columns: 1fr 1fr;
+                    grid-template-rows: 1fr min-content;
+
+                    @media (orientation: portrait) {
+                      grid-template-areas:
+                        'combobox-filter-area'
+                        'combobox-list-area'
+                        'dialog-controls-area';
+                      grid-template-columns: fit-content(100%);
+                      grid-template-rows: min-content 1fr min-content;
+                    }
+
+                    > div.combobox-list {
+                      grid-area: combobox-list-area;
+                    }
+
+                    --combobox-dialog-controls-margin: 1ch;
+
+                    > div.combobox-filter {
+                      grid-area: combobox-filter-area;
+                      margin: var(--combobox-dialog-controls-margin);
+
+                      > wa-input {
+                        @media (orientation: landscape) {
+                          max-width: min(32ch, calc(50vw - var(--combobox-dialog-controls-margin) * 2));
+                        }
+                      }
+                    }
+
+                    > div.combobox-dialog-controls {
+                      grid-area: dialog-controls-area;
+                      flex-direction: row;
+                      display: flex;
+                      justify-content: right;
+                      gap: calc(2 * var(--combobox-dialog-controls-margin));
+                      margin: var(--combobox-dialog-controls-margin);
+                    }
+                  }
+                }`);
+              d.adoptedStyleSheets = [...d.adoptedStyleSheets, this.#css];
+            }
+
+            /**
+             * @param {HTMLElement} openButtonEl
+             * @param {HTMLDialogElement} dialogEl
+             * @param {object[]} dataItems
+             * @param {(dataItem: object, targetNode: HTMLElement|DocumentFragment) => void} appendDataItemLabelFn
+             * @param {(dataItem: object) => string} getDataItemValueFn
+             * @param {string} selectedValue
+             * @param {(value: string) => void} selectedValueCallback
+             * @param {(label: DocumentFragment) => void} selectedLabelCallback
+             * @param {(label: DocumentFragment) => void} selectedLabelCallback
+             */
+            static init(openButtonEl, dialogEl, dataItems, appendDataItemLabelFn, getDataItemValueFn, selectedValue, selectedValueCallback, selectedLabelCallback) {
+              dialogEl.classList.add('combobox-dialog');
+              /** @type HTMLElement */
+              const listEl = d.createElement('div');
+              /** type {WaInput} */
+              const filterInputEl = d.createElement('wa-input');
+              const okControlEl = d.createElement('wa-button');
+              const cancelControlEl = d.createElement('wa-button');
+              {
+                const comboboxEl = d.createElement('div');
+                comboboxEl.classList.add('combobox');
+                {
+                  listEl.classList.add('combobox-list');
+                  comboboxEl.appendChild(listEl);
+                }
+                {
+                  const filterEl = d.createElement('div');
+                  filterEl.classList.add('combobox-filter');
+                  {
+                    /** @type WaInput */
+                    filterInputEl.classList.add('combobox-filter');
+                    filterInputEl.inputmode = 'text';
+                    filterInputEl.enterkeyhint = 'search';
+                    {
+                      /** @type WaIcon */
+                      const filterIconEl = d.createElement('wa-icon');
+                      filterIconEl.name = 'search';
+                      filterIconEl.slot = 'end';
+                      filterInputEl.appendChild(filterIconEl);
+                    }
+                    filterEl.appendChild(filterInputEl);
+                  }
+                  comboboxEl.appendChild(filterEl);
+                }
+                {
+                  const controlsEl = d.createElement('div');
+                  controlsEl.classList.add('combobox-dialog-controls');
+                  {
+                    okControlEl.textContent = '${i18n.commons().ok()}';
+                    controlsEl.appendChild(okControlEl);
+                  }
+                  {
+                    cancelControlEl.textContent = '${i18n.commons().cancel()}';
+                    controlsEl.appendChild(cancelControlEl);
+                  }
+                  comboboxEl.appendChild(controlsEl);
+                }
+                dialogEl.appendChild(comboboxEl);
+              }
+
+              /** @type {ComboboxListItemHTMLElement|null} */
+              let initialSelectedListItemEl = null;
+              /** @type {ComboboxListItemHTMLElement|null} */
+              let selectedListItemEl = null;
+
+              const onListItemClick = ev => {
+                selectedListItemEl?.classList.remove('combobox-list-item-selected');
+                /** @type {HTMLElement} */
+                const listItemEl = ev.target;
+                listItemEl.classList.add('combobox-list-item-selected')
+                selectedListItemEl = listItemEl;
+              }
+
+              /**
+               * @typedef {HTMLElement & {
+               *   value: string,
+               *   searchKey: string,
+               * }} ComboboxListItemHTMLElement
+               */
+              /** @type {Array<ComboboxListItemHTMLElement>} */
+              const listItemEls = dataItems.map(dataItem => {
+                /** @type {ComboboxListItemHTMLElement} */
+                const listItemEl = d.createElement('div');
+                const value = getDataItemValueFn(dataItem);
+                listItemEl.value = value;
+                appendDataItemLabelFn(dataItem, listItemEl);
+                listItemEl.searchKey = listItemEl.textContent.toUpperCase();
+                listItemEl.classList.add('combobox-list-item');
+                if (selectedValue === value) {
+                  listItemEl.classList.add('combobox-list-item-selected');
+                  selectedListItemEl = listItemEl;
+                  initialSelectedListItemEl = selectedListItemEl;
+
+                  /** @type DocumentFragment */
+                  const labelDocumentFragment = document.createDocumentFragment();
+                  appendDataItemLabelFn(selectedValue, labelDocumentFragment);
+                  selectedLabelCallback(labelDocumentFragment);
+                }
+                listItemEl.addEventListener('click', onListItemClick);
+                return listItemEl;
+              });
+
+              openButtonEl.addEventListener('click', () => {
+                listEl.replaceChildren(...listItemEls);
+
+                let oldFilterValue = null;
+                const onFilterChange = ev => {
+                  const filterValue = ev.target.value.toUpperCase();
+                  if (oldFilterValue !== filterValue) {
+                    oldFilterValue = filterValue;
+                    for (const el of listItemEls) {
+                      if (el.searchKey.includes(filterValue)) {
+                        el.style.removeProperty('display');
+                      } else {
+                        el.style.display = 'none';
+                      }
+                    }
+                  }
+                  selectedListItemEl?.scrollIntoView({block: 'nearest'});
+                };
+                filterInputEl.defaultValue = '';
+                filterInputEl.addEventListener('input', onFilterChange);
+                dialogEl.showModal();
+                filterInputEl.dispatchEvent(new Event('input'));
+                selectedListItemEl?.scrollIntoView({block: 'center'});
+                openButtonEl.addEventListener('click', () => {
+                  dialogEl.showModal();
+                  selectedListItemEl?.scrollIntoView({block: 'center'});
+                });
+              }, {once: true});
+              okControlEl.addEventListener('click', () => {
+                if (selectedListItemEl) {
+                  initialSelectedListItemEl?.classList.remove('combobox-list-item-selected');
+                  selectedValueCallback(selectedListItemEl.value);
+                  /** @type HTMLTemplateElement */
+                  const templateEl = d.createElement('template');
+                  templateEl.innerHTML = selectedListItemEl.innerHTML;
+                  selectedLabelCallback(templateEl.content);
+                  initialSelectedListItemEl = selectedListItemEl;
+                }
+                dialogEl.close();
+              });
+              cancelControlEl.addEventListener('click', () => {
+                dialogEl.close();
+                selectedListItemEl?.classList.remove('combobox-list-item-selected');
+                selectedListItemEl = initialSelectedListItemEl;
+                selectedListItemEl?.classList.add('combobox-list-item-selected');
+              });
+            }
+          }
+        },
         settings: {
           LocationDependencies: class {
             #className = 'settings-location-hidden-dependencies';
@@ -1027,8 +1146,6 @@
       return localStorage.getItem('prayerTimeMethod');
     },
   }
-
-  const d = document;
 
   app.adapter.dom.pageLoadingSpinner = {
     el: d.getElementById('page-loading-spinner'),
@@ -1263,135 +1380,6 @@
       this.el.replaceChildren(label);
     }
   };
-
-  /**
-   * @typedef {HTMLElement & {
-   *   value: string,
-   *   searchKey: string,
-   * }} ComboboxListItemHTMLElement
-   */
-  app.adapter.dom.settings.timezone.dropdown = {
-    /** @type HTMLDialogElement */
-    modalEl: d.getElementById('settings-timezone-dialog'),
-
-    /**
-     * @param {string} selectedValue
-     * @param {(value: string) => void} selectedValueCallback
-     * @param {(label: DocumentFragment) => void} selectedLabelCallback
-     */
-    init(selectedValue, selectedValueCallback, selectedLabelCallback) {
-      /** @type {(listItemEl: HTMLElement) => void} */
-      const propagateLabel = (listItemEl) => {
-        /** @type HTMLTemplateElement */
-        const templateEl = document.createElement('template');
-        templateEl.innerHTML = listItemEl.innerHTML;
-        selectedLabelCallback(templateEl.content);
-      };
-
-      /**
-       * @param {string} value
-       * @param {HTMLElement | DocumentFragment} targetNode
-       */
-      const appendLabel = (value, targetNode) => {
-        const label = value.replaceAll('_', ' ').split('/');
-        const count = label.length - 1;
-        for (let i = 0; i <= count; i++) {
-          const labelItem = label[i];
-          const notLast = i < count;
-          targetNode.appendChild(d.createTextNode(notLast ? labelItem + '/' : labelItem));
-          if (notLast) {
-            targetNode.appendChild(d.createElement('wbr'));
-          }
-        }
-      };
-
-      {
-        /** @type DocumentFragment */
-        const labelDocumentFragment = document.createDocumentFragment();
-        appendLabel(selectedValue, labelDocumentFragment);
-        selectedLabelCallback(labelDocumentFragment);
-      }
-
-      const modalEl = this.modalEl;
-      const openButton = d.getElementById('settings-timezone-button');
-      /** @type {ComboboxListItemHTMLElement|null} */
-      let initialSelectedListItemEl = null;
-      /** @type {ComboboxListItemHTMLElement|null} */
-      let selectedListItemEl = null;
-      openButton.addEventListener('click', () => {
-        /** @type HTMLElement */
-        const listEl = modalEl.querySelector('div.combobox-list');
-        const onListItemClick = ev => {
-          selectedListItemEl?.classList.remove('combobox-list-item-selected');
-          /** @type {HTMLElement} */
-          const listItemEl = ev.target;
-          listItemEl.classList.add('combobox-list-item-selected')
-          selectedListItemEl = listItemEl;
-        }
-
-
-        /** @type {Array<ComboboxListItemHTMLElement>} */
-        const listItemElCache = Intl.supportedValuesOf('timeZone').map(v => {
-          /** @type {ComboboxListItemHTMLElement} */
-          const listItemEl = d.createElement('div');
-          listItemEl.value = v;
-          listItemEl.searchKey = v.toUpperCase();
-          appendLabel(v, listItemEl);
-          listItemEl.classList.add('combobox-list-item');
-          if (selectedValue === v) {
-            listItemEl.classList.add('combobox-list-item-selected');
-            selectedListItemEl = listItemEl;
-            initialSelectedListItemEl = selectedListItemEl;
-          }
-          listItemEl.addEventListener('click', onListItemClick);
-          return listItemEl;
-        });
-        listEl.replaceChildren(...listItemElCache);
-
-        let oldFilterValue = null;
-        const onFilterChange = ev => {
-          const filterValue = ev.target.value.toUpperCase();
-          if (oldFilterValue !== filterValue) {
-            oldFilterValue = filterValue;
-            for (const el of listItemElCache) {
-              if (el.searchKey.includes(filterValue)) {
-                el.style.removeProperty('display');
-              } else {
-                el.style.display = 'none';
-              }
-            }
-          }
-          selectedListItemEl?.scrollIntoView({block: 'nearest'});
-        };
-        /** @type HTMLElement */
-        const filterEl = modalEl.querySelector('wa-input.combobox-filter');
-        filterEl.defaultValue = '';
-        filterEl.addEventListener('input', onFilterChange);
-        modalEl.showModal();
-        filterEl.dispatchEvent(new Event('input'));
-        selectedListItemEl?.scrollIntoView({block: 'center'});
-        openButton.addEventListener('click', () => {
-          modalEl.showModal();
-          selectedListItemEl?.scrollIntoView({block: 'center'});
-        });
-      }, {once: true});
-      modalEl.querySelector('.combobox-dialog-ok').addEventListener('click', () => {
-        if (selectedListItemEl) {
-          initialSelectedListItemEl?.classList.remove('combobox-list-item-selected');
-          selectedValueCallback(selectedListItemEl.value);
-          propagateLabel(selectedListItemEl);
-          initialSelectedListItemEl = selectedListItemEl;
-        }
-        modalEl.close();
-      });
-      modalEl.querySelector('.combobox-dialog-cancel').addEventListener('click', () => {
-        modalEl.close();
-        selectedListItemEl?.classList.remove('combobox-list-item-selected');
-        selectedListItemEl = initialSelectedListItemEl;
-        selectedListItemEl?.classList.add('combobox-list-item-selected');
-      });
-    }
-  }
 
   app.adapter.dom.settings.prayerTimeMethod.dropdown = {
     /** @type {SmartDropdownElement} */
@@ -2002,9 +1990,27 @@
     await app.usecase.settings.location.pickOnMap.apply();
   });
 
-  {// init settings timezone dropdown
-    const value = app.usecase.getTimezone.apply();
-    app.adapter.dom.settings.timezone.dropdown.init(value, selectedValue => {
+  {// init: settings / timezone / combobox dialog
+    const currentValue = app.usecase.getTimezone.apply();
+    classes.adapter.dom.commons.ComboboxDialog.init(
+      d.getElementById('settings-timezone-button'),
+      d.getElementById('settings-timezone-dialog'),
+      Intl.supportedValuesOf('timeZone'),
+      (dataItem, targetNode) => {
+        const label = dataItem.toString().replaceAll('_', ' ').split('/');
+        const count = label.length - 1;
+        for (let i = 0; i <= count; i++) {
+          const labelItem = label[i];
+          const notLast = i < count;
+          targetNode.appendChild(d.createTextNode(notLast ? labelItem + '/' : labelItem));
+          if (notLast) {
+            targetNode.appendChild(d.createElement('wbr'));
+          }
+        }
+      },
+      dataItem => dataItem.toString(),
+      currentValue,
+      selectedValue => {
         app.adapter.repository.timezone.set(selectedValue);
         app.usecase.formatMonthLabel.init();
         app.usecase.calendar.reload.apply();
@@ -2022,8 +2028,56 @@
       app.adapter.repository.prayerTimeMethod.set(e.target.selectedValues[0])
       app.usecase.calendar.reload.apply();
     };
+
+    classes.adapter.dom.commons.ComboboxDialog.init(
+      d.getElementById('settings-timezone-button'),
+      d.getElementById('settings-timezone-dialog'),
+      Intl.supportedValuesOf('timeZone'),
+      (dataItem, targetNode) => {
+        const label = dataItem.toString().replaceAll('_', ' ').split('/');
+        const count = label.length - 1;
+        for (let i = 0; i <= count; i++) {
+          const labelItem = label[i];
+          const notLast = i < count;
+          targetNode.appendChild(d.createTextNode(notLast ? labelItem + '/' : labelItem));
+          if (notLast) {
+            targetNode.appendChild(d.createElement('wbr'));
+          }
+        }
+      },
+      dataItem => dataItem.toString(),
+      oldVal,
+      selectedValue => {
+        app.adapter.repository.timezone.set(selectedValue);
+        app.usecase.formatMonthLabel.init();
+        app.usecase.calendar.reload.apply();
+      },
+      selectedLabel => app.adapter.dom.settings.timezone.display.set(selectedLabel));
+
     app.adapter.dom.settings.prayerTimeMethod.dropdown.init(oldVal, onChange);
   }
+  /*
+          <%--
+                <smart-drop-down-list
+                  id='change-prayer-time-method-dropdown'
+                  filterable
+                  width='auto'
+                  sorted='true'
+                  filter-mode='containsIgnoreCase'
+                  selected-values='["${PrayerTimeMethod.AUTO_BY_LOCATION}"]'
+                  horizontal-scroll-bar-visibility='hidden'
+                  selection-mode='one'>
+                  @for(var prayerTimeMethodGroup : i18n.prayerTimeMethodGroups().values())
+                    <smart-list-items-group label='${prayerTimeMethodGroup.name()}'>
+                      @for(var e : prayerTimeMethodGroup.methodNames().entrySet())
+                        <smart-list-item value='${e.getKey()}'>${e.getValue()}</smart-list-item>
+                      @endfor
+                    </smart-list-items-group>
+                  @endfor
+                </smart-drop-down-list>
+        --%>
+
+   */
 
 </script>
 </body>
