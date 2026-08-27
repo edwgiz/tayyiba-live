@@ -496,17 +496,6 @@
       }
     }
 
-    span.smart-list-items-group-label {
-      font-size: 0.833rem !important;
-      text-align: right !important;
-      display: inline-block;
-      color: var(--wa-color-text-quiet) !important;
-      margin: 0 !important;
-      padding: 0 !important;
-      cursor: default;
-      height: min-content;
-    }
-
     dialog {
       max-width: 100vw !important;
       max-height: 100vh !important;
@@ -592,7 +581,7 @@
     }
   </style>
 </head>
-<body theme='dark'>
+<body>
 <header>
   <h1>
     <img alt='Khatim icon' style='height: 2ch; vertical-align: center' src='/img/logo.svg'>
@@ -695,9 +684,7 @@
     model: {},
     adapter: {
       dom: {
-        commons: {
-          smartComponents: {}
-        },
+        commons: {},
         calendar: {
           monthFolding: {}
         },
@@ -1016,7 +1003,7 @@
              */
             /** @type ComboboxListItemHTMLElement[] */
             let listItemEls;
-            if(data instanceof classes.model.commons.list.Data) {
+            if (data instanceof classes.model.commons.list.Data) {
               listItemEls = [];
               for (const group of data.groups) {
                 /** @type ComboboxListGroupHTMLElement */
@@ -1049,7 +1036,7 @@
                   for (const el of listItemEls) {
                     if (el.searchKey?.includes(filterValue)) {
                       el.style.removeProperty('display');
-                      if(el.groupEl) {
+                      if (el.groupEl) {
                         el.groupEl.filteredItemsCount++;
                       }
                     } else {
@@ -1058,7 +1045,7 @@
                   }
                 }
                 listGroupEls.forEach(groupEl => {
-                  if(groupEl.filteredItemsCount > 0) {
+                  if (groupEl.filteredItemsCount > 0) {
                     groupEl.style.removeProperty('display');
                   } else {
                     groupEl.style.display = 'none';
