@@ -30,16 +30,39 @@
             "url": "https://calendar.tayyiba.live/"
         }
   </script>
-  <link rel='stylesheet' href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css' type='text/css'/>
-  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/themes/default.css"/>
-  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/color/palettes/default.css"/>
-  <link rel="stylesheet" href="https://ka-f.webawesome.com/webawesome@3.11.0/styles/color/variants/brand.css"/>
+  <link rel='stylesheet' href='/leaflet/dist/leaflet.css'/>
+  <link rel="stylesheet" href="/@awesome.me/webawesome/dist/styles/themes/default.css"/>
+  <script type="importmap">
+    {
+      "imports": {
+        "@floating-ui/core": "/@floating-ui/core/dist/floating-ui.core.esm.js",
+        "@floating-ui/dom": "/@floating-ui/dom/dist/floating-ui.dom.esm.js",
+        "@floating-ui/utils": "/@floating-ui/utils/dist/floating-ui.utils.esm.js",
+        "@floating-ui/utils/dom": "/@floating-ui/utils/dom/floating-ui.utils.dom.esm.js",
+        "@lit/reactive-element": "/@lit/reactive-element/reactive-element.js",
+        "@lit/reactive-element/": "/@lit/reactive-element/",
+        "@shoelace-style/localize": "/@shoelace-style/localize/dist/index.js",
+        "@shoelace-style/localize/": "/@shoelace-style/localize/dist/",
+        "composed-offset-position": "/composed-offset-position/dist/composed-offset-position.esm.js",
+        "lit": "/lit/index.js",
+        "lit-element": "/lit-element/lit-element.js",
+        "lit-element/": "/lit-element/",
+        "lit-html": "/lit-html/lit-html.js",
+        "lit-html/": "/lit-html/",
+        "lit/": "/lit/",
+        "nanoid": "/nanoid/index.browser.js",
+        "nanoid/": "/nanoid/"
+      }
+    }
+  </script>
   <script type='module'>
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/button/button.js';
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/icon/icon.js';
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/input/input.js';
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/spinner/spinner.js';
-    import 'https://ka-f.webawesome.com/webawesome@3.11.0/components/tooltip/tooltip.js';
+    import '/@awesome.me/webawesome/dist/components/button/button.js';
+    import { setIconPath } from '/@awesome.me/webawesome/dist/utilities/base-path.js';
+    setIconPath('@raw@fortawesome/fontawesome-free/svgs@endraw');
+    import '/@awesome.me/webawesome/dist/components/icon/icon.js';
+    import '/@awesome.me/webawesome/dist/components/input/input.js';
+    import '/@awesome.me/webawesome/dist/components/spinner/spinner.js';
+    import '/@awesome.me/webawesome/dist/components/tooltip/tooltip.js';
   </script>
 
   <title>${i18n.fasting().head().title()}</title>
@@ -497,8 +520,8 @@
     }
 
     dialog {
-      max-width: 100vw !important;
-      max-height: 100vh !important;
+      max-width: min(100vw, 100%) !important;
+      max-height: min(100vh, 100%) !important;
       overflow: hidden;
 
       opacity: 0;
@@ -518,8 +541,6 @@
       inset: 0;
       width: min(100%, 100vw) !important;
       height: min(100%, 100vh) !important;
-      max-width: min(100%, 100vw) !important;
-      max-height: min(100%, 100vh) !important;
       padding: 0;
       margin: 0;
       border: none;
@@ -842,7 +863,7 @@
                       color: var(--wa-color-text-quiet);
                       text-align: right;
                       margin: 0;
-                      padding: 1ch 0 0;
+                      padding: 1ch 1ch 0 0;
                     }
 
                     > div.combobox-list-item {
@@ -1682,7 +1703,7 @@
       /** @type HTMLDialogElement */
       const windowEl = d.getElementById('pick-location-on-map-dialog');
       this.windowEl = windowEl;
-      const L = await import('https://cdn.jsdelivr.net/npm/leaflet@1.9.4/+esm');
+      await import('/leaflet/dist/leaflet.js');
       this.leafletMap = L.map('pick-location-on-map-dialog', {
         attributionControl: true
       }).setView([geoPosition.latitude, geoPosition.longitude], 8);

@@ -28,3 +28,4 @@ buildNumber.properties
 .idea/dataSources.local.xml
 
 /tayyib-api-server/node_modules/
+/tayyib-api-server/node/

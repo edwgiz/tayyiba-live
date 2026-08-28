@@ -90,12 +90,160 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>com.github.eirslett</groupId>
+                <artifactId>frontend-maven-plugin</artifactId>
+                <version>1.15.0</version>
+                <executions>
+                    <execution>
+                        <id>install node and npm</id>
+                        <goals>
+                            <goal>install-node-and-npm</goal>
+                        </goals>
+                        <configuration>
+                            <nodeVersion>v24.20.0</nodeVersion>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>npm install</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>install</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-frontend-assets</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/webapp/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${pom.basedir}/node_modules</directory>
+                                    <includes>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.3CFUTVFX.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.3NKIHICW.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.4ZAKP7NY.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.5LXXXELE.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.7VGCIHDG.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.52WA2DJO.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.56IHH3HP.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.64OG2H45.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.A65YRABB.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.AFPI375Q.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.AOKMSJXD.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.DJLBC7Q4.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.DVA7QY5T.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.F25QOBDY.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.G5ZZIGWB.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.HGBRCPUS.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.HS5AYC6E.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.I2BZQ4AT.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.IHLP7D3G.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.JTOY5KP3.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.KBXNFZQL.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.KKI7M5DP.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.KNJT7KBU.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.KQHZRDPB.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.L6CIKOFQ.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.LDM2MW63.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.MQODJ75V.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.NUVDWQN5.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.O74G5RVH.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.PX3HMKF7.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.PZAN6FPN.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.R7QX4M6R.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.RPQJAXXR.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.RWNXKUCF.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.VC3BPUZJ.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.W7A2VLCT.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.W7QZX2CB.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.WDIIGUNP.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.XNTP7DEQ.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.YDQCS2HK.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.ZCZ2WKQR.js</include>
+                                        <include>@awesome.me/webawesome/dist/chunks/chunk.ZWQCGLB5.js</include>
+                                        <include>@awesome.me/webawesome/dist/components/button/button.js</include>
+                                        <include>@awesome.me/webawesome/dist/components/icon/icon.js</include>
+                                        <include>@awesome.me/webawesome/dist/components/input/input.js</include>
+                                        <include>@awesome.me/webawesome/dist/components/spinner/spinner.js</include>
+                                        <include>@awesome.me/webawesome/dist/components/tooltip/tooltip.js</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/palettes/base.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/palettes/default.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/variants.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/variants/brand.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/variants/danger.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/variants/neutral.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/variants/success.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/color/variants/warning.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/layers.css</include>
+                                        <include>@awesome.me/webawesome/dist/styles/themes/default.css</include>
+                                        <include>@awesome.me/webawesome/dist/utilities/base-path.js</include>
+                                        <include>@floating-ui/core/dist/floating-ui.core.esm.js</include>
+                                        <include>@floating-ui/dom/dist/floating-ui.dom.esm.js</include>
+                                        <include>@floating-ui/utils/dist/floating-ui.utils.esm.js</include>
+                                        <include>@floating-ui/utils/dom/floating-ui.utils.dom.esm.js</include>
+                                        <include>@fortawesome/fontawesome-free/svgs/solid/search.svg</include><!-- TODO -->
+                                        <include>@lit/reactive-element/css-tag.js</include>
+                                        <include>@lit/reactive-element/decorators/base.js</include>
+                                        <include>@lit/reactive-element/decorators/custom-element.js</include>
+                                        <include>@lit/reactive-element/decorators/event-options.js</include>
+                                        <include>@lit/reactive-element/decorators/property.js</include>
+                                        <include>@lit/reactive-element/decorators/query-all.js</include>
+                                        <include>@lit/reactive-element/decorators/query-assigned-elements.js</include>
+                                        <include>@lit/reactive-element/decorators/query-assigned-nodes.js</include>
+                                        <include>@lit/reactive-element/decorators/query-async.js</include>
+                                        <include>@lit/reactive-element/decorators/query.js</include>
+                                        <include>@lit/reactive-element/decorators/state.js</include>
+                                        <include>@lit/reactive-element/reactive-element.js</include>
+                                        <include>@shoelace-style/localize/dist/index.js</include>
+                                        <include>composed-offset-position/dist/composed-offset-position.esm.js</include>
+                                        <include>leaflet/dist/images/marker-icon-2x.png</include>
+                                        <include>leaflet/dist/images/marker-icon.png</include>
+                                        <include>leaflet/dist/images/marker-shadow.png</include>
+                                        <include>leaflet/dist/leaflet.css</include>
+                                        <include>leaflet/dist/leaflet.js</include>
+                                        <include>lit-element/lit-element.js</include>
+                                        <include>lit-html/directive-helpers.js</include>
+                                        <include>lit-html/directive.js</include>
+                                        <include>lit-html/directives/class-map.js</include>
+                                        <include>lit-html/directives/if-defined.js</include>
+                                        <include>lit-html/directives/live.js</include>
+                                        <include>lit-html/is-server.js</include>
+                                        <include>lit-html/lit-html.js</include>
+                                        <include>lit-html/static.js</include>
+                                        <include>lit/decorators.js</include>
+                                        <include>lit/directive-helpers.js</include>
+                                        <include>lit/directives/class-map.js</include>>
+                                        <include>lit/directives/if-defined.js</include>>
+                                        <include>lit/directives/live.js</include>
+                                        <include>lit/index.js</include>
+                                        <include>lit/static-html.js</include>
+                                        <include>nanoid/index.browser.js</include>
+                                        <include>nanoid/url-alphabet/index.js</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>io.github.edwgiz.maven</groupId>
@@ -120,6 +268,7 @@
                                 <include>**/*.html</include>
                                 <include>**/*.css</include>
                                 <include>**/*.js</include>
+                                <include>**/*.svg</include>
                             </includes>
                         </resource>
                     </resources>
