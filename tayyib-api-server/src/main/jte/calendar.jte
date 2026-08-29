@@ -57,12 +57,13 @@
   </script>
   <script type='module'>
     import '/@awesome.me/webawesome/dist/components/button/button.js';
-    import { setIconPath } from '/@awesome.me/webawesome/dist/utilities/base-path.js';
-    setIconPath('@raw@fortawesome/fontawesome-free/svgs@endraw');
+    import {setIconPath} from '/@awesome.me/webawesome/dist/utilities/base-path.js';
     import '/@awesome.me/webawesome/dist/components/icon/icon.js';
     import '/@awesome.me/webawesome/dist/components/input/input.js';
     import '/@awesome.me/webawesome/dist/components/spinner/spinner.js';
     import '/@awesome.me/webawesome/dist/components/tooltip/tooltip.js';
+
+    setIconPath('@raw@fortawesome/fontawesome-free/svgs@endraw');
   </script>
 
   <title>${i18n.fasting().head().title()}</title>
@@ -338,7 +339,7 @@
             padding-bottom: 0.3em;
             --hijri-color: var(--wa-color-brand);
 
-            &:has(>div.calendar-grid-cell-fasting, >div.calendar-grid-cell-fasting-undefined) {
+            &:has(>div.calendar-grid-cell-fasting) {
               background-image: linear-gradient(
                 to bottom,
                 transparent 0,
@@ -351,8 +352,7 @@
               padding: 0;
 
               &.calendar-grid-cell-hijri-month,
-              &.calendar-grid-cell-fasting,
-              &.calendar-grid-cell-fasting-undefined {
+              &.calendar-grid-cell-fasting {
                 font-size: min(var(--wa-font-size-s), 2.7vw);
                 overflow: visible;
               }
@@ -368,32 +368,32 @@
                 color: var(--hijri-color);
               }
 
-              &.calendar-grid-cell-fasting, &.calendar-grid-cell-fasting-undefined {
+              &.calendar-grid-cell-fasting {
                 color: var(--wa-color-text-normal);
                 font-variant-numeric: tabular-nums;
-              }
-            }
 
-            > wa-tooltip {
-              --wa-tooltip-background-color: var(--wa-color-surface-hover);
-              --wa-tooltip-border-color: var(--wa-color-brand-50);
+                > wa-tooltip {
+                  --wa-tooltip-background-color: var(--wa-color-surface-hover);
+                  --wa-tooltip-border-color: var(--wa-color-brand-50);
 
-              > ul {
-                margin: 0;
-                padding-left: 0;
-                list-style-type: none;
-                list-style-position: inside;
+                  > ul {
+                    margin: 0;
+                    padding-left: 0;
+                    list-style-type: none;
+                    list-style-position: inside;
 
-                > li {
-                  margin: 0.4em;
+                    > li {
+                      margin: 0.4em;
 
-                  > a {
-                    &:hover {
-                      color: #ffffff !important;
-                    }
+                      > a {
+                        &:hover {
+                          color: #ffffff !important;
+                        }
 
-                    &:visited {
-                      color: var(--wa-color-text-link);
+                        &:visited {
+                          color: var(--wa-color-text-link);
+                        }
+                      }
                     }
                   }
                 }
@@ -852,6 +852,12 @@
                         'dialog-controls-area';
                     grid-template-columns: fit-content(100%);
                     grid-template-rows: min-content 1fr min-content;
+
+                    > div.combobox-list {
+                      border-style: solid none;
+                      border-width: var(--wa-border-width-s);
+                      border-color: var(--wa-color-neutral-border-loud);
+                    }
                   }
 
                   > div.combobox-list {
@@ -1488,47 +1494,53 @@
           cellEl.appendChild(hijriDateEl);
         }
         const fastingEvents = this.getFastingEvents(dto, day);
-        for (const fastingEvent of fastingEvents) {
-          const fastingEl = d.createElement('div');
-          if (fastingEvent.startMinute || fastingEvent.endMinute) {
-            fastingEl.classList.add('calendar-grid-cell-fasting');
-            fastingEl.textContent = this.formatMinutes(fastingEvent.startMinute, '${i18n.calendar().event().fajr()}')
-              + '…'
-              + this.formatMinutes(fastingEvent.endMinute, '${i18n.calendar().event().sunset()}');
-          } else {
-            fastingEl.classList.add('calendar-grid-cell-fasting-undefined')
-            fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
-            if (!hasLocation) {
-              fastingEl.appendChild(d.createTextNode('…'));
+        if (fastingEvents.length > 0) {
+          const fastingEventsEl = d.createElement('div');
+          fastingEventsEl.classList.add('calendar-grid-cell-fasting');
+          for (const fastingEvent of fastingEvents) {
+            const fastingEl = d.createElement('div');
+            if (fastingEvent.startMinute || fastingEvent.endMinute) {
+              fastingEl.textContent = this.formatMinutes(fastingEvent.startMinute, '${i18n.calendar().event().fajr()}')
+                + '…'
+                + this.formatMinutes(fastingEvent.endMinute, '${i18n.calendar().event().sunset()}');
             } else {
-              fastingEl.appendChild(d.createElement('wa-spinner'));
+              fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().fajr()}'));
+              if (!hasLocation) {
+                fastingEl.appendChild(d.createTextNode('…'));
+              } else {
+                fastingEl.appendChild(d.createElement('wa-spinner'));
+              }
+              fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
             }
-            fastingEl.appendChild(d.createTextNode('${i18n.calendar().event().sunset()}'));
+            fastingEventsEl.appendChild(fastingEl);
           }
-          cellEl.appendChild(fastingEl);
-          const tooltip = d.createElement('wa-tooltip');
-          tooltip.for = cellElId;
-          tooltip.placement = 'bottom';
-          tooltip.distance = 0;
-          const tooltipContent = d.createElement('ul');
-          const reasonIds = new Set();
-          for (const calendarEvent of day.events) {
-            for (const reasonView of calendarEvent.reasonViews) {
-              if (!reasonIds.has(reasonView.id)) {
-                reasonIds.add(reasonView.id)
-                const calendarEventReasonEl = d.createElement('li');
-                const anchorEl = d.createElement('a');
-                anchorEl.href = '#' + reasonView.id;
-                anchorEl.textContent = reasonView.headline
-                  ? reasonView.headline
-                  : calendarEventReasons.get(reasonView.id);
-                calendarEventReasonEl.appendChild(anchorEl);
-                tooltipContent.appendChild(calendarEventReasonEl);
+          {
+            const tooltipEl = d.createElement('wa-tooltip');
+            tooltipEl.for = cellElId;
+            tooltipEl.placement = 'bottom';
+            tooltipEl.distance = 0;
+            const tooltipContent = d.createElement('ul');
+            const reasonIds = new Set();
+            for (const calendarEvent of day.events) {
+              for (const reasonView of calendarEvent.reasonViews) {
+                if (!reasonIds.has(reasonView.id)) {
+                  reasonIds.add(reasonView.id)
+                  const calendarEventReasonEl = d.createElement('li');
+                  const anchorEl = d.createElement('a');
+                  anchorEl.href = '#' + reasonView.id;
+                  anchorEl.textContent = reasonView.headline
+                    ? reasonView.headline
+                    : calendarEventReasons.get(reasonView.id);
+                  calendarEventReasonEl.appendChild(anchorEl);
+                  tooltipContent.appendChild(calendarEventReasonEl);
+                }
               }
             }
+            tooltipEl.appendChild(tooltipContent);
+            fastingEventsEl.appendChild(tooltipEl);
           }
-          tooltip.appendChild(tooltipContent);
-          cellEl.appendChild(tooltip);
+
+          cellEl.appendChild(fastingEventsEl);
         }
         gridEl.appendChild(cellEl);
       }
