@@ -1429,12 +1429,12 @@
     },
 
     /**
-     * @param minutes {Number}
-     * @param defaultResult {String}
-     * @return {String}
+     * @param minutes {number|null}
+     * @param defaultResult {string}
+     * @return {string}
      */
     formatMinutes(minutes, defaultResult) {
-      if (!minutes) {
+      if (minutes == null) {
         return defaultResult;
       }
       if (0 <= minutes && minutes <= 1440) {
