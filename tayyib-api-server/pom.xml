@@ -257,7 +257,6 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <skip>true</skip>
                     <!-- default
                     <outputDirectory>${project.build.outputDirectory}</outputDirectory>
                     -->
