@@ -3,6 +3,23 @@ spring:
     restart:
       additional-paths: '/src/main/jte'
 
+  ai:
+    mcp:
+      server:
+        name: tayyib-live-mcp-server
+        protocol: streamable
+        type: sync
+        version: 1.0.0
+
+        capabilities:
+          completion: false
+          prompt: false
+          resource: true
+          tool: true
+
+        streamable-http:
+          disallow-delete: true
+
   application:
     name: Tayyib Backend
   main:
@@ -24,9 +41,11 @@ spring:
     resources:
       static-locations: classpath:webapp/static
 
+
 server:
   port: 12443
   shutdown: graceful
+
 
 dgs:
   graphql:

@@ -112,9 +112,11 @@ public class GetCalendarDaysUsecase {
             final var fastingReasons = createFastingReasons(hijriDay, day.getDayOfWeek());
 
 
-            final var calendarEvents = fastingTimesEntry == null
-                    ? List.of(new CalendarEvent(fastingReasons, null, null))
-                    : createCalendarEvents(fastingTimesEntry.getKey(), day, calendarDays, fastingReasons);
+            final var calendarEvents = fastingReasons.isEmpty()
+                    ? List.<CalendarEvent>of()
+                    : fastingTimesEntry == null
+                        ? List.of(new CalendarEvent(fastingReasons, null, null))
+                        : createCalendarEvents(fastingTimesEntry.getKey(), day, calendarDays, fastingReasons);
             calendarDays.add(new CalendarDayPair(day, hijriDay, calendarEvents));
         }
 

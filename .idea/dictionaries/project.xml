@@ -3,12 +3,17 @@
     <words>
       <w>ALGERIA</w>
       <w>Aladhan</w>
+      <w>Ashari</w>
+      <w>Başkanlığı</w>
       <w>CIL</w>
       <w>DIYANET</w>
       <w>DUBAI</w>
+      <w>Diyanet</w>
+      <w>Dtos</w>
       <w>EGAS</w>
       <w>GULF</w>
       <w>ISNA</w>
+      <w>Ithna</w>
       <w>JAKIM</w>
       <w>KARACHI</w>
       <w>KEMENAG</w>
@@ -18,7 +23,9 @@
       <w>MSC</w>
       <w>MUIS</w>
       <w>MWL</w>
+      <w>Makkah</w>
       <w>QATAR</w>
+      <w>Qura</w>
       <w>SAMR</w>
       <w>SHIA_QUM</w>
       <w>TEHRAN</w>
@@ -26,15 +33,19 @@
       <w>Tayyib</w>
       <w>UMM_AL_QURA</w>
       <w>UOIF</w>
+      <w>Ugama</w>
       <w>arafah</w>
       <w>enterkeyhint</w>
       <w>ical4j</w>
       <w>inputmode</w>
+      <w>jsonrpc</w>
       <w>jsonv2</w>
       <w>manmade</w>
       <w>shawwal</w>
+      <w>tayyib</w>
       <w>tayyiba</w>
       <w>webawesome</w>
+      <w>İşleri</w>
     </words>
   </dictionary>
 </component>
