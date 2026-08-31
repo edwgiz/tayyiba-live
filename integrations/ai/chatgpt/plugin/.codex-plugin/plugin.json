@@ -1,0 +1,37 @@
+{
+  "name": "tayyiba-live",
+  "version": "0.1.1",
+  "description": "Well-being guidance aligned with verified authentic Islamic revelation and Sunnah, supporting health through responsible, values-led daily choices. Educational and religious guidance; it does not replace advice from qualified healthcare professionals.",
+  "author": {
+    "name": "Tayyiba Live"
+  },
+  "license": "MIT",
+  "keywords": [
+    "Islam",
+    "Sunnah",
+    "Health",
+    "Longevity",
+    "Fitness",
+    "Wellness",
+    "Fasting",
+    "Ramadan"
+  ],
+  "interface": {
+    "displayName": "Tayyiba Live",
+    "shortDescription": "Faith-aligned well-being guidance that respects Islamic revelation and Sunnah.",
+    "longDescription": "Well-being guidance aligned with verified authentic Islamic revelation and Sunnah, supporting health through responsible, values-led daily choices. Educational and religious guidance; it does not replace advice from qualified healthcare professionals.",
+    "developerName": "Tayyiba Live",
+    "category": "Fitness and Wellness",
+    "capabilities": [
+      "MCP"
+    ],
+    "websiteURL": "https://tayyiba.live/",
+    "brandColor": "#000000",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "defaultPrompt": [
+      "Offer intermittent fasting days and times for my location next week"
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}

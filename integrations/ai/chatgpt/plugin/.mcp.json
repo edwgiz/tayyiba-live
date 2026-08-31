@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tayyiba-live": {
+      "type": "http",
+      "url": "https://tayyiba.live/mcp"
+    }
+  }
+}
