@@ -44,3 +44,6 @@ databaseChangeLog:
   - include:
       relativeToChangelogFile: true
       file: 00015.sql
+  - include:
+      relativeToChangelogFile: true
+      file: 00016.sql

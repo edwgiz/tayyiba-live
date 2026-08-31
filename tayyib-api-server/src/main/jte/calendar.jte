@@ -3,9 +3,11 @@
 @import com.github.edwgiz.tayyib.domain.model.I18n
 
 @param I18n i18n
+@param String lang
+@param String dir
 
 <!DOCTYPE html>
-<html lang='en' class="wa-theme-default wa-palette-default wa-dark wa-brand-green">
+<html lang='${lang}' dir='${dir}' class='wa-theme-default wa-palette-default wa-dark wa-brand-green'>
 <head>
   <link rel='icon' type='image/svg+xml' href='/img/icon.svg'>
   <link rel='canonical' href='https://tayyiba.live/calendar'/>
@@ -27,7 +29,7 @@
             "applicationCategory": "LifestyleApplication",
             "operatingSystem": "Web Browser",
             "description": "${i18n.fasting().head().description()}",
-            "url": "https://calendar.tayyiba.live/"
+            "url": "https://tayyiba.live/"
         }
   </script>
   <link rel='stylesheet' href='/leaflet/dist/leaflet.css'/>
@@ -518,6 +520,13 @@
       }
     }
 
+    [dir='rtl'] {
+      .dir-sensitive-icon {
+        display: inline-block;
+        transform: scaleX(-1);
+      }
+    }
+
     dialog {
       max-width: min(100vw, 100%) !important;
       max-height: min(100vh, 100%) !important;
@@ -604,7 +613,7 @@
 <body>
 <header>
   <h1>
-    <img alt='Khatim icon' style='height: 2ch; vertical-align: center' src='/img/logo.svg'>
+    <img alt='Khatim icon' style='height: 1lh; vertical-align: center; margin: 0 1ch' src='/img/logo.svg'>
     <span>${i18n.fasting().head().title()}</span>
   </h1>
   @template.calendar.fastingReasons(
@@ -613,9 +622,9 @@
 </header>
 <main>
   <section id='months'>
-    <wa-button id='prev-month-button'><span id='prev-month-label'></span>◂◂</wa-button>
+    <wa-button id='prev-month-button'><span id='prev-month-label'></span><span class='dir-sensitive-icon'>◂◂</span></wa-button>
     <span id='current-month-label'><wa-spinner></wa-spinner></span>
-    <wa-button id='next-month-button'>▸▸<span id='next-month-label' span></span></wa-button>
+    <wa-button id='next-month-button'><span class='dir-sensitive-icon'>▸▸</span><span id='next-month-label'></span></wa-button>
   </section>
   <section id='calendar-grid-cells'></section>
   <section id='settings'>
