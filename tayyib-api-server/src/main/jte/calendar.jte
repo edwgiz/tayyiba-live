@@ -482,18 +482,17 @@
         }
       }
 
-      section#ics {
-        text-align: center;
+      section#ics, section#mcp {
+        div.actions {
+          display: flex;
+          flex-flow: row;
+          justify-content: center;
+          align-items: center;
+          gap: 1ch;
 
-        span#ics-actions {
           font-size: 1rem;
 
-          a#ics-link {
-            margin-left: 1ch;
-            margin-right: 1ch;
-          }
-
-          #ics-copy-status {
+          .copy-status {
             display: inline-block;
             margin-left: 1ch;
             color: #00b300;
@@ -647,12 +646,19 @@
   </section>
   <section id='ics'>
     <h2>${i18n.fasting().ics().label()}</h2>
-    <span id='ics-actions'>
-            <a id='ics-link' target='_blank' rel="noopener noreferrer">${i18n.fasting().ics().linkLabel()}</a>
-            ${i18n.commons().or()}
-            <wa-button type='button' id='ics-copy-link'>${i18n.fasting().ics().copyLinkLabel()}</wa-button>
-            <span id='ics-copy-status' role='status' aria-live='polite'>✓</span>
-        </span>
+    <div class='actions'>
+      <a id='ics-link' target='_blank' rel="noopener noreferrer">${i18n.fasting().ics().linkLabel()}</a>
+      ${i18n.commons().or()}
+      <wa-button type='button' id='ics-copy-link'>${i18n.fasting().ics().copyLinkLabel()}</wa-button>
+      <span id='ics-copy-status' class="copy-status" role='status' aria-live='polite'>✓</span>
+    </div>
+  </section>
+  <section id='mcp'>
+    <h2>${i18n.fasting().mcp().label()}</h2>
+    <div class='actions'>
+      <wa-button type='button' id='mcp-copy-link'>${i18n.fasting().mcp().copyLinkLabel()}</wa-button>
+      <span id='mcp-copy-status' class="copy-status" role='status' aria-live='polite'>✓</span>
+    </div>
   </section>
   <section>
     <h2>${i18n.fasting().reasonsTitle()}</h2>
@@ -710,6 +716,7 @@
           monthFolding: {}
         },
         ics: {},
+        mcp: {},
         settings: {
           location: {},
           timezone: {},
@@ -1611,24 +1618,29 @@
     },
 
     /**
-     * @return {String}
+     * @return {string}
      */
     getHref() {
       return this.icsLinkEl.href;
     }
   }
 
-  app.adapter.dom.ics.copyLink = {
-    init() {
-      let icsCopyStatusTimeout = null;
-      d.getElementById('ics-copy-link')?.addEventListener('click', async () => {
+  app.adapter.dom.copyLink = {
+    /**
+     * @param {string} copyLinkId
+     * @param {() => string} hrefProvider
+     * @param {string} copyStatusId
+     */
+    init(copyLinkId, hrefProvider, copyStatusId) {
+      let copyStatusTimeout = null;
+      d.getElementById(copyLinkId)?.addEventListener('click', async () => {
         try {
-          await navigator.clipboard.writeText(app.adapter.dom.ics.link.getHref());
-          clearTimeout(icsCopyStatusTimeout);
-          const icsCopyStatusEl = document.getElementById('ics-copy-status');
+          await navigator.clipboard.writeText(hrefProvider());
+          clearTimeout(copyStatusTimeout);
+          const icsCopyStatusEl = document.getElementById(copyStatusId);
           icsCopyStatusEl.setAttribute('aria-hidden', 'false');
           icsCopyStatusEl.classList.add('visible');
-          icsCopyStatusTimeout = setTimeout(() => {
+          copyStatusTimeout = setTimeout(() => {
             icsCopyStatusEl.classList.remove('visible');
             setTimeout(() => {
               if (!icsCopyStatusEl.classList.contains('visible')) {
@@ -1637,7 +1649,7 @@
             }, 300);
           }, 2000);
         } catch (error) {
-          console.error('Failed to copy ICS link:', error);
+          console.error('Failed to copy link:', error);
         }
       });
     }
@@ -1671,8 +1683,8 @@
         this.el.replaceChildren(missingPermissionDescriptionEl, ' ', d.createElement('geolocation'), orI18n, pickLocationButtonEl);
       } else {
         if (denied) {
-          missingPermissionDescriptionEl.appendChild(d.createTextNode(', ' + revokeBlockingI18n + orI18n, pickLocationButtonEl));
-          this.el.replaceChildren(missingPermissionDescriptionEl);
+          missingPermissionDescriptionEl.append(', ' + revokeBlockingI18n + orI18n);
+          this.el.replaceChildren(missingPermissionDescriptionEl, pickLocationButtonEl);
         } else {
           const geolocationEl = d.createElement('wa-button');
           geolocationEl.id = 'grant-geolocation-permission';
@@ -1937,7 +1949,8 @@
     }
   }
 
-  app.adapter.dom.ics.copyLink.init();
+  app.adapter.dom.copyLink.init('ics-copy-link', () => app.adapter.dom.ics.link.getHref(), 'ics-copy-status');
+  app.adapter.dom.copyLink.init('mcp-copy-link', () => new URL('/mcp', window.location.origin).href, 'mcp-copy-status');
 
 
   app.usecase.calendar.reload = {

@@ -31,6 +31,7 @@ public record I18n(
     public record Fasting(
             Head head,
             Ics ics,
+            Mcp mcp,
             String reasonsTitle,
             FastingReasonGroups reasonGroups
     ) {
@@ -56,6 +57,12 @@ public record I18n(
                         String hijriDateLabel
                 ) {}
             }
+        }
+
+        public record Mcp(
+                String label,
+                String copyLinkLabel
+        ) {
         }
 
         public record FastingReasonGroups(
