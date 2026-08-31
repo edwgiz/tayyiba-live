@@ -693,7 +693,7 @@
       ${i18n.footer().contacts().label()}
       :
       <a
-        href='https://github.com/edwgiz/tayyib-fasting-calendar'
+        href='https://github.com/edwgiz/tayyiba-live'
         target='_blank'
         rel='noopener noreferrer'
       >${i18n.footer().contacts().githubRefDescription()}</a>
