@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00008 author:edwgiz@zohomail.com
+--changeset id:00008 author:edwgiz@zohomail.eu
 
 insert into i18n_bundles (locale, code, value)
 values ('en', 'prayer-time-method-groups.AUTOMATIC.name', 'Automatic'),

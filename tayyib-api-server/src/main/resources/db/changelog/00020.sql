@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00020 author:edwgiz@zohomail.com
+--changeset id:00020 author:edwgiz@zohomail.eu
 
 insert into i18n_bundles (locale, code, value) values ('in', 'calendar.current-month', 'Bulan Ini');
 insert into i18n_bundles (locale, code, value) values ('in', 'calendar.event.fajr', 'Fajar');

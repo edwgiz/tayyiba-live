@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00013 author:edwgiz@zohomail.com
+--changeset id:00013 author:edwgiz@zohomail.eu
 
 delete from i18n_bundles where code='settings.by-device';
 

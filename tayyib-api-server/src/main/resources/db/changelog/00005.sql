@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00005 author:edwgiz@zohomail.com
+--changeset id:00005 author:edwgiz@zohomail.eu
 
 insert into i18n_bundles (locale, code, value)
 values ('en', 'settings.prayer-time-method', 'Prayer Time Method'),

@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00009 author:edwgiz@zohomail.com
+--changeset id:00009 author:edwgiz@zohomail.eu
 
 
 update i18n_bundles

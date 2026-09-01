@@ -1,5 +1,5 @@
 --liquibase formatted sql
---changeset id:00002 author:edwgiz@zohomail.com
+--changeset id:00002 author:edwgiz@zohomail.eu
 
 create table i18n_bundles
 (
