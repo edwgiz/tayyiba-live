@@ -32,7 +32,8 @@ type NutrientLink {
 
 
 input GetCalendarCellsInput {
-  millis: Long!,
+  monthMillis: Long!,
+  todayMillis: Long,
   timezone: String!,
   hijriMethod: HijriMethod!,
   fastingTimeCalculationInput: FastingTimeCalculationInput

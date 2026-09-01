@@ -31,6 +31,7 @@ import static com.github.edwgiz.tayyib.adapter.commons.dgs.dto.PrayerTimeMethod.
 import static java.time.DayOfWeek.MONDAY;
 import static java.time.DayOfWeek.SATURDAY;
 import static java.time.DayOfWeek.SUNDAY;
+import static java.time.Instant.ofEpochMilli;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
@@ -80,9 +81,11 @@ public class CalendarFetcher {
         }
         final var i18n = getBundleUsecase.apply(requestData.locale());
         final var timezone = ZoneId.of(input.getTimezone());
-        final var today = Instant.ofEpochMilli(input.getMillis()).atZone(timezone).toLocalDate();
-        final var firstDayOfMonth = today.with(firstDayOfMonth());
-        final var lastDayOfMonth = today.with(lastDayOfMonth());
+        final var monthDate = ofEpochMilli(input.getMonthMillis()).atZone(timezone).toLocalDate();
+        final var today = input.getTodayMillis() == null ? null :
+                ofEpochMilli(input.getTodayMillis()).atZone(timezone).toLocalDate();
+        final var firstDayOfMonth = monthDate.with(firstDayOfMonth());
+        final var lastDayOfMonth = monthDate.with(lastDayOfMonth());
         final var calendarResult = getCalendarDaysUsecase.apply(
                 firstDayOfMonth.with(previousOrSame(isSundayFirst ? SUNDAY : MONDAY)),
                 lastDayOfMonth.with(nextOrSame(isSundayFirst ? SATURDAY : SUNDAY)),

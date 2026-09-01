@@ -1985,11 +1985,11 @@
 
       const today = new Date();
       const month = app.adapter.repository.Month;
-      const isTodayMonth = month.getFullYear() === today.getFullYear() && month.getMonth() === today.getMonth();
 
       const args = {
         input: {
-          millis: isTodayMonth ? today.getTime() : month.getTime(),
+          monthMillis: month.getTime(),
+          todayMillis: today.getTime(),
           timezone: app.adapter.repository.timezone.getOrDefault(Intl.DateTimeFormat().resolvedOptions().timeZone),
           hijriMethod: '${HijriMethod.UAQ}',
           fastingTimeCalculationInput: this.fastingTimeCalculationInput()
@@ -2045,9 +2045,6 @@
         })
         .then(jsonResp => {
           const dto = jsonResp.data.getCalendarCells;
-          if (!isTodayMonth) {
-            dto.todayIndex = -1;
-          }
           const pageScrollTop = window.scrollY;
           app.adapter.dom.calendar.grid.renderCalendarHeader(dto.dayOfWeekNames);
           const locationInput = args.input.fastingTimeCalculationInput;
